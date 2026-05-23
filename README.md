@@ -1,87 +1,192 @@
-# Coffee Shop Menu PWA — Reusable Template
+# arh-fnb-webapp — Multi-Store FnB Menu PWA
 
-A zero-dependency, single-file menu PWA for small food & beverage businesses.
-Built on Firebase Realtime Database + Cloudflare Workers. No build step required.
+A zero-dependency menu PWA for small food & beverage businesses.
+Vanilla HTML/CSS/JS + Firebase Realtime Database + Cloudflare Workers. No build step.
+
+## Live Deployments
+
+| Store | Branch | Preview URL |
+|---|---|---|
+| Beelal Coffee | `store/beelal` | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
+| The Rizz Western Empire | `store/therizz` | `https://store-therizz-fnb-pwa.arh-homelab.workers.dev` |
+| Template (production) | `main` | `https://fnb-pwa.arh-homelab.workers.dev` |
+
+All deployments are automatic — push to a branch, CF builds within ~30 seconds.
+
+---
+
+## Repository Architecture
+
+```
+main              ← clean reusable template (no real store data)
+store/beelal      ← Beelal Coffee — own config, own Firebase namespace
+store/therizz     ← The Rizz Western Empire — own config, own Firebase namespace
+```
+
+`main` is the template base. Each store lives on its own branch and is **never merged back into main**. The branches are the deployment artifacts — Cloudflare Workers builds each one as a permanent branch preview.
+
+**Adding a new store:**
+```bash
+git checkout main
+git checkout -b store/<newstore>
+# edit config.js with the new store's details
+git push -u origin store/<newstore>
+# CF auto-builds a preview URL: store-<newstore>-fnb-pwa.arh-homelab.workers.dev
+```
+
+---
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `config.js` | **Edit this first** — all business-specific settings |
-| `index.html` | Customer-facing menu PWA |
-| `admin.html` | Owner/developer admin panel |
+| `config.js` | **The only file you edit per store** — all business settings |
+| `index.html` | Customer-facing menu PWA (engine — never edit for branding) |
+| `admin.html` | Owner/developer admin panel (engine — never edit for branding) |
 | `guide.html` | Owner reference guide |
-| `wrangler.jsonc` | Cloudflare Workers deployment config |
+| `wrangler.jsonc` | Cloudflare Workers project name for this branch |
 
-## Quick Start (New Deployment)
+---
 
-### 1. Firebase Setup
-1. Go to [console.firebase.google.com](https://console.firebase.google.com) and create a free project
-2. Enable **Realtime Database** → start in test mode
-3. Copy your database URL (e.g. `https://my-app-default-rtdb.firebaseio.com`)
+## Infrastructure
 
-### 2. Edit `config.js`
-Open `config.js` and fill in:
+### Cloudflare Workers
+- **Project name:** `fnb-pwa`
+- **Connected repo:** `arhsmoque/arh-fnb-webapp`
+- **Production branch:** `main`
+- **Branch builds:** enabled — every branch gets a preview URL automatically
+- **API token:** `arh-fnb-webapp` (scoped to this project only)
+
+### Firebase Realtime Database
+- **Project:** `ash-2026-photobook` (shared — one DB for all stores, forever)
+- **URL:** `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`
+- **Isolation:** each store writes under its own `firebase.root` key — data never overlaps, no cross-store reads possible
+
+**Never create a new Firebase project for a new store.** Just pick a new `firebase.root` key.
+
+| Store | `firebase.root` |
+|---|---|
+| Beelal Coffee | `beelal_coffee` |
+| The Rizz | `therizz` |
+| New store | any unique key, lowercase, underscores ok, no slashes |
+
+---
+
+## config.js Schema
+
+`config.js` is the sole adapter between the engine and a specific store. Every field:
+
 ```js
-firebase: {
-  url:  'YOUR_FIREBASE_RTDB_URL',   // from step above
-  root: 'my_shop',                  // choose any namespace key
-},
-store: {
-  name:     'My Coffee Shop',
-  phone:    'YOUR_WHATSAPP_NUMBER', // e.g. 60122203743
-  currency: 'RM',                   // your currency symbol
-  ...
-},
+const _STORE_NAME = 'My Store Name';  // defined first — used in systemPrompt
+
+const APP_CONFIG = {
+  firebase: {
+    url:  'https://...',   // Firebase RTDB URL
+    root: 'my_store',      // unique namespace key — no slashes, no spaces
+  },
+
+  store: {
+    name:     _STORE_NAME,
+    slogan:   '...',
+    phone:    '601XXXXXXXX',   // WhatsApp number, digits only, country code first
+    hours:    '...',
+    currency: 'RM',
+
+    sizeLegend: ['HOT 8oz', 'COLD 12oz', 'FRAPPÉ 16oz', 'LARGE +RM4'],
+    // ^ shown above drink categories. Omit sizes not offered by the store.
+
+    foodAddons: [              // optional — shown at bottom of showAddons: true categories
+      { name: 'Extra Cheese', price: 2 },
+    ],
+  },
+
+  brand: {
+    appName:   _STORE_NAME,    // page title, PWA name, WhatsApp order footer
+    adminName: 'My Admin',     // shown in admin panel header
+    locale:    'en-MY',        // date/time locale
+  },
+
+  ai: {
+    model:        'google/gemma-4-26b-it:free',
+    systemPrompt: `...`,       // inline — uses _STORE_NAME helper
+    quickChips:   [...],       // shortcut prompts shown in AI Studio
+  },
+
+  defaultTheme: {
+    bg, bg2, bg3,              // page background layers
+    surface,                   // card background
+    primary, accent, accent2,  // brand colours
+    text, text2, text3,        // text hierarchy
+    font_display, font_body,   // Google Fonts strings
+  },
+
+  defaultMenu: {
+    categories: [
+      // type: 'drinks'   → shows sizeLegend chips above items
+      // showAddons: true → shows foodAddons rows at bottom of section
+      { id: 'coffee', label: 'Coffee', emoji: '☕', type: 'drinks' },
+    ],
+    items: [
+      // hot/cold/frappe → drink prices per size (null = not offered)
+      // price           → fixed price for food items
+      // avail: false    → shown as crossed out / sold out
+      { id:'c1', cat:'coffee', name:'Americano', desc:'', emoji:'☕',
+        hot:6, cold:8, frappe:10, price:null, avail:true },
+    ],
+  },
+};
 ```
-Also update `brand.appName`, `brand.adminName`, and `brand.locale` to match your business.
 
-### 3. Update `wrangler.jsonc`
-Change the `name` field to your Cloudflare Workers project name.
+---
 
-### 4. Deploy to Cloudflare
-**Option A — Cloudflare Pages (recommended):**
-1. Push all files to a GitHub repository
-2. Cloudflare Dashboard → Pages → Create Project → Connect Git → select your repo
-3. Build settings: Framework preset = None, Build command = (blank), Output directory = `/`
-4. Save and Deploy — every push to `main` auto-deploys in ~30 seconds
+## Setting Up a New Store (step by step)
 
-**Option B — Cloudflare Workers:**
-```bash
-npx wrangler deploy
-```
+1. **Branch from main**
+   ```bash
+   git checkout main && git pull origin main
+   git checkout -b store/<newstore>
+   ```
 
-### 5. First-Time Admin Setup
-1. Open `admin.html` in your browser
-2. First-run screen appears — set your 4-digit Developer PIN
-3. Log in with Developer PIN
-4. Go to **Dev** tab → paste your OpenRouter API key → Test → Save
-   *(Free key available at [openrouter.ai](https://openrouter.ai))*
-5. **Dev** tab → **Take Master Snapshot** (sets factory reset baseline)
-6. **Security** tab → confirm or change the Owner PIN (default: `1234`)
-7. Share the menu URL with customers and the admin URL with the store owner
+2. **Edit `config.js`** — fill in every field. Key things:
+   - `firebase.url` — **always use the shared URL above**, never create a new Firebase project
+   - `firebase.root` — pick a new unique key (e.g. `newstore_kl`); this is the only Firebase change needed
+   - `store.sizeLegend` — only include sizes the store actually offers
+   - `store.foodAddons` — omit the field entirely if the store has no add-ons
+   - `defaultMenu` — replace with real items before first deploy
 
-## Customising the Default Menu
+3. **`wrangler.jsonc`** — already set to `fnb-pwa`, no change needed
 
-The starter menu (3 coffee drinks, 2 non-coffee drinks, 2 food items) is defined in `config.js` under `defaultMenu`. It is seeded to Firebase on first run.
+4. **Push**
+   ```bash
+   git add config.js
+   git commit -m "feat: <Store Name> store configuration"
+   git push -u origin store/<newstore>
+   ```
+   CF builds automatically. Preview URL appears within ~30 seconds.
 
-To replace it:
-- Edit `config.js → defaultMenu` before first deployment, **or**
-- Use the Admin panel (Menu tab) to add/edit items after deployment
+5. **First-time admin setup** — open `<preview-url>/admin.html`:
+   - Set 4-digit Developer PIN
+   - Dev tab → paste OpenRouter API key → Test → Save *(free at openrouter.ai)*
+   - Dev tab → **Take Master Snapshot**
+   - Security tab → set Owner PIN (default: `1234`)
+
+---
 
 ## Recovery
 
 | Problem | Fix |
 |---|---|
-| Owner forgot PIN | Log in with Dev PIN → Security tab → reset Owner PIN |
+| Owner forgot PIN | Dev PIN → Security tab → reset Owner PIN |
 | Theme broken | Dev PIN → AI Studio → Factory Reset |
-| Want to redeploy | Push files to GitHub — database is unaffected |
+| Redeploy needed | Push any commit to the store branch |
 | Debug errors | Dev PIN → Dev tab → Error Log |
+
+---
 
 ## Architecture
 
-- **No build system** — vanilla HTML/CSS/JS, three static files
-- **Firebase Realtime Database** — stores menu, theme, config, orders, PINs
-- **Cloudflare Workers / Pages** — serves the static files globally
-- **OpenRouter** — AI gateway for the theme studio feature (optional)
-- **WhatsApp** — order delivery via `wa.me` deep link (no integration required)
+- **No build system** — vanilla HTML/CSS/JS, static files served directly
+- **Firebase Realtime Database** — stores menu, theme, config, orders, PINs; namespaced per store via `firebase.root`
+- **Cloudflare Workers** — serves static files globally; one CF project (`fnb-pwa`) covers all stores via branch builds
+- **OpenRouter** — AI gateway for the theme studio (optional, free tier available)
+- **WhatsApp** — order delivery via `wa.me` deep link, no integration needed
