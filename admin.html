@@ -350,6 +350,15 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <div class="form-row"><label class="form-label">Logo URL (optional)</label><input class="form-input" id="iLogo" placeholder="https://..."></div>
       <button class="btn btn-primary" onclick="saveStore()">Save Store Info</button>
     </div>
+    <div class="a-card">
+      <div class="a-card-title">Size Legend</div>
+      <div class="sec-sub" style="margin-bottom:12px">Labels shown as chips on Coffee &amp; Non-Coffee sections</div>
+      <div class="form-row"><label class="form-label">Chip 1</label><input class="form-input" id="iSize1" placeholder="e.g. HOT 8oz"></div>
+      <div class="form-row"><label class="form-label">Chip 2</label><input class="form-input" id="iSize2" placeholder="e.g. COLD 12oz"></div>
+      <div class="form-row"><label class="form-label">Chip 3</label><input class="form-input" id="iSize3" placeholder="e.g. FRAPPÉ 16oz"></div>
+      <div class="form-row"><label class="form-label">Chip 4</label><input class="form-input" id="iSize4" placeholder="e.g. LARGE +RM4"></div>
+      <button class="btn btn-primary" onclick="saveSizeLegend()">Save Size Legend</button>
+    </div>
   </div>
 
   <!-- MENU TAB -->
@@ -876,20 +885,46 @@ async function loadStoreTab() {
   document.getElementById('iPhone').value  = storeData.phone   || APP_CONFIG.store.phone;
   document.getElementById('iLogo').value   = storeData.logo_url|| '';
   document.getElementById('togOpen').checked = storeData.isOpen !== false;
+  const legend = storeData.sizeLegend || APP_CONFIG.store.sizeLegend;
+  document.getElementById('iSize1').value = legend[0] || '';
+  document.getElementById('iSize2').value = legend[1] || '';
+  document.getElementById('iSize3').value = legend[2] || '';
+  document.getElementById('iSize4').value = legend[3] || '';
 }
 async function saveStore() {
   await safe(async () => {
+    const legend = [
+      document.getElementById('iSize1').value.trim(),
+      document.getElementById('iSize2').value.trim(),
+      document.getElementById('iSize3').value.trim(),
+      document.getElementById('iSize4').value.trim(),
+    ].filter(Boolean);
     const d = {
-      name:     document.getElementById('iName').value.trim(),
-      slogan:   document.getElementById('iSlogan').value.trim(),
-      hours:    document.getElementById('iHours').value.trim(),
-      phone:    document.getElementById('iPhone').value.trim(),
-      logo_url: document.getElementById('iLogo').value.trim(),
-      isOpen:   document.getElementById('togOpen').checked
+      name:       document.getElementById('iName').value.trim(),
+      slogan:     document.getElementById('iSlogan').value.trim(),
+      hours:      document.getElementById('iHours').value.trim(),
+      phone:      document.getElementById('iPhone').value.trim(),
+      logo_url:   document.getElementById('iLogo').value.trim(),
+      isOpen:     document.getElementById('togOpen').checked,
+      sizeLegend: legend.length ? legend : APP_CONFIG.store.sizeLegend,
     };
     await fbSet('config/store', d);
     toast('Store info saved ✓');
   }, 'saveStore');
+}
+async function saveSizeLegend() {
+  await safe(async () => {
+    const legend = [
+      document.getElementById('iSize1').value.trim(),
+      document.getElementById('iSize2').value.trim(),
+      document.getElementById('iSize3').value.trim(),
+      document.getElementById('iSize4').value.trim(),
+    ].filter(Boolean);
+    const s = await fbGet('config/store') || {};
+    s.sizeLegend = legend.length ? legend : APP_CONFIG.store.sizeLegend;
+    await fbSet('config/store', s);
+    toast('Size legend saved ✓');
+  }, 'saveSizeLegend');
 }
 async function saveStoreField(field, val) {
   await safe(async () => {
@@ -905,14 +940,19 @@ async function saveStoreField(field, val) {
 // ════════════════════════════════════════════════════════════
 async function loadMenuData() {
   await safe(async () => {
+    const configCatById  = {};
+    APP_CONFIG.defaultMenu.categories.forEach(c => configCatById[c.id] = c);
+    const configItemById = {};
+    APP_CONFIG.defaultMenu.items.forEach(i => configItemById[i.id] = i);
+
     const snap = await fbGet('menu/items');
-    menuItems = snap ? Object.values(snap) : [];
+    menuItems = snap
+      ? Object.values(snap).map(item => ({ ...(configItemById[item.id] || {}), ...item }))
+      : [];
     const cats = await fbGet('menu/categories');
-    menuCats  = cats ? Object.values(cats) : [
-      {id:'coffee',label:'Coffee',emoji:'☕'},{id:'noncoffee',label:'Non-Coffee',emoji:'🥤'},
-      {id:'food',label:'Food',emoji:'🥪'},{id:'pasta',label:'Pasta',emoji:'🍝'},
-      {id:'special',label:'Special',emoji:'⭐'},{id:'friday',label:'Friday Special',emoji:'🌟'}
-    ];
+    menuCats = cats
+      ? Object.values(cats).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat }))
+      : APP_CONFIG.defaultMenu.categories;
     renderCatList();
     updateCatDropdown();
     renderMenuList();
@@ -1697,7 +1737,7 @@ ${Object.entries(menuBycat).map(([cat,items]) =>
 ).join('\n')}
 
 site_structure:
-  sections: [coffee, noncoffee, food, pasta, special, friday]
+  sections: [${menuCats.map(c => c.id).join(', ')}]
   css_variables:
     --bg: page background
     --surface: card/white areas
