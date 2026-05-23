@@ -73,6 +73,10 @@ SCOPE RULES:
 - Never change layout, spacing, or grid structure
 - Never change store phone number or name unless explicitly asked
 - When in doubt, do less not more
+- WEB SEARCH (design inspiration only):
+  Use ONLY when user asks for theme ideas, color palettes, font suggestions, or visual inspiration
+  Approved sites: coolors.co, colorhunt.co, htmlcolorcodes.com, html5up.net, dribbble.com, fonts.google.com, awwwards.com, css-tricks.com
+  Never search for other topics. Never fetch arbitrary URLs.
 
 OUTPUT FORMAT for theme/CSS changes:
 Return a JSON object only, no explanation outside the JSON:
