@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -347,7 +347,24 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <div class="form-row"><label class="form-label">Slogan</label><input class="form-input" id="iSlogan" placeholder="Medium Dark Roast · 100% Arabica"></div>
       <div class="form-row"><label class="form-label">Opening Hours</label><input class="form-input" id="iHours" placeholder="8:00 AM – 10:00 PM daily"></div>
       <div class="form-row"><label class="form-label">WhatsApp Number</label><input class="form-input" id="iPhone" placeholder="Country code + number, digits only" inputmode="numeric"></div>
-      <div class="form-row"><label class="form-label">Logo URL (optional)</label><input class="form-input" id="iLogo" placeholder="https://..."></div>
+      <div class="form-row">
+        <label class="form-label">Logo (optional)</label>
+        <div class="photo-upload-area">
+          <img id="iLogoPreview" class="photo-preview" style="display:none">
+          <input type="hidden" id="iLogo">
+          <label class="photo-upload-btn">📷 Upload Logo<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleLogoUpload(this)"></label>
+          <div id="iLogoStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Banner (optional)</label>
+        <div class="photo-upload-area">
+          <img id="iBannerPreview" class="photo-preview" style="display:none;max-height:80px;width:100%;object-fit:cover">
+          <input type="hidden" id="iBanner">
+          <label class="photo-upload-btn">🖼️ Upload Banner<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleBannerUpload(this)"></label>
+          <div id="iBannerStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
+        </div>
+      </div>
       <button class="btn btn-primary" onclick="saveStore()">Save Store Info</button>
     </div>
     <div class="a-card">
@@ -581,6 +598,17 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Injected before every Gemini request. Edit to fine-tune behaviour, persona, and ambiguity rules.</div>
         <textarea class="sysprompt-textarea" id="sysPromptInput"></textarea>
         <button class="btn btn-primary" onclick="saveSysPrompt()" style="margin-top:10px">Save System Prompt</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <div class="dev-title">Imgur Client-ID</div>
+      <div class="a-card">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Public identifier for anonymous image uploads. Get a free Client-ID at <strong>api.imgur.com/oauth2/addclient</strong>. Safe to store — it is not a secret key.</div>
+        <div class="api-key-row">
+          <input class="api-key-input" id="imgurClientId" type="text" placeholder="xxxxxxxxxxxxxxx">
+        </div>
+        <button class="btn btn-primary" onclick="saveImgurClientId()" style="margin-top:10px">Save Client-ID</button>
       </div>
     </div>
 
@@ -934,7 +962,14 @@ async function loadStoreTab() {
   document.getElementById('iSlogan').value = storeData.slogan  || '';
   document.getElementById('iHours').value  = storeData.hours   || '';
   document.getElementById('iPhone').value  = storeData.phone   || APP_CONFIG.store.phone;
-  document.getElementById('iLogo').value   = storeData.logo_url|| '';
+  const logoUrl = storeData.logo_url || '';
+  document.getElementById('iLogo').value = logoUrl;
+  const lp = document.getElementById('iLogoPreview');
+  if (logoUrl) { lp.src = logoUrl; lp.style.display = 'block'; } else { lp.style.display = 'none'; }
+  const bannerUrl = storeData.banner_url || '';
+  document.getElementById('iBanner').value = bannerUrl;
+  const bp = document.getElementById('iBannerPreview');
+  if (bannerUrl) { bp.src = bannerUrl; bp.style.display = 'block'; } else { bp.style.display = 'none'; }
   document.getElementById('togOpen').checked = storeData.isOpen !== false;
   const legend = storeData.sizeLegend || APP_CONFIG.store.sizeLegend;
   document.getElementById('iSize1').value = legend[0] || '';
@@ -956,6 +991,7 @@ async function saveStore() {
       hours:      document.getElementById('iHours').value.trim(),
       phone:      document.getElementById('iPhone').value.trim(),
       logo_url:   document.getElementById('iLogo').value.trim(),
+      banner_url: document.getElementById('iBanner').value.trim(),
       isOpen:     document.getElementById('togOpen').checked,
       sizeLegend: legend.length ? legend : APP_CONFIG.store.sizeLegend,
     };
@@ -1144,6 +1180,64 @@ function openEditModal(id) {
   document.getElementById('editModal').classList.add('open');
 }
 
+
+// ════════════════════════════════════════════════════════════
+// IMGUR UPLOAD
+// ════════════════════════════════════════════════════════════
+async function imgurUpload(file, maxW, maxH) {
+  const clientId = await safe(() => fbGet('config/dev/imgur_client_id'), 'imgurClientId');
+  if (!clientId) throw new Error('No Imgur Client-ID saved. Add it in Dev ⚙ tab first.');
+  const maxPx = Math.max(maxW, maxH);
+  const dataUrl = await resizeImageToDataURL(file, maxPx, 0.82);
+  const blob = await (await fetch(dataUrl)).blob();
+  const form = new FormData();
+  form.append('image', blob);
+  const r = await fetch('https://api.imgur.com/3/image', {
+    method: 'POST',
+    headers: { Authorization: 'Client-ID ' + clientId },
+    body: form
+  });
+  const j = await r.json();
+  if (!j.success) throw new Error(j.data?.error || 'Imgur upload failed');
+  return j.data.link;
+}
+
+async function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('iLogoStatus');
+  statusEl.textContent = 'Uploading…';
+  try {
+    const url = await imgurUpload(file, 400, 400);
+    document.getElementById('iLogo').value = url;
+    const preview = document.getElementById('iLogoPreview');
+    preview.src = url; preview.style.display = 'block';
+    statusEl.textContent = 'Uploaded ✓ — tap Save Store Info to apply';
+  } catch (e) { statusEl.textContent = 'Upload failed: ' + e.message; }
+}
+
+async function handleBannerUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('iBannerStatus');
+  statusEl.textContent = 'Uploading…';
+  try {
+    const url = await imgurUpload(file, 1200, 400);
+    document.getElementById('iBanner').value = url;
+    const preview = document.getElementById('iBannerPreview');
+    preview.src = url; preview.style.display = 'block';
+    statusEl.textContent = 'Uploaded ✓ — tap Save Store Info to apply';
+  } catch (e) { statusEl.textContent = 'Upload failed: ' + e.message; }
+}
+
+async function saveImgurClientId() {
+  await safe(async () => {
+    const id = document.getElementById('imgurClientId').value.trim();
+    if (!id) { toast('Enter a Client-ID'); return; }
+    await fbSet('config/dev/imgur_client_id', id);
+    toast('Imgur Client-ID saved ✓');
+  }, 'saveImgurClientId');
+}
 // ════════════════════════════════════════════════════════════
 // PHOTO UPLOAD
 // ════════════════════════════════════════════════════════════
@@ -1966,6 +2060,10 @@ async function loadDevTab() {
       opt.selected = true;
       document.getElementById('modelStatus').textContent = `Current: ${savedModel}`;
     }
+
+    // Imgur Client-ID
+    const imgurId = await fbGet('config/dev/imgur_client_id');
+    if (imgurId) document.getElementById('imgurClientId').value = imgurId;
 
     // System prompt
     const sp = await fbGet('config/dev/sys_prompt');
