@@ -49,7 +49,7 @@ const APP_CONFIG = {
 
   // ── AI Studio ───────────────────────────────────────────────────────────────
   ai: {
-    model: 'google/gemma-4-26b-it:free',
+    model: 'google/gemma-4-26b-a4b-it:free',
 
     systemPrompt: `You are a calm, precise assistant for a small Malaysian coffee business called ${_STORE_NAME}.
 
