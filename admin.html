@@ -740,6 +740,16 @@ const FREE_MODEL_FALLBACKS = [
   'mistralai/mistral-7b-instruct:free',
   'openrouter/free',
 ];
+const WEB_SEARCH_DOMAINS = [
+  'coolors.co',
+  'colorhunt.co',
+  'htmlcolorcodes.com',
+  'html5up.net',
+  'dribbble.com',
+  'fonts.google.com',
+  'awwwards.com',
+  'css-tricks.com',
+];
 let extractedFonts  = null;
 let extractedPalette = [];
 let fontChoices   = {};   // { targetId: 'current' | 'template' }
@@ -1826,7 +1836,10 @@ async function sendChat() {
                  'HTTP-Referer': location.origin, 'X-Title': APP_CONFIG.brand.adminName },
       body: JSON.stringify({ models: modelRotation, messages, max_tokens: 600, temperature: 0.3,
                              response_format: { type: 'json_object' },
-                             plugins: [{ id: 'response-healing' }] })
+                             plugins: [{ id: 'response-healing' }],
+                             tools: [{ type: 'openrouter:web_search',
+                                       parameters: { allowed_domains: WEB_SEARCH_DOMAINS,
+                                                     max_results: 3, search_context_size: 'low' } }] })
     }, 25000);
 
     clearInterval(progTimer);
