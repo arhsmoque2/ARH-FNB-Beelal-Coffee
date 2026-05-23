@@ -1,6 +1,6 @@
 {
   // Change "name" to match your Cloudflare Workers project name
-  "name": "beelal-coffee",
+  "name": "fnb-pwa",
   "compatibility_date": "2026-04-14",
   "observability": {
     "enabled": true
