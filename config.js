@@ -1,25 +1,25 @@
 /**
- * config.js — The Rizz Western Empire
+ * config.js — Beelal Coffee
  *
  * @role     adapter / rules-config
  * @risk     local_mutation
  * @contract APP_CONFIG → consumed by index.html + admin.html as DEFAULT_CONFIG and DEFAULT_MENU
  *
- * Store-specific adapter for The Rizz Western Empire.
+ * Store-specific adapter for Beelal Coffee.
  * This is the ONLY file you edit when deploying for a new entity.
  * The base engine (index.html, admin.html) never needs to change for branding,
  * fonts, menu, or theme — all of that flows through APP_CONFIG below.
  */
 
 // ── Helper: used by systemPrompt to reference store name without circular ref ──
-const _STORE_NAME = 'The Rizz Western Empire';
+const _STORE_NAME = 'Beelal Coffee';
 
 const APP_CONFIG = {
 
   // ── Firebase Realtime Database ──────────────────────────────────────────────
   firebase: {
-    url:  'YOUR_FIREBASE_RTDB_URL',
-    root: 'therizz',
+    url:  'https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app',
+    root: 'beelal_coffee',
   },
 
   // ── Store Defaults ──────────────────────────────────────────────────────────
@@ -27,18 +27,23 @@ const APP_CONFIG = {
   // Once saved via the Admin panel, Firebase values take over permanently.
   store: {
     name:     _STORE_NAME,
-    slogan:   'Western Food · Pizza · Specialty Coffee',
-    phone:    '60XXXXXXXXXX',
-    hours:    '10:00 AM – 10:00 PM daily',
+    slogan:   'Medium Dark Roast · 100% Arabica',
+    phone:    '60122203743',
+    hours:    '8:00 AM – 10:00 PM daily',
     currency: 'RM',
 
-    sizeLegend: ['HOT', 'COLD ICE'],
+    sizeLegend: ['HOT 8oz', 'COLD 12oz', 'FRAPPÉ 16oz', 'LARGE +RM4'],
+
+    foodAddons: [
+      { name: 'Extra Double Shot', price: 4 },
+      { name: 'Extra Cheese',      price: 2 },
+    ],
   },
 
   // ── App Branding ────────────────────────────────────────────────────────────
   brand: {
     appName:   _STORE_NAME,
-    adminName: 'The Rizz Admin',
+    adminName: 'Beelal Admin',
     locale:    'en-MY',
   },
 
@@ -46,131 +51,7 @@ const APP_CONFIG = {
   ai: {
     model: 'google/gemma-4-26b-it:free',
 
-    // systemPrompt is set after APP_CONFIG to reference store.name without circular ref.
-    systemPrompt: null,
-
-    quickChips: [
-      { label: '🎉 Raya Theme',      prompt: 'Retheme for Hari Raya Aidilfitri — festive green and gold tones' },
-      { label: '↩ Reset to Default', prompt: `Reset all theme colors and fonts back to original ${_STORE_NAME} dark red and white theme` },
-      { label: '✏️ Change Slogan',   prompt: 'Change the slogan to: ' },
-      { label: '🍕 Pizza Off',       prompt: 'Mark all pizza items as sold out for today' },
-      { label: '🍝 Pasta Off',       prompt: 'Mark all pasta items as sold out for today' },
-      { label: '✅ All Available',   prompt: 'Mark all menu items as available' },
-    ],
-  },
-
-  // ── Default Theme ───────────────────────────────────────────────────────────
-  defaultTheme: {
-    bg:           '#FFF8F8',
-    bg2:          '#FFE8E8',
-    bg3:          '#FFCCCC',
-    surface:      '#FFFFFF',
-    primary:      '#8B0000',
-    accent:       '#C41E3A',
-    accent2:      '#E84C5A',
-    text:         '#1A0A0A',
-    text2:        '#6B3333',
-    text3:        '#AA7777',
-    font_display: "'Playfair Display', Georgia, serif",
-    font_body:    "'DM Sans', sans-serif",
-  },
-
-  // ── Default Menu ────────────────────────────────────────────────────────────
-  // Full The Rizz Western Empire menu — seeded to Firebase on first run if no data exists.
-  //
-  // Category fields:
-  //   type: 'drinks'    → shows size legend chips (hot/cold) above items
-  defaultMenu: {
-    categories: [
-      { id: 'coffee',    label: 'Coffee',      emoji: '☕',    type: 'drinks' },
-      { id: 'noncoffee', label: 'Non-Coffee',  emoji: '🧋',   type: 'drinks' },
-      { id: 'drinks',    label: 'Traditional', emoji: '🥤' },
-      { id: 'pizza',     label: 'Pizza',       emoji: '🍕' },
-      { id: 'western',   label: 'Western',     emoji: '🍽️' },
-      { id: 'pasta',     label: 'Pasta',       emoji: '🍝' },
-    ],
-    items: [
-      // COFFEE (hot / cold ice)
-      { id:'c1', cat:'coffee', name:'Americano',         desc:'', emoji:'☕', hot:5,  cold:7,  frappe:null, price:null, avail:true },
-      { id:'c2', cat:'coffee', name:'Classic Latte',     desc:'', emoji:'☕', hot:6,  cold:7,  frappe:null, price:null, avail:true },
-      { id:'c3', cat:'coffee', name:'Cappucino',         desc:'', emoji:'☕', hot:6,  cold:7,  frappe:null, price:null, avail:true },
-      { id:'c4', cat:'coffee', name:'Hazelnut Latte',    desc:'', emoji:'☕', hot:7,  cold:8,  frappe:null, price:null, avail:true },
-      { id:'c5', cat:'coffee', name:'Caramel Latte',     desc:'', emoji:'☕', hot:7,  cold:8,  frappe:null, price:null, avail:true },
-      { id:'c6', cat:'coffee', name:'Buttercream Latte', desc:'', emoji:'☕', hot:7,  cold:8,  frappe:null, price:null, avail:true },
-      { id:'c7', cat:'coffee', name:'Mocha',             desc:'', emoji:'☕', hot:8,  cold:9,  frappe:null, price:null, avail:true },
-      // NON-COFFEE
-      { id:'n1', cat:'noncoffee', name:'Chocobloc',        desc:'', emoji:'🍫', hot:8,   cold:6,  frappe:null, price:null, avail:true },
-      { id:'n2', cat:'noncoffee', name:'Caramel Choco',    desc:'', emoji:'🍫', hot:8,   cold:8,  frappe:null, price:null, avail:true },
-      { id:'n3', cat:'noncoffee', name:'Classic Matcha',   desc:'', emoji:'🍵', hot:8,   cold:9,  frappe:null, price:null, avail:true },
-      { id:'n4', cat:'noncoffee', name:'Caramel Matcha',   desc:'', emoji:'🍵', hot:9,   cold:10, frappe:null, price:null, avail:true },
-      { id:'n5', cat:'noncoffee', name:'Pop Peach Tea',    desc:'', emoji:'🍑', hot:null,cold:5,  frappe:null, price:null, avail:true },
-      { id:'n6', cat:'noncoffee', name:'Ice Lemon Tea',    desc:'', emoji:'🍋', hot:null,cold:8,  frappe:null, price:null, avail:true },
-      { id:'n7', cat:'noncoffee', name:'Boba Milk Tea',    desc:'', emoji:'🧋', hot:null,cold:8,  frappe:null, price:null, avail:true },
-      { id:'n8', cat:'noncoffee', name:'Diamond Milk Tea', desc:'', emoji:'🧋', hot:null,cold:9,  frappe:null, price:null, avail:true },
-      // TRADITIONAL DRINKS (Menu Air) — fixed price
-      { id:'d1',  cat:'drinks', name:'Teh O Ais',                 desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:3,  avail:true },
-      { id:'d2',  cat:'drinks', name:'Teh Ais',                   desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:3,  avail:true },
-      { id:'d3',  cat:'drinks', name:'Sirap Ais',                 desc:'', emoji:'🥤', hot:null,cold:null,frappe:null, price:3,  avail:true },
-      { id:'d4',  cat:'drinks', name:'Kopi O Ais',                desc:'', emoji:'☕', hot:null,cold:null,frappe:null, price:3,  avail:true },
-      { id:'d5',  cat:'drinks', name:'Teh O (Limau/Lemon/Laici)', desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:4,  avail:true },
-      { id:'d6',  cat:'drinks', name:'Sirap (Limau/Lemon/Laici)', desc:'', emoji:'🥤', hot:null,cold:null,frappe:null, price:4,  avail:true },
-      { id:'d7',  cat:'drinks', name:'Sirap Bandung',             desc:'', emoji:'🥤', hot:null,cold:null,frappe:null, price:4,  avail:true },
-      { id:'d8',  cat:'drinks', name:'Nescafe Ais',               desc:'', emoji:'☕', hot:null,cold:null,frappe:null, price:4,  avail:true },
-      { id:'d9',  cat:'drinks', name:'Kopi Ais',                  desc:'', emoji:'☕', hot:null,cold:null,frappe:null, price:4,  avail:true },
-      { id:'d10', cat:'drinks', name:'Lemon Ais',                 desc:'', emoji:'🍋', hot:null,cold:null,frappe:null, price:5,  avail:true },
-      { id:'d11', cat:'drinks', name:'Laici Ais',                 desc:'', emoji:'🥤', hot:null,cold:null,frappe:null, price:5,  avail:true },
-      { id:'d12', cat:'drinks', name:'Limau Asam Boi',            desc:'', emoji:'🍋', hot:null,cold:null,frappe:null, price:5,  avail:true },
-      { id:'d13', cat:'drinks', name:'Kopi Latte',                desc:'', emoji:'☕', hot:null,cold:null,frappe:null, price:6,  avail:true },
-      { id:'d14', cat:'drinks', name:'Coklat Ais',                desc:'', emoji:'🍫', hot:null,cold:null,frappe:null, price:6,  avail:true },
-      { id:'d15', cat:'drinks', name:'Green Tea Ais',             desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:6,  avail:true },
-      // PIZZA (all RM 20 — Seafood Pizza unavailable)
-      { id:'pz1', cat:'pizza', name:'Beef/Chicken Pepperoni',    desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      { id:'pz2', cat:'pizza', name:'Chicken Island Pizza',      desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      { id:'pz3', cat:'pizza', name:'Carbonara Pizza',           desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      { id:'pz4', cat:'pizza', name:'Pizza Tuna Supreme',        desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      { id:'pz5', cat:'pizza', name:'Jalapeno Chicken Ham Pizza',desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      { id:'pz6', cat:'pizza', name:'Barbecue Chicken Pizza',    desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      { id:'pz7', cat:'pizza', name:'Aloha Hawaiian Pizza',      desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      { id:'pz8', cat:'pizza', name:'Seafood Pizza',             desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:false },
-      { id:'pz9', cat:'pizza', name:'Beef Sticky Pizza',         desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
-      // WESTERN MAINS
-      { id:'w1',  cat:'western', name:'Roasted Chicken',      desc:'', emoji:'🍗',  hot:null,cold:null,frappe:null, price:14, avail:true },
-      { id:'w2',  cat:'western', name:'Lamb Chop',            desc:'', emoji:'🍖',  hot:null,cold:null,frappe:null, price:14, avail:true },
-      { id:'w3',  cat:'western', name:'Chicken Chop Grill',   desc:'', emoji:'🍽️', hot:null,cold:null,frappe:null, price:14, avail:true },
-      { id:'w4',  cat:'western', name:'Chicken Chop Crispy',  desc:'', emoji:'🍽️', hot:null,cold:null,frappe:null, price:18, avail:true },
-      { id:'w5',  cat:'western', name:'Salmon Grill',         desc:'', emoji:'🐟',  hot:null,cold:null,frappe:null, price:25, avail:true },
-      { id:'w6',  cat:'western', name:'Striploin Steak',      desc:'', emoji:'🥩',  hot:null,cold:null,frappe:null, price:25, avail:true },
-      { id:'w7',  cat:'western', name:'Fish and Chip',        desc:'', emoji:'🐟',  hot:null,cold:null,frappe:null, price:18, avail:true },
-      { id:'w8',  cat:'western', name:'Beef Burger',          desc:'', emoji:'🍔',  hot:null,cold:null,frappe:null, price:13, avail:true },
-      { id:'w9',  cat:'western', name:'Mac and Cheese',       desc:'', emoji:'🧀',  hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'w10', cat:'western', name:'Lasagna Beef',         desc:'', emoji:'🍝',  hot:null,cold:null,frappe:null, price:13, avail:true },
-      { id:'w11', cat:'western', name:'Nachos & Beef Sauce',  desc:'', emoji:'🌮',  hot:null,cold:null,frappe:null, price:8,  avail:true },
-      { id:'w12', cat:'western', name:'Baked Potato',         desc:'', emoji:'🥔',  hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'w13', cat:'western', name:'Mushroom Soup',        desc:'', emoji:'🍄',  hot:null,cold:null,frappe:null, price:7,  avail:true },
-      // PASTA
-      { id:'pa1',  cat:'pasta', name:'Carbonara Salmon',         desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:14, avail:true },
-      { id:'pa2',  cat:'pasta', name:'Carbonara Seafood',        desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa3',  cat:'pasta', name:'Carbonara Beef Bacon',     desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa4',  cat:'pasta', name:'Alfredo',                  desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa5',  cat:'pasta', name:'Carbonara Pepperoni',      desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa6',  cat:'pasta', name:'Marinara Seafood',         desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa7',  cat:'pasta', name:'Marinara Meatball',        desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa8',  cat:'pasta', name:'Pamodoro',                 desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa9',  cat:'pasta', name:'Arabiata Beef',            desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa10', cat:'pasta', name:'Stufatto',                 desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:14, avail:true },
-      { id:'pa11', cat:'pasta', name:'Oglio Chicken',            desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa12', cat:'pasta', name:'Oglio Beef Pepperoni',     desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa13', cat:'pasta', name:'Oglio Seafood',            desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa14', cat:'pasta', name:'Oglio Salmon',             desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:14, avail:true },
-      { id:'pa15', cat:'pasta', name:'Bolognese',                desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa16', cat:'pasta', name:'Spaghetti Vongole',        desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:12, avail:true },
-      { id:'pa17', cat:'pasta', name:'Volcano Cheesy Pie Pasta', desc:'', emoji:'🍝', hot:null,cold:null,frappe:null, price:14, avail:true },
-    ],
-  },
-};
-
-// ── AI system prompt — defined after APP_CONFIG to reference store name ────────
-APP_CONFIG.ai.systemPrompt = `You are a calm, precise assistant for a Malaysian western food restaurant called ${APP_CONFIG.store.name}.
+    systemPrompt: `You are a calm, precise assistant for a small Malaysian coffee business called ${_STORE_NAME}.
 
 PERSONA: Warm but efficient. Like a knowledgeable trusted advisor, not a chatbot. Think Jarvis — composed, helpful, never robotic. Adapt to the user's language naturally (Malay, English, or mix). Never say sorry. Never say "As an AI". Never be sycophantic.
 
@@ -204,4 +85,109 @@ Return a JSON object only, no explanation outside the JSON:
 
 CONTEXT: You receive full store state as YAML before each request. Use it to understand current values before making changes.
 
-LANGUAGE: Match user's language. If Malay, respond in warm standard Malay. If English, respond in English. If mixed, match the mix.`;
+LANGUAGE: Match user's language. If Malay or Kelantanese dialect, respond in warm standard Malay. If English, respond in English. If mixed, match the mix.`,
+
+    quickChips: [
+      { label: '🌙 Raya Theme',      prompt: 'Retheme for Hari Raya Aidilfitri — festive green and gold tones' },
+      { label: '🎒 School Holidays', prompt: 'Retheme for school holidays — brighter, more cheerful and welcoming' },
+      { label: '↩ Reset to Default', prompt: 'Reset all theme colors and fonts back to original Beelal Coffee warm cream and espresso brown' },
+      { label: '✏️ Change Slogan',   prompt: 'Change the slogan to: ' },
+      { label: '🍝 Pasta Off',       prompt: 'Mark all pasta items as sold out for today' },
+      { label: '✅ All Available',   prompt: 'Mark all menu items as available' },
+    ],
+  },
+
+  // ── Default Theme ───────────────────────────────────────────────────────────
+  defaultTheme: {
+    bg:           '#FEF7EE',
+    bg2:          '#F9F0E1',
+    bg3:          '#F2E6CE',
+    surface:      '#FFFFFF',
+    primary:      '#2C1A0E',
+    accent:       '#C8962A',
+    accent2:      '#E8B84B',
+    text:         '#1C110A',
+    text2:        '#7A5C3E',
+    text3:        '#B89070',
+    font_display: "'Playfair Display', Georgia, serif",
+    font_body:    "'DM Sans', sans-serif",
+  },
+
+  // ── Default Menu ────────────────────────────────────────────────────────────
+  // Full Beelal Coffee menu — seeded to Firebase on first run if no data exists.
+  //
+  // Category fields:
+  //   type: 'drinks'    → shows size legend chips (HOT/COLD/FRAPPÉ) above items
+  //   showAddons: true  → shows foodAddons rows at the bottom of the section
+  defaultMenu: {
+    categories: [
+      { id: 'coffee',    label: 'Coffee',     emoji: '☕', type: 'drinks' },
+      { id: 'noncoffee', label: 'Non-Coffee', emoji: '🥤', type: 'drinks' },
+      { id: 'food',      label: 'Food',       emoji: '🥪', showAddons: true },
+      { id: 'pasta',     label: 'Pasta',      emoji: '🍝' },
+      { id: 'special',   label: 'Special',    emoji: '⭐' },
+      { id: 'friday',    label: 'Friday',     emoji: '🌟' },
+    ],
+    items: [
+      // COFFEE (HOT 8oz / COLD 12oz / FRAPPÉ 16oz / LARGE +RM4)
+      { id:'c1',  cat:'coffee',    name:'Americano',             desc:'', emoji:'☕', hot:6,   cold:8,   frappe:10,  price:null, avail:true },
+      { id:'c2',  cat:'coffee',    name:'Cafe Latte',            desc:'', emoji:'☕', hot:7,   cold:9,   frappe:12,  price:null, avail:true },
+      { id:'c3',  cat:'coffee',    name:'Cappuccino',            desc:'', emoji:'☕', hot:7,   cold:9,   frappe:null,price:null, avail:true },
+      { id:'c4',  cat:'coffee',    name:'Cafe Mocha',            desc:'', emoji:'☕', hot:9,   cold:11,  frappe:14,  price:null, avail:true },
+      { id:'c5',  cat:'coffee',    name:'Spanish Latte',         desc:'', emoji:'☕', hot:8,   cold:10,  frappe:13,  price:null, avail:true },
+      { id:'c6',  cat:'coffee',    name:'Hazelnut Latte',        desc:'', emoji:'☕', hot:8,   cold:10,  frappe:13,  price:null, avail:true },
+      { id:'c7',  cat:'coffee',    name:'Vanilla Latte',         desc:'', emoji:'☕', hot:8,   cold:10,  frappe:13,  price:null, avail:true },
+      { id:'c8',  cat:'coffee',    name:'Butterscotch Latte',    desc:'', emoji:'☕', hot:8,   cold:10,  frappe:13,  price:null, avail:true },
+      { id:'c9',  cat:'coffee',    name:'Brown Sugar Latte',     desc:'', emoji:'☕', hot:8,   cold:10,  frappe:13,  price:null, avail:true },
+      { id:'c10', cat:'coffee',    name:'Caramel Latte',         desc:'', emoji:'☕', hot:8,   cold:10,  frappe:13,  price:null, avail:true },
+      { id:'c11', cat:'coffee',    name:'Caramel Macchiato',     desc:'', emoji:'☕', hot:9,   cold:11,  frappe:14,  price:null, avail:true },
+      { id:'c12', cat:'coffee',    name:'Matcha Espresso',       desc:'', emoji:'🍵', hot:11,  cold:13,  frappe:16,  price:null, avail:true },
+      // NON-COFFEE
+      { id:'n1',  cat:'noncoffee', name:'Dark Chocolate',        desc:'', emoji:'🍫', hot:6,   cold:8,   frappe:11,  price:null, avail:true },
+      { id:'n2',  cat:'noncoffee', name:'Dark Choc Hazelnut',    desc:'', emoji:'🍫', hot:8,   cold:10,  frappe:12,  price:null, avail:true },
+      { id:'n3',  cat:'noncoffee', name:'Double Choco Chips',    desc:'', emoji:'🍫', hot:null,cold:null,frappe:13,  price:null, avail:true },
+      { id:'n4',  cat:'noncoffee', name:'Matcha Latte',          desc:'', emoji:'🍵', hot:8,   cold:10,  frappe:13,  price:null, avail:true },
+      { id:'n5',  cat:'noncoffee', name:'Matcha Hazelnut',       desc:'', emoji:'🍵', hot:9,   cold:11,  frappe:14,  price:null, avail:true },
+      { id:'n6',  cat:'noncoffee', name:'Oreo Cookies',          desc:'', emoji:'🍪', hot:null,cold:null,frappe:13,  price:null, avail:true },
+      { id:'n7',  cat:'noncoffee', name:'Sparkling Strawberry',  desc:'', emoji:'🍓', hot:null,cold:10,  frappe:null,price:null, avail:true },
+      { id:'n8',  cat:'noncoffee', name:'Milky Strawberry',      desc:'', emoji:'🍓', hot:null,cold:12,  frappe:14,  price:null, avail:true },
+      { id:'n9',  cat:'noncoffee', name:'Matcha Strawberry',     desc:'', emoji:'🍵', hot:null,cold:16,  frappe:18,  price:null, avail:true },
+      // FOOD — baguette
+      { id:'f1',  cat:'food', name:'Scrambled Egg Baguette',  desc:'Baguette sandwich', emoji:'🥖', hot:null,cold:null,frappe:null,price:6.90,  avail:true },
+      { id:'f2',  cat:'food', name:'Herb Eggs Mayo Baguette', desc:'Baguette sandwich', emoji:'🥖', hot:null,cold:null,frappe:null,price:8.90,  avail:true },
+      { id:'f3',  cat:'food', name:'Tuna Mayo Baguette',      desc:'Baguette sandwich', emoji:'🥖', hot:null,cold:null,frappe:null,price:8.90,  avail:true },
+      { id:'f4',  cat:'food', name:'Creamy Chicken Mushroom', desc:'Baguette sandwich', emoji:'🥖', hot:null,cold:null,frappe:null,price:9.90,  avail:true },
+      { id:'f5',  cat:'food', name:'Chicken Slices Baguette', desc:'Baguette sandwich', emoji:'🥖', hot:null,cold:null,frappe:null,price:9.90,  avail:true },
+      // FOOD — club
+      { id:'f6',  cat:'food', name:'Scrambled Egg Club',      desc:'Club sandwich', emoji:'🥪', hot:null,cold:null,frappe:null,price:6.90,  avail:true },
+      { id:'f7',  cat:'food', name:'Herb Eggs Mayo Club',     desc:'Club sandwich', emoji:'🥪', hot:null,cold:null,frappe:null,price:8.90,  avail:true },
+      { id:'f8',  cat:'food', name:'Tuna Mayo Club',          desc:'Club sandwich', emoji:'🥪', hot:null,cold:null,frappe:null,price:8.90,  avail:true },
+      { id:'f9',  cat:'food', name:'Chicken Slices Club',     desc:'Club sandwich', emoji:'🥪', hot:null,cold:null,frappe:null,price:9.90,  avail:true },
+      // FOOD — appetizers
+      { id:'f10', cat:'food', name:'Toast Cheesy Sausage',    desc:'3 pcs', emoji:'🌭', hot:null,cold:null,frappe:null,price:11.00, avail:true },
+      { id:'f11', cat:'food', name:'Cheesy Fries',            desc:'',      emoji:'🍟', hot:null,cold:null,frappe:null,price:8.90,  avail:true },
+      { id:'f12', cat:'food', name:'Cheesy Wedges',           desc:'',      emoji:'🥔', hot:null,cold:null,frappe:null,price:8.90,  avail:true },
+      { id:'f13', cat:'food', name:'Tempura Chicken Nuggets', desc:'9 pcs', emoji:'🍗', hot:null,cold:null,frappe:null,price:9.90,  avail:true },
+      // PASTA
+      { id:'p1',  cat:'pasta', name:'Mac & Cheese',      desc:'',                   emoji:'🍝', hot:null,cold:null,frappe:null,price:10.00, avail:true },
+      { id:'p2',  cat:'pasta', name:'Creamy Chicken',    desc:'',                   emoji:'🍝', hot:null,cold:null,frappe:null,price:10.00, avail:true },
+      { id:'p3',  cat:'pasta', name:'Creamy Alfredo',    desc:'Spicy black pepper', emoji:'🍝', hot:null,cold:null,frappe:null,price:13.00, avail:true },
+      { id:'p4',  cat:'pasta', name:'Buttermilk Pasta',  desc:'Spicy',              emoji:'🍝', hot:null,cold:null,frappe:null,price:13.00, avail:true },
+      { id:'p5',  cat:'pasta', name:'Beef Bolognese',    desc:'',                   emoji:'🍝', hot:null,cold:null,frappe:null,price:13.00, avail:true },
+      { id:'p6',  cat:'pasta', name:'Creamy Mushroom',   desc:'',                   emoji:'🍄', hot:null,cold:null,frappe:null,price:13.00, avail:true },
+      { id:'p7',  cat:'pasta', name:'Carbonara',         desc:'',                   emoji:'🍝', hot:null,cold:null,frappe:null,price:12.00, avail:true },
+      { id:'p8',  cat:'pasta', name:'Swedish Meatballs', desc:'',                   emoji:'🍝', hot:null,cold:null,frappe:null,price:15.00, avail:true },
+      { id:'p9',  cat:'pasta', name:'Aglio Olio',        desc:'',                   emoji:'🍝', hot:null,cold:null,frappe:null,price:15.00, avail:true },
+      // SPECIAL
+      { id:'s1',  cat:'special', name:'Hainanese Chicken Chop',   desc:'', emoji:'🍽️', hot:null,cold:null,frappe:null,price:14.00, avail:true },
+      { id:'s2',  cat:'special', name:'Buttermilk Chicken Chop',  desc:'', emoji:'🍽️', hot:null,cold:null,frappe:null,price:15.00, avail:true },
+      { id:'s3',  cat:'special', name:'Black Pepper Chicken Chop',desc:'', emoji:'🍽️', hot:null,cold:null,frappe:null,price:15.00, avail:true },
+      { id:'s4',  cat:'special', name:'Fish & Chips',             desc:'', emoji:'🐟',  hot:null,cold:null,frappe:null,price:19.90, avail:true },
+      { id:'s5',  cat:'special', name:'BC Chicken Tenders Ori',   desc:'Original', emoji:'🍗', hot:null,cold:null,frappe:null,price:15.00, avail:true },
+      { id:'s6',  cat:'special', name:'BC Chicken Tenders Spicy', desc:'Spicy',    emoji:'🌶️', hot:null,cold:null,frappe:null,price:16.00, avail:true },
+      // FRIDAY SPECIAL
+      { id:'fr1', cat:'friday', name:'Chicken Buttermilk Basmati', desc:'Friday only', emoji:'🍛', hot:null,cold:null,frappe:null,price:14.00, avail:true },
+      { id:'fr2', cat:'friday', name:'Chicken Chop Basmati',       desc:'Friday only', emoji:'🍛', hot:null,cold:null,frappe:null,price:15.00, avail:true },
+    ],
+  },
+};
