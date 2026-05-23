@@ -1,10 +1,19 @@
 /**
  * config.js — The Rizz Western Empire
  *
- * Store-specific configuration for The Rizz Western Empire.
- * Edit this file to update Firebase, store identity, branding, or AI settings.
- * Theme, full menu, and PIN security are managed via the Admin panel.
+ * @role     adapter / rules-config
+ * @risk     local_mutation
+ * @contract APP_CONFIG → consumed by index.html + admin.html as DEFAULT_CONFIG and DEFAULT_MENU
+ *
+ * Store-specific adapter for The Rizz Western Empire.
+ * This is the ONLY file you edit when deploying for a new entity.
+ * The base engine (index.html, admin.html) never needs to change for branding,
+ * fonts, menu, or theme — all of that flows through APP_CONFIG below.
  */
+
+// ── Helper: used by systemPrompt to reference store name without circular ref ──
+const _STORE_NAME = 'The Rizz Western Empire';
+
 const APP_CONFIG = {
 
   // ── Firebase Realtime Database ──────────────────────────────────────────────
@@ -17,7 +26,7 @@ const APP_CONFIG = {
   // Fallback values used when Firebase has no data yet.
   // Once saved via the Admin panel, Firebase values take over permanently.
   store: {
-    name:     'The Rizz Western Empire',
+    name:     _STORE_NAME,
     slogan:   'Western Food · Pizza · Specialty Coffee',
     phone:    '60XXXXXXXXXX',
     hours:    '10:00 AM – 10:00 PM daily',
@@ -33,7 +42,7 @@ const APP_CONFIG = {
 
   // ── App Branding ────────────────────────────────────────────────────────────
   brand: {
-    appName:   'The Rizz Western Empire',
+    appName:   _STORE_NAME,
     adminName: 'The Rizz Admin',
     locale:    'en-MY',
   },
@@ -42,45 +51,12 @@ const APP_CONFIG = {
   ai: {
     model: 'google/gemma-4-26b-it:free',
 
-    systemPrompt: `You are a calm, precise assistant for a Malaysian western food restaurant called The Rizz Western Empire.
-
-PERSONA: Warm but efficient. Like a knowledgeable trusted advisor, not a chatbot. Think Jarvis — composed, helpful, never robotic. Adapt to the user's language naturally (Malay, English, or mix). Never say sorry. Never say "As an AI". Never be sycophantic.
-
-RESPONSE STRUCTURE (always follow this order):
-1. [Faham] — Brief restatement showing you understood
-2. [Buat] — What action you are taking
-3. [Siap] — Confirm what changed
-4. [Cadangan] — One optional enhancement suggestion (keep short)
-
-AMBIGUITY THRESHOLD — slot filling:
-Every request needs: WHAT (what to change) | WHERE (which section/element) | HOW (bold, italic, color, size) | CONSTRAINT (what not to touch)
-- 3 or 4 slots filled → proceed, state any assumed slot
-- 2 slots filled → ask ONE targeted clarifying question only
-- 1 slot filled → ask for more detail before proceeding
-
-SCOPE RULES:
-- Only change what is explicitly requested
-- Never touch WhatsApp button color (must stay green)
-- Never change layout, spacing, or grid structure
-- Never change store phone number or name unless explicitly asked
-- When in doubt, do less not more
-
-OUTPUT FORMAT for theme/CSS changes:
-Return a JSON object only, no explanation outside the JSON:
-{
-  "understood": "brief restatement",
-  "action": "what you did",
-  "changes": { "theme": {...}, "store": {...}, "menu_availability": {...} },
-  "suggestion": "one optional tip"
-}
-
-CONTEXT: You receive full store state as YAML before each request. Use it to understand current values before making changes.
-
-LANGUAGE: Match user's language. If Malay or Kelantanese dialect, respond in warm standard Malay. If English, respond in English. If mixed, match the mix.`,
+    // systemPrompt is set after APP_CONFIG to reference store.name without circular ref.
+    systemPrompt: null,
 
     quickChips: [
       { label: '🎉 Raya Theme',      prompt: 'Retheme for Hari Raya Aidilfitri — festive green and gold tones' },
-      { label: '↩ Reset to Default', prompt: 'Reset all theme colors and fonts back to original The Rizz dark red and white theme' },
+      { label: '↩ Reset to Default', prompt: `Reset all theme colors and fonts back to original ${_STORE_NAME} dark red and white theme` },
       { label: '✏️ Change Slogan',   prompt: 'Change the slogan to: ' },
       { label: '🍕 Pizza Off',       prompt: 'Mark all pizza items as sold out for today' },
       { label: '🍝 Pasta Off',       prompt: 'Mark all pasta items as sold out for today' },
@@ -106,14 +82,17 @@ LANGUAGE: Match user's language. If Malay or Kelantanese dialect, respond in war
 
   // ── Default Menu ────────────────────────────────────────────────────────────
   // Full The Rizz Western Empire menu — seeded to Firebase on first run if no data exists.
+  //
+  // Category fields:
+  //   type: 'drinks'    → shows size legend chips (hot/cold) above items
   defaultMenu: {
     categories: [
-      { id: 'coffee',    label: 'Coffee',      emoji: '☕' },
-      { id: 'noncoffee', label: 'Non-Coffee',  emoji: '🧋' },
+      { id: 'coffee',    label: 'Coffee',      emoji: '☕',    type: 'drinks' },
+      { id: 'noncoffee', label: 'Non-Coffee',  emoji: '🦹‍♂️',  type: 'drinks' },
       { id: 'drinks',    label: 'Traditional', emoji: '🥤' },
-      { id: 'pizza',     label: 'Pizza',        emoji: '🍕' },
-      { id: 'western',   label: 'Western',      emoji: '🍽️' },
-      { id: 'pasta',     label: 'Pasta',        emoji: '🍝' },
+      { id: 'pizza',     label: 'Pizza',       emoji: '🍕' },
+      { id: 'western',   label: 'Western',     emoji: '🍽️' },
+      { id: 'pasta',     label: 'Pasta',       emoji: '🍝' },
     ],
     items: [
       // COFFEE (hot / cold ice)
@@ -125,14 +104,14 @@ LANGUAGE: Match user's language. If Malay or Kelantanese dialect, respond in war
       { id:'c6', cat:'coffee', name:'Buttercream Latte', desc:'', emoji:'☕', hot:7,  cold:8,  frappe:null, price:null, avail:true },
       { id:'c7', cat:'coffee', name:'Mocha',             desc:'', emoji:'☕', hot:8,  cold:9,  frappe:null, price:null, avail:true },
       // NON-COFFEE
-      { id:'n1', cat:'noncoffee', name:'Chocobloc',        desc:'', emoji:'🍫', hot:8,  cold:6,  frappe:null, price:null, avail:true },
-      { id:'n2', cat:'noncoffee', name:'Caramel Choco',    desc:'', emoji:'🍫', hot:8,  cold:8,  frappe:null, price:null, avail:true },
-      { id:'n3', cat:'noncoffee', name:'Classic Matcha',   desc:'', emoji:'🍵', hot:8,  cold:9,  frappe:null, price:null, avail:true },
-      { id:'n4', cat:'noncoffee', name:'Caramel Matcha',   desc:'', emoji:'🍵', hot:9,  cold:10, frappe:null, price:null, avail:true },
-      { id:'n5', cat:'noncoffee', name:'Pop Peach Tea',    desc:'', emoji:'🍑', hot:null,cold:5, frappe:null, price:null, avail:true },
-      { id:'n6', cat:'noncoffee', name:'Ice Lemon Tea',    desc:'', emoji:'🍋', hot:null,cold:8, frappe:null, price:null, avail:true },
-      { id:'n7', cat:'noncoffee', name:'Boba Milk Tea',    desc:'', emoji:'🧋', hot:null,cold:8, frappe:null, price:null, avail:true },
-      { id:'n8', cat:'noncoffee', name:'Diamond Milk Tea', desc:'', emoji:'🧋', hot:null,cold:9, frappe:null, price:null, avail:true },
+      { id:'n1', cat:'noncoffee', name:'Chocobloc',        desc:'', emoji:'🍫', hot:8,   cold:6,  frappe:null, price:null, avail:true },
+      { id:'n2', cat:'noncoffee', name:'Caramel Choco',    desc:'', emoji:'🍫', hot:8,   cold:8,  frappe:null, price:null, avail:true },
+      { id:'n3', cat:'noncoffee', name:'Classic Matcha',   desc:'', emoji:'🍵', hot:8,   cold:9,  frappe:null, price:null, avail:true },
+      { id:'n4', cat:'noncoffee', name:'Caramel Matcha',   desc:'', emoji:'🍵', hot:9,   cold:10, frappe:null, price:null, avail:true },
+      { id:'n5', cat:'noncoffee', name:'Pop Peach Tea',    desc:'', emoji:'🍑', hot:null,cold:5,  frappe:null, price:null, avail:true },
+      { id:'n6', cat:'noncoffee', name:'Ice Lemon Tea',    desc:'', emoji:'🍋', hot:null,cold:8,  frappe:null, price:null, avail:true },
+      { id:'n7', cat:'noncoffee', name:'Boba Milk Tea',    desc:'', emoji:'🦹‍♂️', hot:null,cold:8,  frappe:null, price:null, avail:true },
+      { id:'n8', cat:'noncoffee', name:'Diamond Milk Tea', desc:'', emoji:'🦹‍♂️', hot:null,cold:9,  frappe:null, price:null, avail:true },
       // TRADITIONAL DRINKS (Menu Air) — fixed price
       { id:'d1',  cat:'drinks', name:'Teh O Ais',                 desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:3,  avail:true },
       { id:'d2',  cat:'drinks', name:'Teh Ais',                   desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:3,  avail:true },
@@ -149,7 +128,7 @@ LANGUAGE: Match user's language. If Malay or Kelantanese dialect, respond in war
       { id:'d13', cat:'drinks', name:'Kopi Latte',                desc:'', emoji:'☕', hot:null,cold:null,frappe:null, price:6,  avail:true },
       { id:'d14', cat:'drinks', name:'Coklat Ais',                desc:'', emoji:'🍫', hot:null,cold:null,frappe:null, price:6,  avail:true },
       { id:'d15', cat:'drinks', name:'Green Tea Ais',             desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:6,  avail:true },
-      // PIZZA (all RM 20 — Seafood Pizza crossed out / unavailable)
+      // PIZZA (all RM 20 — Seafood Pizza unavailable)
       { id:'pz1', cat:'pizza', name:'Beef/Chicken Pepperoni',    desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
       { id:'pz2', cat:'pizza', name:'Chicken Island Pizza',      desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
       { id:'pz3', cat:'pizza', name:'Carbonara Pizza',           desc:'', emoji:'🍕', hot:null,cold:null,frappe:null, price:20, avail:true  },
@@ -194,3 +173,40 @@ LANGUAGE: Match user's language. If Malay or Kelantanese dialect, respond in war
     ],
   },
 };
+
+// ── AI system prompt — defined after APP_CONFIG to reference store name ────────
+APP_CONFIG.ai.systemPrompt = `You are a calm, precise assistant for a Malaysian western food restaurant called ${APP_CONFIG.store.name}.
+
+PERSONA: Warm but efficient. Like a knowledgeable trusted advisor, not a chatbot. Think Jarvis — composed, helpful, never robotic. Adapt to the user's language naturally (Malay, English, or mix). Never say sorry. Never say "As an AI". Never be sycophantic.
+
+RESPONSE STRUCTURE (always follow this order):
+1. [Faham] — Brief restatement showing you understood
+2. [Buat] — What action you are taking
+3. [Siap] — Confirm what changed
+4. [Cadangan] — One optional enhancement suggestion (keep short)
+
+AMBIGUITY THRESHOLD — slot filling:
+Every request needs: WHAT (what to change) | WHERE (which section/element) | HOW (bold, italic, color, size) | CONSTRAINT (what not to touch)
+- 3 or 4 slots filled → proceed, state any assumed slot
+- 2 slots filled → ask ONE targeted clarifying question only
+- 1 slot filled → ask for more detail before proceeding
+
+SCOPE RULES:
+- Only change what is explicitly requested
+- Never touch WhatsApp button color (must stay green)
+- Never change layout, spacing, or grid structure
+- Never change store phone number or name unless explicitly asked
+- When in doubt, do less not more
+
+OUTPUT FORMAT for theme/CSS changes:
+Return a JSON object only, no explanation outside the JSON:
+{
+  "understood": "brief restatement",
+  "action": "what you did",
+  "changes": { "theme": {...}, "store": {...}, "menu_availability": {...} },
+  "suggestion": "one optional tip"
+}
+
+CONTEXT: You receive full store state as YAML before each request. Use it to understand current values before making changes.
+
+LANGUAGE: Match user's language. If Malay, respond in warm standard Malay. If English, respond in English. If mixed, match the mix.`;
