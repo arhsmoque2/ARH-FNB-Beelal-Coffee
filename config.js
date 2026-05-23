@@ -33,11 +33,6 @@ const APP_CONFIG = {
     currency: 'RM',
 
     sizeLegend: ['HOT', 'COLD ICE'],
-
-    foodAddons: [
-      { name: 'Extra Cheese', price: 2 },
-      { name: 'Add-on Side',  price: 3 },
-    ],
   },
 
   // ── App Branding ────────────────────────────────────────────────────────────
@@ -88,7 +83,7 @@ const APP_CONFIG = {
   defaultMenu: {
     categories: [
       { id: 'coffee',    label: 'Coffee',      emoji: '☕',    type: 'drinks' },
-      { id: 'noncoffee', label: 'Non-Coffee',  emoji: '🦹‍♂️',  type: 'drinks' },
+      { id: 'noncoffee', label: 'Non-Coffee',  emoji: '🧋',   type: 'drinks' },
       { id: 'drinks',    label: 'Traditional', emoji: '🥤' },
       { id: 'pizza',     label: 'Pizza',       emoji: '🍕' },
       { id: 'western',   label: 'Western',     emoji: '🍽️' },
@@ -110,8 +105,8 @@ const APP_CONFIG = {
       { id:'n4', cat:'noncoffee', name:'Caramel Matcha',   desc:'', emoji:'🍵', hot:9,   cold:10, frappe:null, price:null, avail:true },
       { id:'n5', cat:'noncoffee', name:'Pop Peach Tea',    desc:'', emoji:'🍑', hot:null,cold:5,  frappe:null, price:null, avail:true },
       { id:'n6', cat:'noncoffee', name:'Ice Lemon Tea',    desc:'', emoji:'🍋', hot:null,cold:8,  frappe:null, price:null, avail:true },
-      { id:'n7', cat:'noncoffee', name:'Boba Milk Tea',    desc:'', emoji:'🦹‍♂️', hot:null,cold:8,  frappe:null, price:null, avail:true },
-      { id:'n8', cat:'noncoffee', name:'Diamond Milk Tea', desc:'', emoji:'🦹‍♂️', hot:null,cold:9,  frappe:null, price:null, avail:true },
+      { id:'n7', cat:'noncoffee', name:'Boba Milk Tea',    desc:'', emoji:'🧋', hot:null,cold:8,  frappe:null, price:null, avail:true },
+      { id:'n8', cat:'noncoffee', name:'Diamond Milk Tea', desc:'', emoji:'🧋', hot:null,cold:9,  frappe:null, price:null, avail:true },
       // TRADITIONAL DRINKS (Menu Air) — fixed price
       { id:'d1',  cat:'drinks', name:'Teh O Ais',                 desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:3,  avail:true },
       { id:'d2',  cat:'drinks', name:'Teh Ais',                   desc:'', emoji:'🍵', hot:null,cold:null,frappe:null, price:3,  avail:true },
