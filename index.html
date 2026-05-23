@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -46,7 +46,7 @@
 html { font-size: 16px; scroll-behavior: smooth; }
 body {
   font-family: var(--font-body);
-  background: var(--bg);
+  background: radial-gradient(ellipse at top, var(--bg2) 0%, var(--bg) 60%);
   color: var(--text);
   min-height: 100vh;
   overscroll-behavior: none;
@@ -622,6 +622,7 @@ body {
   transition: all 0.2s;
 }
 .wa-order-btn:active { transform: scale(0.98); }
+.wa-order-btn:disabled { background: var(--text3); box-shadow: none; cursor: not-allowed; opacity: 0.7; }
 
 .empty-cart { text-align: center; padding: 30px 0 10px; color: var(--text3); font-size: 13px; line-height: 1.8; }
 
@@ -635,6 +636,9 @@ body {
   transition: opacity 0.2s;
 }
 .size-sheet-bg.open { opacity: 1; pointer-events: all; }
+.cart-sheet > .size-sheet, .size-sheet {
+  overscroll-behavior: contain;
+}
 .size-sheet {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -645,7 +649,10 @@ body {
   transform: translateY(100%);
   transition: transform 0.25s cubic-bezier(0.32,0.72,0,1);
 }
-.size-sheet-bg.open .size-sheet { transform: translateY(0); }
+.size-sheet-bg.open .cart-sheet > .size-sheet, .size-sheet {
+  overscroll-behavior: contain;
+}
+.size-sheet { transform: translateY(0); }
 .size-sheet-title { font-size: 17px; font-weight: 700; color: var(--primary); margin-bottom: 3px; }
 .size-sheet-sub { font-size: 12px; color: var(--text3); margin-bottom: 16px; }
 .size-options { display: flex; flex-direction: column; gap: 8px; }
@@ -764,14 +771,98 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .section { animation: fadeUp 0.35s ease both; }
-</style>
+
+/* ── DARK MODE ──────────────────────────────────────────────── */
+html.dark {
+  --bg:        #1A1109;
+  --bg2:       #221508;
+  --bg3:       #2D1C0B;
+  --surface:   #2A1A0A;
+  --surface2:  #33200E;
+  --primary:   #F5E6C8;
+  --primary2:  #EDD9AB;
+  --accent:    #E8A830;
+  --accent2:   #F0C060;
+  --text:      #F0E0C0;
+  --text2:     #C4A070;
+  --text3:     #8A6840;
+  --border:    rgba(240,220,180,0.1);
+  --border2:   rgba(240,220,180,0.06);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+}
+@media (prefers-color-scheme: dark) {
+  html:not(.dark-locked) { /* handled by JS initTheme */ }
+}
+
+/* ── SKELETON LOADER ────────────────────────────────────────── */
+.skel-block {
+  background: var(--bg3);
+  border-radius: 8px;
+}
+.skel-shimmer {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
+/* ── STORE BANNER ───────────────────────────────────────────── */
+.store-banner {
+  width: 100%;
+  max-height: 180px;
+  overflow: hidden;
+  position: relative;
+}
+.store-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── ICON BUTTONS ───────────────────────────────────────────── */
+.icon-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.icon-btn:active { background: var(--bg3); }
+html.dark .icon-btn { background: var(--surface2); }
+.icon-btn .icon-moon { display: none; }
+html.dark .icon-btn .icon-sun  { display: none; }
+html.dark .icon-btn .icon-moon { display: block; }
+
+/* ── CART-ADD PULSE ─────────────────────────────────────────── */
+@keyframes cardPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(200,150,42,0.55); }
+  60%  { box-shadow: 0 0 0 10px rgba(200,150,42,0); }
+  100% { box-shadow: 0 0 0 0 rgba(200,150,42,0); }
+}
+.pulse-once { animation: cardPulse 0.5s ease-out; }
+
+/* ── REDUCED MOTION gate ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .skel-shimmer { animation: none; }
+  .pulse-once   { animation: none; }
+  .section      { animation: none; }
+  .loader-spinner { animation: none; }
+}</style>
 </head>
 <body>
 
 <!-- LOADER -->
 <div class="loader-wrap" id="loader">
   <div class="loader-logo" id="loaderLogo">Loading…</div>
-  <div class="loader-spinner"></div>
+  <div class="skel-block skel-shimmer" style="width:180px;height:16px;border-radius:8px;margin-top:10px"></div>
+  <div class="skel-block skel-shimmer" style="width:240px;height:12px;border-radius:6px;margin-top:8px;opacity:0.6"></div>
 </div>
 
 <!-- CLOSED BANNER -->
@@ -789,9 +880,18 @@ body {
         <div class="logo-slogan" id="storeSlogan">Freshly brewed every morning</div>
       </div>
     </div>
-    <div class="status-pill open" id="statusPill">
-      <div class="status-dot"></div>
-      <span id="statusText">Open</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="status-pill open" id="statusPill">
+        <div class="status-dot"></div>
+        <span id="statusText">Open</span>
+      </div>
+      <button class="icon-btn" id="darkToggleBtn" onclick="toggleDark()" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" onclick="shareMenu()" aria-label="Share menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
     </div>
   </div>
   <div class="hours-bar" id="hoursBar">
@@ -800,6 +900,11 @@ body {
   </div>
   <nav class="cat-nav" id="catNav"></nav>
 </header>
+
+<!-- BANNER -->
+<div class="store-banner" id="storeBanner" style="display:none">
+  <img id="storeBannerImg" src="" alt="">
+</div>
 
 <!-- MAIN -->
 <main class="main" id="mainContent"></main>
@@ -831,7 +936,7 @@ body {
     <input class="form-input" id="custName" placeholder="e.g. Ahmad" maxlength="40">
     <label class="form-label">Notes (optional)</label>
     <textarea class="form-textarea" id="custNote" placeholder="e.g. Less ice, no sugar, extra spicy..."></textarea>
-    <button class="wa-order-btn" onclick="sendOrder()">
+    <button class="wa-order-btn" id="waOrderBtn" onclick="sendOrder()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       Send Order to WhatsApp
     </button>
@@ -874,18 +979,24 @@ const FB_URL  = APP_CONFIG.firebase.url;
 const FB_ROOT = APP_CONFIG.firebase.root;
 const WA_NUM  = APP_CONFIG.store.phone;
 const CUR     = APP_CONFIG.store.currency;
+initTheme();
+
+function fmtPrice(n) {
+  return new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
 
 // ════════════════════════════════════════════════════════════
 // DEFAULT DATA (used if Firebase empty)
 // ════════════════════════════════════════════════════════════
 const DEFAULT_CONFIG = {
   store: {
-    name:     APP_CONFIG.store.name,
-    slogan:   APP_CONFIG.store.slogan,
-    phone:    APP_CONFIG.store.phone,
-    hours:    APP_CONFIG.store.hours,
-    isOpen:   true,
-    logo_url: ''
+    name:       APP_CONFIG.store.name,
+    slogan:     APP_CONFIG.store.slogan,
+    phone:      APP_CONFIG.store.phone,
+    hours:      APP_CONFIG.store.hours,
+    isOpen:     true,
+    logo_url:   '',
+    sizeLegend: APP_CONFIG.store.sizeLegend,
   },
   theme: APP_CONFIG.defaultTheme
 };
@@ -936,6 +1047,53 @@ async function fbSet(path, data) {
   } catch {}
 }
 
+
+// ════════════════════════════════════════════════════════════
+// DARK MODE
+// ════════════════════════════════════════════════════════════
+function initTheme() {
+  const stored = localStorage.getItem('arh-dark');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (stored === 'dark' || (stored === null && prefersDark)) {
+    document.documentElement.classList.add('dark');
+  }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (!localStorage.getItem('arh-dark')) {
+      document.documentElement.classList.toggle('dark', e.matches);
+    }
+  });
+}
+function toggleDark() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('arh-dark', isDark ? 'dark' : 'light');
+}
+
+// ════════════════════════════════════════════════════════════
+// SHARE
+// ════════════════════════════════════════════════════════════
+function shareMenu() {
+  const title = storeConfig?.name || document.title;
+  if (navigator.share) {
+    navigator.share({ title, url: location.href }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(location.href).then(() => {
+      const btn = document.querySelector('[aria-label="Share menu"]');
+      if (btn) { btn.style.color = 'var(--accent)'; setTimeout(() => btn.style.color = '', 1500); }
+    }).catch(() => {});
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// CART-ADD PULSE
+// ════════════════════════════════════════════════════════════
+function pulseCard(itemId) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const card = document.getElementById('card-' + itemId);
+  if (!card) return;
+  card.classList.remove('pulse-once');
+  void card.offsetWidth;
+  card.classList.add('pulse-once');
+}
 // ════════════════════════════════════════════════════════════
 // INIT — fixed to never hang
 // ════════════════════════════════════════════════════════════
@@ -959,9 +1117,23 @@ async function init() {
 
   storeConfig = cfg ? { ...DEFAULT_CONFIG.store, ...cfg } : { ...DEFAULT_CONFIG.store };
   applyTheme(theme || DEFAULT_CONFIG.theme);
+
+  // Build lookup maps so we can backfill new config fields into existing Firebase records.
+  // Firebase values always win — we only fill gaps for fields that don't exist yet.
+  // This preserves every owner customisation (labels, emoji, prices, availability, etc.)
+  // while making new rendering fields (type, style, sub, title…) work on first load.
+  const configCatById  = {};
+  DEFAULT_MENU.categories.forEach(c => configCatById[c.id] = c);
+  const configItemById = {};
+  DEFAULT_MENU.items.forEach(i => configItemById[i.id] = i);
+
   menuData = {
-    categories: cats ? Object.values(cats) : DEFAULT_MENU.categories,
-    items: items ? Object.values(items) : DEFAULT_MENU.items
+    categories: cats
+      ? Object.values(cats).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat }))
+      : DEFAULT_MENU.categories,
+    items: items
+      ? Object.values(items).map(item => ({ ...(configItemById[item.id] || {}), ...item }))
+      : DEFAULT_MENU.items
   };
 
   // Only seed Firebase when the fetch actually reached the server AND the path is empty.
@@ -1014,6 +1186,16 @@ function renderHeader() {
     logoEl.textContent = c.name.charAt(0);
   }
 
+  // Banner
+  const bannerEl  = document.getElementById('storeBanner');
+  const bannerImg = document.getElementById('storeBannerImg');
+  if (c.banner_url) {
+    bannerImg.src = c.banner_url;
+    bannerEl.style.display = '';
+  } else {
+    bannerEl.style.display = 'none';
+  }
+
   const pill = document.getElementById('statusPill');
   const text = document.getElementById('statusText');
   const banner = document.getElementById('closedBanner');
@@ -1058,83 +1240,77 @@ function renderMenu() {
     sec.className = 'section';
     sec.id = 'sec-' + cat.id;
 
-    if (cat.id === 'friday') {
-      sec.innerHTML = `<div class="section-label">${cat.emoji} ${cat.label}</div>
-        <div class="section-title">Friday Special</div>
-        <div class="section-sub">Available every Friday only</div>`;
+    // Detect category traits from config fields (no hardcoded category IDs)
+    const isFeatured = cat.style === 'featured';
+    const isDrinks   = cat.type === 'drinks';
+    const hasSubs    = items.some(i => i.sub);
+
+    sec.innerHTML = `
+      <div class="section-label">${cat.emoji || ''} ${cat.label}</div>
+      <div class="section-title">${cat.title || cat.label}</div>
+      ${cat.subtitle ? `<div class="section-sub">${cat.subtitle}</div>` : ''}
+      ${isDrinks ? `<div class="size-legend">${(storeConfig.sizeLegend || []).map(s => `<div class="size-chip">${s}</div>`).join('')}</div>` : ''}`;
+
+    // Featured categories render inside a dark premium wrapper
+    let container = sec;
+    if (isFeatured) {
       const wrap = document.createElement('div');
       wrap.className = 'special-wrap';
-      wrap.innerHTML = `<div class="special-tag">⭐ Weekly Special</div>`;
-      const list = document.createElement('div');
-      list.className = 'menu-list';
-      items.forEach(item => list.appendChild(makeCard(item)));
-      wrap.appendChild(list);
+      wrap.innerHTML = `<div class="special-tag">⭐ ${cat.specialTag || cat.label}</div>`;
       sec.appendChild(wrap);
-    } else if (cat.id === 'coffee' || cat.id === 'noncoffee') {
-      sec.innerHTML = `
-        <div class="section-label">${cat.emoji} ${cat.label}</div>
-        <div class="section-title">${cat.label}</div>
-        <div class="size-legend">${APP_CONFIG.store.sizeLegend.map(s=>`<div class="size-chip">${s}</div>`).join('')}</div>`;
-      const list = document.createElement('div');
-      list.className = 'menu-list';
-      items.forEach(item => list.appendChild(makeCard(item)));
-      sec.appendChild(list);
-    } else if (cat.id === 'food') {
-      sec.innerHTML = `<div class="section-label">${cat.emoji} ${cat.label}</div>
-        <div class="section-title">Food & Bites</div>`;
+      container = wrap;
+    }
 
-      const baguette = items.filter(i => i.desc && i.desc.toLowerCase().includes('baguette'));
-      const club     = items.filter(i => i.desc && i.desc.toLowerCase().includes('club'));
-      const apps     = items.filter(i => !i.desc?.toLowerCase().includes('baguette') && !i.desc?.toLowerCase().includes('club'));
-
-      if (baguette.length) {
-        const t = document.createElement('div');
-        t.className = 'subsection-title';
-        t.textContent = 'Baguette Sandwich';
-        sec.appendChild(t);
-        const l = document.createElement('div'); l.className = 'menu-list';
-        baguette.forEach(i => l.appendChild(makeCard(i))); sec.appendChild(l);
-      }
-      if (club.length) {
-        const t = document.createElement('div');
-        t.className = 'subsection-title';
-        t.textContent = 'Club Sandwich';
-        sec.appendChild(t);
-        const l = document.createElement('div'); l.className = 'menu-list';
-        club.forEach(i => l.appendChild(makeCard(i))); sec.appendChild(l);
-      }
-      if (apps.length) {
-        const t = document.createElement('div');
-        t.className = 'subsection-title';
-        t.textContent = 'Appetizers';
-        sec.appendChild(t);
-        const l = document.createElement('div'); l.className = 'menu-list';
-        apps.forEach(i => l.appendChild(makeCard(i))); sec.appendChild(l);
-      }
-      // Addons note
-      const addonsTitle = document.createElement('div');
-      addonsTitle.className = 'subsection-title';
-      addonsTitle.textContent = 'Add-ons';
-      sec.appendChild(addonsTitle);
-      APP_CONFIG.store.foodAddons.forEach(addon => {
-        const row = document.createElement('div');
-        row.className = 'addon-row';
-        row.innerHTML = `<span>${addon.name}</span><span class="addon-price">+${CUR}${addon.price}</span>`;
-        sec.appendChild(row);
+    if (hasSubs) {
+      // Group items by their sub field, preserving insertion order
+      const groups = {};
+      const order  = [];
+      items.forEach(i => {
+        const key = i.sub || '';
+        if (!groups[key]) { groups[key] = []; if (key) order.push(key); }
+        groups[key].push(i);
       });
+      // Items without a sub come first (no header)
+      if (groups['']) {
+        const list = document.createElement('div');
+        list.className = 'menu-list';
+        groups[''].forEach(item => list.appendChild(makeCard(item)));
+        container.appendChild(list);
+      }
+      // Then each named subsection
+      [...new Set(order)].forEach(key => {
+        const t = document.createElement('div');
+        t.className = 'subsection-title';
+        t.textContent = key;
+        container.appendChild(t);
+        const list = document.createElement('div');
+        list.className = 'menu-list';
+        groups[key].forEach(item => list.appendChild(makeCard(item)));
+        container.appendChild(list);
+      });
+      // Append addons list if category is configured to show them
+      if (cat.showAddons && APP_CONFIG.store.foodAddons?.length) {
+        const addonsTitle = document.createElement('div');
+        addonsTitle.className = 'subsection-title';
+        addonsTitle.textContent = 'Add-ons';
+        container.appendChild(addonsTitle);
+        APP_CONFIG.store.foodAddons.forEach(addon => {
+          const row = document.createElement('div');
+          row.className = 'addon-row';
+          row.innerHTML = `<span>${addon.name}</span><span class="addon-price">+${CUR}${addon.price}</span>`;
+          container.appendChild(row);
+        });
+      }
     } else {
-      sec.innerHTML = `<div class="section-label">${cat.emoji} ${cat.label}</div>
-        <div class="section-title">${cat.label}</div>`;
       const list = document.createElement('div');
       list.className = 'menu-list';
       items.forEach(item => list.appendChild(makeCard(item)));
-      sec.appendChild(list);
+      container.appendChild(list);
     }
 
     main.appendChild(sec);
   });
 
-  // Intersection observer for nav
   observeSections();
 }
 
@@ -1161,7 +1337,7 @@ function makeCard(item) {
       `<div class="price-badge"><span class="price-sz">${s.sz}</span><span class="price-val">${CUR}${s.val}</span></div>`
     ).join('');
   } else {
-    priceHtml = `<span class="price-single">${CUR} ${Number(item.price).toFixed(2)}</span>`;
+    priceHtml = `<span class="price-single">${CUR} ${fmtPrice(item.price)}</span>`;
   }
 
   if (item.avail === false) {
@@ -1170,7 +1346,7 @@ function makeCard(item) {
 
   // Qty control
   let qtyHtml = '';
-  if (item.avail !== false) {
+  if (item.avail !== false && storeConfig.isOpen !== false) {
     if (qty === 0) {
       qtyHtml = `<div class="qty-wrap">
         <button class="qty-btn add-first" onclick="handleAdd(event,'${item.id}')">+</button>
@@ -1222,9 +1398,14 @@ function handleAdd(e, itemId) {
   const hasAddons = item.addons && item.addons.length > 0;
   if (isDrink) {
     const sizes = [];
-    if (item.hot    != null) sizes.push({ label:'Hot',    oz: item.hot_oz    || '8oz',  price: item.hot });
-    if (item.cold   != null) sizes.push({ label:'Cold',   oz: item.cold_oz   || '12oz', price: item.cold });
-    if (item.frappe != null) sizes.push({ label:'Frappé', oz: item.frappe_oz || '16oz', price: item.frappe });
+    const leg = storeConfig.sizeLegend || [];
+    const lastToken = s => (s || '').split(' ').pop();
+    const defHotOz    = item.hot_oz    || lastToken(leg[0]) || '8oz';
+    const defColdOz   = item.cold_oz   || lastToken(leg[1]) || '12oz';
+    const defFrappeOz = item.frappe_oz || lastToken(leg[2]) || '16oz';
+    if (item.hot    != null) sizes.push({ label:'Hot',    oz: defHotOz,    price: item.hot });
+    if (item.cold   != null) sizes.push({ label:'Cold',   oz: defColdOz,   price: item.cold });
+    if (item.frappe != null) sizes.push({ label:'Frappé', oz: defFrappeOz, price: item.frappe });
     if (sizes.length === 1) {
       if (hasAddons) openAddonsSheet(item, sizes[0].label, sizes[0].oz, sizes[0].price);
       else           addToCart(item, sizes[0].label, sizes[0].oz, sizes[0].price, []);
@@ -1250,6 +1431,7 @@ function addToCart(item, size, oz, basePrice, addons) {
   cart.push({ uid: cartUid++, id: item.id, name: item.name, size, oz, price: Number(basePrice) + addonTotal, addons });
   updateCartUI();
   refreshCard(item.id);
+  pulseCard(item.id);
 }
 
 function removeByUid(uid) {
@@ -1265,9 +1447,9 @@ function updateCartUI() {
   const count = cart.length;
   const fab = document.getElementById('fabBtn');
   document.getElementById('fabCount').textContent = count;
-  document.getElementById('fabTotal').textContent = CUR + ' ' + total.toFixed(2);
-  if (count > 0) fab.classList.add('visible');
-  else           fab.classList.remove('visible');
+  document.getElementById('fabTotal').textContent = CUR + ' ' + fmtPrice(total);
+  if (count > 0 && storeConfig?.isOpen !== false) fab.classList.add('visible');
+  else                                            fab.classList.remove('visible');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1312,7 +1494,7 @@ function handleSizeBgClick(e) {
 function openAddonsSheet(item, size, oz, price) {
   addonsPending = { item, size, oz, price };
   document.getElementById('addonsSheetTitle').textContent = item.name;
-  const sub = size ? `${size} · ${oz}  —  ${CUR} ${Number(price).toFixed(2)}` : `${CUR} ${Number(price).toFixed(2)}`;
+  const sub = size ? `${size} · ${oz}  —  ${CUR} ${fmtPrice(price)}` : `${CUR} ${fmtPrice(price)}`;
   document.getElementById('addonsSheetSub').textContent = sub;
 
   const opts = document.getElementById('addonsSheetOpts');
@@ -1393,7 +1575,14 @@ function handleSheetBgClick(e) {
 function renderCartSheet() {
   const total = cart.reduce((s, c) => s + c.price, 0);
   document.getElementById('cartSheetCount').textContent = cart.length + ' item' + (cart.length !== 1 ? 's' : '');
-  document.getElementById('cartTotalVal').textContent = CUR + ' ' + total.toFixed(2);
+  document.getElementById('cartTotalVal').textContent = CUR + ' ' + fmtPrice(total);
+  const orderBtn = document.getElementById('waOrderBtn');
+  if (storeConfig?.isOpen === false) {
+    orderBtn.disabled = true;
+    orderBtn.textContent = 'We\'re currently closed — orders unavailable';
+  } else {
+    orderBtn.disabled = false;
+  }
   const list = document.getElementById('cartItemsList');
   if (cart.length === 0) {
     list.innerHTML = '<div class="empty-cart">Your cart is empty 🛒<br>Add something delicious from the menu</div>';
@@ -1410,7 +1599,7 @@ function renderCartSheet() {
         ${item.size ? `<div class="cart-row-size">${item.size} · ${item.oz}</div>` : ''}
         ${addonsStr ? `<div class="cart-row-addons">${addonsStr}</div>` : ''}
       </div>
-      <span class="cart-row-price">${CUR} ${item.price.toFixed(2)}</span>
+      <span class="cart-row-price">${CUR} ${fmtPrice(item.price)}</span>
       <button class="cart-row-del" onclick="removeByUid(${item.uid})">×</button>`;
     list.appendChild(row);
   });
@@ -1420,7 +1609,7 @@ function renderCartSheet() {
 // SEND ORDER
 // ════════════════════════════════════════════════════════════
 async function sendOrder() {
-  if (!cart.length) return;
+  if (!cart.length || storeConfig?.isOpen === false) return;
   const name  = document.getElementById('custName').value.trim() || 'Customer';
   const note  = document.getElementById('custNote').value.trim();
   const total = cart.reduce((s, c) => s + c.price, 0);
