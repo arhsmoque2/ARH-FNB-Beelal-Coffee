@@ -9,221 +9,216 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:       #0a0a0a;
-  --bg2:      #111111;
-  --bg3:      #1a1a1a;
-  --bg4:      #222222;
-  --border:   rgba(255,255,255,0.08);
-  --border2:  rgba(255,255,255,0.04);
-  --text:     #ededed;
-  --text2:    #888;
-  --text3:    #555;
-  --green:    #22c55e;
-  --green2:   rgba(34,197,94,0.1);
-  --blue:     #3b82f6;
-  --blue2:    rgba(59,130,246,0.1);
-  --amber:    #f59e0b;
-  --amber2:   rgba(245,158,11,0.1);
-  --red:      #ef4444;
-  --red2:     rgba(239,68,68,0.1);
-  --purple:   #a855f7;
-  --purple2:  rgba(168,85,247,0.1);
+  --bg:#0a0a0a; --bg2:#111; --bg3:#1a1a1a; --bg4:#222;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.04);
+  --text:#ededed; --text2:#a0a0a0; --text3:#666;
+  --green:#22c55e; --green2:rgba(34,197,94,0.1);
+  --blue:#3b82f6; --blue2:rgba(59,130,246,0.1);
+  --amber:#f59e0b; --amber2:rgba(245,158,11,0.1);
+  --red:#ef4444; --red2:rgba(239,68,68,0.1);
+  --purple:#a855f7; --purple2:rgba(168,85,247,0.1);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:24px 20px 80px;max-width:700px;margin:0 auto;}
-h1{font-size:26px;font-weight:800;margin-bottom:4px;}
-h2{font-size:18px;font-weight:700;margin:32px 0 12px;display:flex;align-items:center;gap:8px;}
-h3{font-size:14px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin:24px 0 10px;}
+html{scroll-behavior:smooth;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;padding:24px 20px 90px;max-width:760px;margin:0 auto;}
+h1{font-size:28px;font-weight:800;margin-bottom:4px;letter-spacing:-0.02em;}
+h2{font-size:19px;font-weight:800;margin:34px 0 12px;display:flex;align-items:center;gap:8px;}
+h3{font-size:13px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin:24px 0 10px;}
 p{margin-bottom:12px;font-size:15px;color:var(--text2);}
-strong{color:var(--text);font-weight:600;}
+strong{color:var(--text);font-weight:700;}
 code{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--amber);}
-
-.subtitle{font-size:14px;color:var(--text3);margin-bottom:32px;}
-.toc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:32px;}
-.toc-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:10px;}
+ul{font-size:14px;color:var(--text2);padding-left:20px;margin:0 0 12px;}
+li{margin-bottom:6px;}
+section{scroll-margin-top:24px;}
+hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
+.subtitle{font-size:14px;color:var(--text3);margin-bottom:24px;}
+.toc{position:sticky;top:12px;z-index:10;background:rgba(17,17,17,0.94);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:30px;box-shadow:0 8px 28px rgba(0,0,0,0.28);}
+.toc-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:10px;}
+.toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
 .toc a{display:block;font-size:14px;color:var(--text2);text-decoration:none;padding:4px 0;border-bottom:1px solid var(--border2);}
-.toc a:last-child{border-bottom:none;}
 .toc a:hover{color:var(--text);}
-
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
 .card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.card-title{font-size:15px;font-weight:700;}
+.card-title{font-size:15px;font-weight:800;color:var(--text);}
 .card-sub{font-size:12px;color:var(--text3);}
-
 .step{display:flex;gap:12px;margin-bottom:10px;}
-.step-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);flex-shrink:0;margin-top:2px;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--text2);flex-shrink:0;margin-top:2px;}
 .step-body{font-size:14px;color:var(--text2);}
-
-.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;margin:2px 2px;}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;margin:2px 2px;}
 .badge.green{background:var(--green2);color:var(--green);}
 .badge.blue{background:var(--blue2);color:var(--blue);}
 .badge.amber{background:var(--amber2);color:var(--amber);}
 .badge.red{background:var(--red2);color:var(--red);}
 .badge.purple{background:var(--purple2);color:var(--purple);}
-
 .mockup{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;}
-.mockup-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);}
+.mockup-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border2);}
 .mockup-row:last-child{border-bottom:none;}
-.mockup-label{color:var(--text2);}
-.mockup-val{color:var(--text);font-weight:600;}
-
-.tip{background:var(--blue2);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text2);margin:10px 0;}
+.mockup-label{color:var(--text2);font-weight:700;}
+.mockup-val{color:var(--text);text-align:right;}
+.tip,.warn{border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text2);margin:10px 0;}
+.tip{background:var(--blue2);border:1px solid rgba(59,130,246,0.2);}
 .tip strong{color:var(--blue);}
-
-.warn{background:var(--amber2);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text2);margin:10px 0;}
+.warn{background:var(--amber2);border:1px solid rgba(245,158,11,0.2);}
 .warn strong{color:var(--amber);}
-
-section{scroll-margin-top:20px;}
-hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
+.back-top{display:inline-flex;margin-top:14px;font-size:12px;color:var(--text3);text-decoration:none;}
+.back-top:hover{color:var(--text);}
+.checklist{display:grid;gap:8px;margin-top:12px;}
+.checklist-item{display:flex;gap:10px;align-items:flex-start;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;}
+.checklist-item input{margin-top:4px;accent-color:var(--green);}
+.checklist-item label{font-size:14px;color:var(--text2);cursor:pointer;}
+.checklist-item input:checked+label{color:var(--text);text-decoration:line-through;text-decoration-color:var(--green);}
+.print-btn{position:fixed;right:18px;bottom:18px;z-index:20;background:var(--text);color:var(--bg);border:none;border-radius:999px;padding:10px 14px;font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.35);}
+@media(max-width:560px){.toc{max-height:44vh;overflow:auto}.toc-grid{grid-template-columns:1fr}.mockup-row{display:block}.mockup-val{display:block;text-align:left;margin-top:2px}.print-btn{right:12px;bottom:12px}}
+@media print{body{background:#fff;color:#000;max-width:none;padding:20px}.toc,.print-btn,.back-top{display:none}.card,.mockup,.tip,.warn,.checklist-item{border:1px solid #bbb;background:#fff;color:#000}p,.step-body,li,.mockup-label,.mockup-val,.card-sub,.checklist-item label{color:#111}h1,h2,h3,strong,.card-title{color:#000}hr{border-color:#bbb}}
 </style>
 </head>
-<body>
+<body id="top">
+
+<button class="print-btn" onclick="window.print()">Print Guide</button>
 
 <h1>Admin Panel Guide</h1>
-<p class="subtitle">How to manage your digital menu and store settings.</p>
+<p class="subtitle">A practical owner guide for updating the menu, store details, theme, and order records.</p>
 
-<div class="toc">
+<div class="toc" aria-label="Guide contents">
   <div class="toc-title">Contents</div>
-  <a href="#logging-in">1 · Logging In</a>
-  <a href="#store-tab">2 · Opening &amp; Closing the Store</a>
-  <a href="#menu-tab">3 · Managing the Menu</a>
-  <a href="#orders-tab">4 · Viewing Orders</a>
-  <a href="#ai-studio">5 · AI Studio (Theme &amp; Appearance)</a>
-  <a href="#security-tab">6 · Security &amp; PINs</a>
-  <a href="#recovery">7 · Recovery &amp; Troubleshooting</a>
+  <div class="toc-grid">
+    <a href="#quick-map">0 · What Opens What</a>
+    <a href="#logging-in">1 · Logging In</a>
+    <a href="#store-tab">2 · Store Details</a>
+    <a href="#menu-tab">3 · Managing the Menu</a>
+    <a href="#orders-tab">4 · Viewing Orders</a>
+    <a href="#theme-studio">5 · Theme Studio</a>
+    <a href="#security-tab">6 · Security &amp; PINs</a>
+    <a href="#checklist">7 · Setup Checklist</a>
+    <a href="#recovery">8 · Recovery</a>
+  </div>
 </div>
 
-<!-- ── 1. LOGGING IN ──────────────────────────────────── -->
+<section id="quick-map">
+<h2>🗺️ What Opens What</h2>
+<div class="card">
+  <div class="card-head">
+    <div class="card-icon" style="background:var(--blue2);">🛠️</div>
+    <div><div class="card-title"><code>admin.html</code></div><div class="card-sub">Owner and developer control panel</div></div>
+  </div>
+  <p style="margin:0;font-size:14px;">Use this page to change store info, menu items, availability, orders, PINs, and Theme Studio settings.</p>
+</div>
+<div class="card">
+  <div class="card-head">
+    <div class="card-icon" style="background:var(--green2);">📱</div>
+    <div><div class="card-title"><code>index.html</code></div><div class="card-sub">Customer-facing menu</div></div>
+  </div>
+  <p style="margin:0;font-size:14px;">This is what customers open to browse the menu and send orders through WhatsApp.</p>
+</div>
+<div class="tip"><strong>Tip:</strong> After saving in <code>admin.html</code>, refresh <code>index.html</code> to check what customers will see.</div>
+<a class="back-top" href="#top">↑ Back to top</a>
+</section>
+
+<hr>
+
 <section id="logging-in">
 <h2>🔐 Logging In</h2>
-<p>Open <strong>admin.html</strong> on your phone or computer. You will see a PIN entry screen.</p>
-
+<p>Open <strong><span translate="no">admin.html</span></strong> on your phone or computer. You will see a 4-digit <span translate="no">PIN</span> screen.</p>
 <div class="card">
   <div class="card-head">
     <div class="card-icon" style="background:var(--green2);">🏪</div>
-    <div><div class="card-title">Owner PIN</div><div class="card-sub">4-digit PIN set by your developer</div></div>
+    <div><div class="card-title">Owner PIN</div><div class="card-sub">For daily store operation</div></div>
   </div>
-  <p style="margin:0;font-size:14px;">Access to: Store settings, Menu management, Orders, AI Studio.</p>
+  <p style="margin:0;font-size:14px;">Use it for store details, menu management, orders, Theme Studio, and Owner PIN changes.</p>
 </div>
-
 <div class="card">
   <div class="card-head">
     <div class="card-icon" style="background:var(--purple2);">🛠️</div>
-    <div><div class="card-title">Developer PIN</div><div class="card-sub">Set by the developer on first run</div></div>
+    <div><div class="card-title">Developer PIN</div><div class="card-sub">For setup and recovery</div></div>
   </div>
-  <p style="margin:0;font-size:14px;">Everything above, plus: Dev tools, AI model settings, error logs, master theme snapshot.</p>
+  <p style="margin:0;font-size:14px;">Everything above, plus Dev tools, API keys, model settings, error logs, and master theme snapshot.</p>
 </div>
-
-<div class="tip"><strong>Tip:</strong> If you enter the wrong PIN, wait 2 seconds and try again. PINs are stored securely in the database — not in the browser.</div>
+<div class="tip"><strong>Tip:</strong> If you enter the wrong PIN, wait 2 seconds and try again. PINs are stored in <span translate="no">Firebase</span>, not in the browser.</div>
+<a class="back-top" href="#top">↑ Back to top</a>
 </section>
 
 <hr>
 
-<!-- ── 2. STORE TAB ───────────────────────────────────── -->
 <section id="store-tab">
-<h2>🏪 Opening &amp; Closing the Store</h2>
-<p>The <strong>Store</strong> tab controls whether customers see an "Open" or "Closed" banner on the menu page.</p>
-
-<h3>Toggle Open / Closed</h3>
+<h2>🏪 Store Details</h2>
+<p>The <strong>Store</strong> tab controls the details customers see on the menu page.</p>
+<h3>Open / Closed Toggle</h3>
 <div class="step"><div class="step-num">1</div><div class="step-body">Log in with your Owner PIN.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Tap the <strong>Store</strong> tab (first tab at the top).</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Press <strong>Open Store</strong> or <strong>Close Store</strong> — the change takes effect immediately for all customers.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">Tap the <strong>Store</strong> tab.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Use the <strong>Store is Open</strong> switch. The customer menu updates immediately.</div></div>
+<div class="warn"><strong>Important:</strong> When closed, customers see a warning and cannot add items to cart. Re-open the store when you are ready to receive orders.</div>
 
-<div class="warn"><strong>Important:</strong> This does not stop customers from placing orders — it just shows a warning banner. You can still receive WhatsApp orders when "closed".</div>
-
-<h3>Updating Store Info</h3>
+<h3>Update Store Info</h3>
 <p>In the Store tab you can edit:</p>
 <div class="mockup">
-  <div class="mockup-row"><span class="mockup-label">Store Name</span><span class="mockup-val">Displayed at the top of the menu</span></div>
-  <div class="mockup-row"><span class="mockup-label">Slogan</span><span class="mockup-val">Short tagline below the name</span></div>
-  <div class="mockup-row"><span class="mockup-label">Opening Hours</span><span class="mockup-val">Shown in the menu header bar</span></div>
-  <div class="mockup-row"><span class="mockup-label">WhatsApp Number</span><span class="mockup-val">Country code + digits only, e.g. 60122203743</span></div>
-  <div class="mockup-row"><span class="mockup-label">Logo URL</span><span class="mockup-val">Optional — link to an image (HTTPS)</span></div>
+  <div class="mockup-row"><span class="mockup-label">Store Name</span><span class="mockup-val">Shown at the top of the menu</span></div>
+  <div class="mockup-row"><span class="mockup-label">Slogan</span><span class="mockup-val">Short line below the name</span></div>
+  <div class="mockup-row"><span class="mockup-label">Opening Hours</span><span class="mockup-val">Shown under the header</span></div>
+  <div class="mockup-row"><span class="mockup-label">WhatsApp Number</span><span class="mockup-val">Country code + digits only</span></div>
+  <div class="mockup-row"><span class="mockup-label">Address + Map URL</span><span class="mockup-val">Shown in the footer if filled</span></div>
+  <div class="mockup-row"><span class="mockup-label">Social Links</span><span class="mockup-val">Instagram, TikTok, Facebook</span></div>
+  <div class="mockup-row"><span class="mockup-label">Delivery Links</span><span class="mockup-val">Example: GrabFood | https://...</span></div>
+  <div class="mockup-row"><span class="mockup-label">Closed Message</span><span class="mockup-val">Custom message when the shop is closed</span></div>
+  <div class="mockup-row"><span class="mockup-label">Footer Text</span><span class="mockup-val">Small credit or powered-by line</span></div>
 </div>
-<p>After making changes, tap <strong>Save Store Info</strong>. Changes are visible to customers immediately.</p>
+<h3>Upload Logo and Banner</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">Tap <strong>Upload Logo</strong> to add the square image beside your store name.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">Tap <strong>Upload Banner</strong> to add a wide promo image above the menu.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Tap <strong>Save Store Info</strong>.</div></div>
+<div class="tip"><strong>Tip:</strong> Logo and banner upload needs the developer to set an <span translate="no">Imgur</span> Client ID once in the Dev tab.</div>
+<a class="back-top" href="#top">↑ Back to top</a>
 </section>
 
 <hr>
 
-<!-- ── 3. MENU TAB ───────────────────────────────────── -->
 <section id="menu-tab">
 <h2>📋 Managing the Menu</h2>
 <p>The <strong>Menu</strong> tab lets you add, edit, delete, and mark items as sold out.</p>
-
 <h3>Mark an Item as Sold Out</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Find the item in the menu list.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Tap <strong>Sold Out</strong>. The item stays visible on the menu but is greyed out with a "Sold Out" badge — customers cannot order it.</div></div>
+<div class="step"><div class="step-num">1</div><div class="step-body">Find the item in the list.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">Tap <strong>Sold Out</strong>. Customers will see the item greyed out and cannot order it.</div></div>
 <div class="step"><div class="step-num">3</div><div class="step-body">Tap <strong>Enable</strong> to make it available again.</div></div>
-
 <h3>Add a New Item</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Tap <strong>+ Add Item</strong> at the top of the Menu tab.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Fill in the item name, category, emoji, and description.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">
-  For <strong>drinks</strong>: enter prices for Hot, Cold, and/or Frappé sizes. Leave a size blank to hide it.<br>
-  For <strong>food</strong>: enter a single fixed price.
-</div></div>
-<div class="step"><div class="step-num">4</div><div class="step-body">Optionally add a photo (JPG or PNG — it will be resized to 500px automatically).</div></div>
-<div class="step"><div class="step-num">5</div><div class="step-body">Tap <strong>Add Item</strong> to save.</div></div>
-
-<h3>Edit an Item</h3>
-<p>Tap <strong>Edit</strong> next to any item. Change the fields you want, then tap <strong>Save</strong>.</p>
-
-<h3>Delete an Item</h3>
-<p>Tap <strong>Del</strong> next to an item, then confirm. This cannot be undone.</p>
-
-<h3>Manage Categories</h3>
-<p>Categories appear as horizontal tabs on the menu page. In the Menu tab, scroll down to the <strong>Categories</strong> section to:</p>
-<ul style="font-size:14px;color:var(--text2);padding-left:20px;margin-bottom:12px;">
-  <li>Edit a category's name or emoji</li>
-  <li>Delete an empty category (categories with items cannot be deleted)</li>
-  <li>Add a new category</li>
+<div class="step"><div class="step-num">1</div><div class="step-body">Tap <strong>+ Add Item</strong>.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">Fill in category, name, description, emoji, and optional photo.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">For drinks, enter Hot, Cold, or Frappe prices. Leave a size blank to hide it.</div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body">For food, enter one fixed price.</div></div>
+<div class="step"><div class="step-num">5</div><div class="step-body">Tap <strong>Add Item</strong>.</div></div>
+<h3>Edit, Delete, and Categories</h3>
+<ul>
+  <li>✏️ Tap <strong>Edit</strong> beside an item to change details, prices, photos, and add-ons.</li>
+  <li>🗑️ Tap <strong>Del</strong> only when you really want to remove an item.</li>
+  <li>🏷️ Use <strong>Categories</strong> to rename category labels or add a new category.</li>
 </ul>
-
-<div class="tip"><strong>Tip:</strong> Category order on the menu follows the order they appear in the Admin categories list.</div>
-
 <h3>Add-ons &amp; Options</h3>
-<p>When editing an item, scroll to <strong>Options / Add-ons</strong>. Two types are available:</p>
-<div class="card">
-  <div class="card-title" style="margin-bottom:6px;">Choice (required)</div>
-  <p style="margin:0;font-size:14px;color:var(--text2);">A dropdown the customer must pick before adding to cart — e.g. sauce type, spice level. No extra price.</p>
-</div>
-<div class="card">
-  <div class="card-title" style="margin-bottom:6px;">Optional (checkbox + price)</div>
-  <p style="margin:0;font-size:14px;color:var(--text2);">A checkbox the customer can optionally tick — e.g. "Extra Cheese". Set the extra price in the price field.</p>
-</div>
+<div class="card"><div class="card-title" style="margin-bottom:6px;">Choice</div><p style="margin:0;font-size:14px;">A required selection, such as sauce type or spice level.</p></div>
+<div class="card"><div class="card-title" style="margin-bottom:6px;">Optional</div><p style="margin:0;font-size:14px;">A checkbox with an extra price, such as Extra Cheese.</p></div>
+<a class="back-top" href="#top">↑ Back to top</a>
 </section>
 
 <hr>
 
-<!-- ── 4. ORDERS TAB ─────────────────────────────────── -->
 <section id="orders-tab">
 <h2>📦 Viewing Orders</h2>
-<p>The <strong>Orders</strong> tab shows a log of all orders customers sent via WhatsApp, newest first.</p>
-<p>Each order entry shows: customer name, timestamp, items ordered (with sizes), and total amount.</p>
-
-<div class="tip"><strong>Tip:</strong> This is a read-only log for reference. Actual order fulfilment happens through WhatsApp — the customer sends the order message and you reply or prepare from there.</div>
-
-<p>Tap <strong>Refresh</strong> to reload the latest orders. Orders are stored for up to 1,000 entries before the oldest are removed.</p>
+<p>The <strong>Orders</strong> tab shows a log of orders sent through <span translate="no">WhatsApp</span>, newest first.</p>
+<p>Each entry shows customer name, time, items ordered, add-ons, and estimated total.</p>
+<div class="tip"><strong>Tip:</strong> This is a reference log. Actual conversation and fulfilment still happen in WhatsApp.</div>
+<p>Tap <strong>Refresh</strong> to reload latest orders. The app keeps up to 1,000 order records.</p>
+<a class="back-top" href="#top">↑ Back to top</a>
 </section>
 
 <hr>
 
-<!-- ── 5. AI STUDIO ──────────────────────────────────── -->
-<section id="ai-studio">
-<h2>🤖 AI Studio</h2>
-<p>AI Studio (available with the Developer PIN) lets you change the look of the menu — colours, fonts, theme — using plain-language instructions or by uploading a design template.</p>
-
-<div class="warn"><strong>Requires:</strong> An OpenRouter API key. Set it once in the <strong>Dev</strong> tab → <em>API Key</em> field. Free-tier keys are available at <code>openrouter.ai</code>.</div>
-
-<h3>Changing the Theme with AI</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Tap the <strong>AI Studio</strong> tab.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Type a request in plain language — for example: <em>"Make it look festive for Christmas — red and gold"</em> or <em>"Change the background to dark navy"</em>.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Tap <strong>Send</strong> and wait a few seconds. The AI will apply the changes and explain what it did.</div></div>
-<div class="step"><div class="step-num">4</div><div class="step-body">If you like the result, tap <strong>Save Theme</strong>. If not, tap <strong>Restore Last Saved</strong> to go back.</div></div>
-
+<section id="theme-studio">
+<h2>🎨 Theme Studio</h2>
+<p><strong>Theme Studio</strong> changes the menu appearance: colours, fonts, and small design tweaks. It uses AI only when you chat with the design helper.</p>
+<div class="warn"><strong>Requires setup:</strong> The developer must save an <span translate="no">OpenRouter</span> API key in the Dev tab before chat works.</div>
+<h3>Change Theme by Chat</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">Tap <strong>Theme Studio</strong>.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">Type a simple request, for example: <em>"Make it look like a cosy cafe"</em>.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Tap Send. If you like the result, keep it. If not, restore the last saved theme.</div></div>
 <h3>Quick Action Chips</h3>
-<p>Use the shortcut chips below the chat input for common actions:</p>
 <div style="margin-bottom:8px;">
   <span class="badge purple">🌸 Seasonal Theme</span>
   <span class="badge purple">🎉 Festive Theme</span>
@@ -232,83 +227,83 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
   <span class="badge purple">🚫 Category Off</span>
   <span class="badge purple">✅ All Available</span>
 </div>
-
-<h3>Upload a Design Template (ZIP)</h3>
-<p>If you have an HTML template ZIP file (e.g. from a design marketplace), you can upload it to extract its fonts and colour palette, then apply them to your menu.</p>
-<div class="step"><div class="step-num">1</div><div class="step-body">Scroll to <strong>Template Upload</strong> in AI Studio.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Tap <strong>Upload ZIP</strong> and select your file.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">The extracted fonts and colours are shown. Choose which elements to update, then tap <strong>Apply Selected</strong>.</div></div>
-
+<h3>Upload a Design Template ZIP</h3>
+<p>A <span translate="no">ZIP</span> is a compressed folder. In this app, it means a downloaded <span translate="no">HTML</span> template from a design website.</p>
+<div class="step"><div class="step-num">1</div><div class="step-body">Search the web for <strong>free restaurant HTML template</strong> or <strong>free cafe HTML template</strong>.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">Download the template as a ZIP file.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Back in Theme Studio, upload it like attaching a photo in WhatsApp.</div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body">Pick the fonts or colours you want, then apply them.</div></div>
+<div class="tip"><strong>Tip:</strong> If this sounds confusing, skip ZIP upload. The chat and colour picker are enough for most stores.</div>
 <h3>Factory Reset</h3>
-<p>To restore everything to the original theme set up by your developer, tap <strong>Factory Reset</strong> in AI Studio. This reverts to the master snapshot taken on first setup.</p>
+<p>Developer login can restore the original master theme if the design becomes messy or unreadable.</p>
+<a class="back-top" href="#top">↑ Back to top</a>
 </section>
 
 <hr>
 
-<!-- ── 6. SECURITY ────────────────────────────────────── -->
 <section id="security-tab">
 <h2>🔒 Security &amp; PINs</h2>
-
 <h3>Change Owner PIN</h3>
 <div class="step"><div class="step-num">1</div><div class="step-body">Go to the <strong>Security</strong> tab.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Enter the new 4-digit PIN in both fields, then tap <strong>Save Owner PIN</strong>.</div></div>
-
-<div class="warn"><strong>Write it down.</strong> If you forget both the Owner PIN and Developer PIN, contact your developer — they can reset it via the Firebase database directly.</div>
-
+<div class="step"><div class="step-num">2</div><div class="step-body">Enter the new 4-digit PIN twice.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Tap <strong>Update Owner PIN</strong>.</div></div>
+<div class="warn"><strong>Write it down.</strong> If both Owner PIN and Developer PIN are lost, your developer must reset it directly in Firebase.</div>
 <h3>Change Developer PIN</h3>
-<p>Only the developer can change the Developer PIN. It is done from the <strong>Security</strong> tab when logged in with the Developer PIN.</p>
+<p>Developer PIN can be changed from the Security tab only when logged in as developer.</p>
+<a class="back-top" href="#top">↑ Back to top</a>
 </section>
 
 <hr>
 
-<!-- ── 7. RECOVERY ────────────────────────────────────── -->
-<section id="recovery">
-<h2>🛟 Recovery &amp; Troubleshooting</h2>
-
-<div class="card">
-  <div class="card-head">
-    <div class="card-icon" style="background:var(--amber2);">🔑</div>
-    <div><div class="card-title">Forgotten Owner PIN</div></div>
-  </div>
-  <p style="margin:0;font-size:14px;color:var(--text2);">Log in with the Developer PIN → <strong>Security</strong> tab → reset the Owner PIN.</p>
+<section id="checklist">
+<h2>✅ Setup Checklist</h2>
+<p>Tick each task after you complete it. Progress is saved on this device.</p>
+<div class="checklist">
+  <div class="checklist-item"><input type="checkbox" id="chk-owner-pin"><label for="chk-owner-pin">Change Owner PIN</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-store-info"><label for="chk-store-info">Update store name, slogan, opening hours, and WhatsApp number</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-logo"><label for="chk-logo">Upload logo</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-banner"><label for="chk-banner">Upload banner or promo image</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-footer"><label for="chk-footer">Add address, map, social, or delivery links if available</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-menu"><label for="chk-menu">Add or edit at least one menu item</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-soldout"><label for="chk-soldout">Test Sold Out and Enable on one item</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-customer-page"><label for="chk-customer-page">Open index.html and check the customer menu</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-test-order"><label for="chk-test-order">Send one test WhatsApp order</label></div>
 </div>
-
-<div class="card">
-  <div class="card-head">
-    <div class="card-icon" style="background:var(--red2);">🎨</div>
-    <div><div class="card-title">Theme Looks Wrong / Broken</div></div>
-  </div>
-  <p style="margin:0;font-size:14px;color:var(--text2);">Log in with Developer PIN → <strong>AI Studio</strong> → tap <strong>Factory Reset</strong>. This restores the original theme.</p>
-</div>
-
-<div class="card">
-  <div class="card-head">
-    <div class="card-icon" style="background:var(--blue2);">🌐</div>
-    <div><div class="card-title">Page Not Loading / Network Error</div></div>
-  </div>
-  <p style="margin:0;font-size:14px;color:var(--text2);">Check your internet connection. The menu and admin panel require a connection to Firebase. If the problem persists, contact your developer.</p>
-</div>
-
-<div class="card">
-  <div class="card-head">
-    <div class="card-icon" style="background:var(--purple2);">🐛</div>
-    <div><div class="card-title">Viewing Error Logs</div></div>
-  </div>
-  <p style="margin:0;font-size:14px;color:var(--text2);">Log in with Developer PIN → <strong>Dev</strong> tab → scroll to <strong>Error Log</strong>. The last 20 errors are shown with timestamps and details.</p>
-</div>
-
-<div class="card">
-  <div class="card-head">
-    <div class="card-icon" style="background:var(--green2);">🔄</div>
-    <div><div class="card-title">Redeploying / Updating the App</div></div>
-  </div>
-  <p style="margin:0;font-size:14px;color:var(--text2);">Push updated files to the GitHub repository. Cloudflare deploys automatically in ~30 seconds. Database data is unaffected by redeployments.</p>
-</div>
+<a class="back-top" href="#top">↑ Back to top</a>
+</section>
 
 <hr>
 
+<section id="recovery">
+<h2>🛟 Recovery &amp; Troubleshooting</h2>
+<div class="card">
+  <div class="card-head"><div class="card-icon" style="background:var(--amber2);">🔑</div><div><div class="card-title">Forgotten Owner PIN</div></div></div>
+  <p style="margin:0;font-size:14px;">Log in with Developer PIN → <strong>Security</strong> tab → update the Owner PIN.</p>
+</div>
+<div class="card">
+  <div class="card-head"><div class="card-icon" style="background:var(--red2);">🎨</div><div><div class="card-title">Theme Looks Wrong</div></div></div>
+  <p style="margin:0;font-size:14px;">Log in with Developer PIN → <strong>Theme Studio</strong> → restore last saved theme or factory reset.</p>
+</div>
+<div class="card">
+  <div class="card-head"><div class="card-icon" style="background:var(--blue2);">🌐</div><div><div class="card-title">Page Not Loading</div></div></div>
+  <p style="margin:0;font-size:14px;">Check internet connection. The app needs Firebase to load live menu and settings.</p>
+</div>
+<div class="card">
+  <div class="card-head"><div class="card-icon" style="background:var(--purple2);">⚙️</div><div><div class="card-title">Theme Studio Chat Error</div></div></div>
+  <p style="margin:0;font-size:14px;">Developer login → <strong>Dev</strong> tab → check API key, selected model, and Error Log.</p>
+</div>
+<hr>
 <p style="font-size:13px;color:var(--text3);text-align:center;">Need help? Contact your developer.</p>
 </section>
 
+<script>
+document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(input => {
+  const key = 'arh-fnb-guide-' + input.id;
+  input.checked = localStorage.getItem(key) === '1';
+  input.addEventListener('change', () => {
+    localStorage.setItem(key, input.checked ? '1' : '0');
+  });
+});
+</script>
 </body>
 </html>

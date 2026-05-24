@@ -860,11 +860,25 @@ body {
 .app-footer {
   padding: 22px 20px 130px;
   color: var(--text3);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.6;
   text-align: center;
 }
 .app-footer strong { color: var(--text2); font-weight: 700; }
+.footer-lines { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.footer-link-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.footer-link {
+  color: var(--text2);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 11px;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  transition: transform 0.15s, background 0.15s, color 0.15s;
+}
+.footer-link:active { transform: scale(0.96); background: var(--bg3); color: var(--accent); }
 @media (max-width: 430px) {
   .info-card.size-half,
   .info-card.size-third,
@@ -967,6 +981,7 @@ html.dark {
   overflow: hidden;
   position: relative;
 }
+.store-banner.has-link { cursor: pointer; }
 .store-banner img {
   width: 100%;
   height: 100%;
@@ -1071,7 +1086,7 @@ html.dark .icon-btn .icon-moon { display: block; }
 <!-- MAIN -->
 <main class="main" id="mainContent"></main>
 
-<footer class="app-footer">
+<footer class="app-footer" id="appFooter">
   Apps are designed, operated, and maintained by <strong>ARH Enggang Team</strong> as free local community service.
 </footer>
 
@@ -1178,6 +1193,15 @@ const DEFAULT_CONFIG = {
     hours:      APP_CONFIG.store.hours,
     isOpen:     true,
     logo_url:   '',
+    banner_url: '',
+    address:    APP_CONFIG.store.address || '',
+    map_url:    APP_CONFIG.store.map_url || '',
+    social:     APP_CONFIG.store.social || {},
+    deliveryPlatforms: APP_CONFIG.store.deliveryPlatforms || [],
+    closedMessage: APP_CONFIG.store.closedMessage || "⚠️ We're currently closed — orders accepted during opening hours",
+    footerText: APP_CONFIG.store.footerText || '',
+    banner:     APP_CONFIG.store.banner || { enabled:false, image_url:'', link:'', alt:'Special promotion' },
+    meta:       APP_CONFIG.store.meta || {},
     sizeLegend: APP_CONFIG.store.sizeLegend,
   },
   theme: APP_CONFIG.defaultTheme,
@@ -1410,7 +1434,7 @@ function applyTheme(t) {
 // ════════════════════════════════════════════════════════════
 function renderHeader() {
   const c = storeConfig;
-  document.title = c.name;
+  updateMetaTags(c);
   document.getElementById('storeName').textContent  = c.name;
   document.getElementById('storeSlogan').textContent = c.slogan;
   document.getElementById('hoursText').textContent  = c.hours;
@@ -1425,10 +1449,18 @@ function renderHeader() {
   // Banner
   const bannerEl  = document.getElementById('storeBanner');
   const bannerImg = document.getElementById('storeBannerImg');
-  if (c.banner_url) {
-    bannerImg.src = c.banner_url;
+  const bannerCfg = c.banner || {};
+  const bannerUrl = (bannerCfg.enabled === true && bannerCfg.image_url) ? bannerCfg.image_url : (c.banner_url || '');
+  const bannerLink = safeUrl(bannerCfg.link);
+  if (bannerUrl) {
+    bannerImg.src = bannerUrl;
+    bannerImg.alt = bannerCfg.alt || 'Store promotion';
+    bannerEl.classList.toggle('has-link', !!bannerLink);
+    bannerEl.onclick = bannerLink ? () => window.open(bannerLink, '_blank', 'noopener') : null;
     bannerEl.style.display = '';
   } else {
+    bannerEl.onclick = null;
+    bannerEl.classList.remove('has-link');
     bannerEl.style.display = 'none';
   }
 
@@ -1442,6 +1474,7 @@ function renderHeader() {
   } else {
     pill.className = 'status-pill closed';
     text.textContent = 'Closed';
+    banner.textContent = c.closedMessage || "⚠️ We're currently closed — orders accepted during opening hours";
     banner.classList.add('visible');
   }
 
@@ -1459,6 +1492,8 @@ function renderHeader() {
     };
     nav.appendChild(tab);
   });
+
+  renderFooter(c);
 }
 
 function fontStack(name) {
@@ -1472,9 +1507,82 @@ function fontStack(name) {
   return fonts[name] || fonts.Figtree;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[<>&"]/g, ch => ({
+    '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;'
+  }[ch]));
+}
+
 function safeUrl(url) {
   const value = String(url || '').trim();
   return /^https:\/\/.+/i.test(value) ? value : '';
+}
+
+function setHeadMeta(selector, attr, value) {
+  if (!value) return;
+  let el = document.head.querySelector(selector);
+  if (!el) {
+    el = document.createElement('meta');
+    if (selector.startsWith('meta[name="')) el.setAttribute('name', selector.match(/meta\[name="([^"]+)"/)?.[1] || '');
+    if (selector.startsWith('meta[property="')) el.setAttribute('property', selector.match(/meta\[property="([^"]+)"/)?.[1] || '');
+    document.head.appendChild(el);
+  }
+  el.setAttribute(attr, value);
+}
+
+function updateMetaTags(c) {
+  const meta = c.meta || {};
+  const title = meta.title || `${c.name} Menu`;
+  const desc = meta.description || `${c.slogan || 'Order via WhatsApp.'}`;
+  const image = safeUrl(c.logo_url || c.banner_url || c.banner?.image_url);
+  document.title = title;
+  setHeadMeta('meta[name="description"]', 'content', desc);
+  setHeadMeta('meta[property="og:title"]', 'content', title);
+  setHeadMeta('meta[property="og:description"]', 'content', desc);
+  setHeadMeta('meta[property="og:type"]', 'content', 'website');
+  if (image) setHeadMeta('meta[property="og:image"]', 'content', image);
+  const favicon = safeUrl(meta.favicon_url);
+  if (favicon) {
+    let link = document.head.querySelector('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = favicon;
+  }
+}
+
+function renderFooter(c) {
+  const footer = document.getElementById('appFooter');
+  const rows = [];
+  const address = String(c.address || '').trim();
+  const mapUrl = safeUrl(c.map_url);
+  if (address) {
+    rows.push(mapUrl
+      ? `<a class="footer-link" href="${mapUrl}" target="_blank" rel="noopener">${escapeHtml(address)}</a>`
+      : `<span>${escapeHtml(address)}</span>`);
+  }
+
+  const social = c.social || {};
+  const socialLinks = [
+    ['Instagram', safeUrl(social.instagram)],
+    ['TikTok', safeUrl(social.tiktok)],
+    ['Facebook', safeUrl(social.facebook)],
+  ].filter(([, url]) => url);
+  const deliveryLinks = (Array.isArray(c.deliveryPlatforms) ? c.deliveryPlatforms : [])
+    .map(p => [p.label || 'Order', safeUrl(p.url)])
+    .filter(([, url]) => url);
+  const links = [...socialLinks, ...deliveryLinks];
+  if (links.length) {
+    rows.push(`<div class="footer-link-row">${links.map(([label, url]) =>
+      `<a class="footer-link" href="${url}" target="_blank" rel="noopener">${escapeHtml(label)}</a>`
+    ).join('')}</div>`);
+  }
+  if (c.footerText) rows.push(`<span>${escapeHtml(c.footerText)}</span>`);
+
+  footer.hidden = !rows.length;
+  footer.innerHTML = rows.length ? `<div class="footer-lines">${rows.join('')}</div>` : '';
 }
 
 function renderStoreInfo(info) {
