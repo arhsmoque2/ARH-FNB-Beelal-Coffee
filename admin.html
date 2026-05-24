@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1A1108">
 <title>Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&family=Figtree:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Playfair+Display:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="config.js"></script>
 <!-- JSZip for ZIP extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -113,6 +113,24 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .tag-gold{background:rgba(200,152,42,0.15);color:var(--gold);border:1px solid var(--border);}
 .tag-green{background:rgba(31,173,90,0.15);color:var(--green);}
 .tag-red{background:rgba(192,57,43,0.15);color:var(--red2);}
+
+/* ── STORE INFO BUILDER ───────────────────────────────── */
+.builder-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.builder-actions .btn{flex:1;min-width:130px;}
+.info-builder-list{display:flex;flex-direction:column;gap:8px;}
+.info-builder-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px;}
+.info-builder-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.info-builder-type{font-size:10px;font-weight:800;color:var(--gold);letter-spacing:1px;text-transform:uppercase;}
+.info-builder-controls{display:flex;gap:4px;flex-shrink:0;}
+.icon-mini{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:var(--fb);font-size:12px;font-weight:800;cursor:pointer;}
+.icon-mini.danger{color:var(--red2);}
+.info-builder-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.info-builder-grid.full{grid-template-columns:1fr;}
+.format-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.format-btn{padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:var(--fb);font-size:12px;font-weight:800;cursor:pointer;}
+.format-btn.active{background:var(--gold);color:var(--bg);border-color:var(--gold);}
+.mini-status{font-size:11px;color:var(--text2);min-height:16px;margin-top:6px;}
+@media(max-width:560px){.info-builder-grid{grid-template-columns:1fr;}}
 
 /* ── MENU TAB ────────────────────────────────────────── */
 .cat-header{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);padding:16px 0 8px;display:flex;align-items:center;gap:8px;}
@@ -238,6 +256,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 .error-row-time{font-size:10px;color:var(--text3);margin-bottom:3px;}
 .error-row-msg{font-size:12px;color:var(--red2);font-family:monospace;word-break:break-all;}
 .error-row-ctx{font-size:11px;color:var(--text2);margin-top:2px;}
+.error-row-raw{margin-top:6px;padding:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;max-height:140px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:monospace;font-size:10px;color:var(--text3);}
 .api-key-row{display:flex;gap:8px;}
 .api-key-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-family:var(--fb);font-size:12px;color:var(--text);outline:none;}
 .api-key-input:focus{border-color:var(--gold);}
@@ -375,6 +394,22 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <div class="form-row"><label class="form-label">Chip 3</label><input class="form-input" id="iSize3" placeholder="e.g. FRAPPÉ 16oz"></div>
       <div class="form-row"><label class="form-label">Chip 4</label><input class="form-input" id="iSize4" placeholder="e.g. LARGE +RM4"></div>
       <button class="btn btn-primary" onclick="saveSizeLegend()">Save Size Legend</button>
+    </div>
+    <div class="a-card">
+      <div class="a-card-title">About / Store Info</div>
+      <div class="sec-sub" style="margin-bottom:12px">Story section shown on the public menu page, below the banner.</div>
+      <div class="toggle-row" style="margin-bottom:12px">
+        <div><div class="toggle-label">Show About section</div></div>
+        <label class="toggle"><input type="checkbox" id="iInfoEnabled"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="form-row"><label class="form-label">Section title</label><input class="form-input" id="iInfoTitle" placeholder="Our Story"></div>
+      <div class="form-row"><label class="form-label">Subtitle</label><input class="form-input" id="iInfoSubtitle" placeholder="Est. 2024 · Handcrafted with care"></div>
+      <div class="info-builder-list" id="infoBuilderList"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-secondary btn-sm" onclick="addInfoCard('text')">+ Text card</button>
+        <button class="btn btn-secondary btn-sm" onclick="addInfoCard('photo')">+ Photo card</button>
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="saveStoreInfo()">Save About Section</button>
     </div>
   </div>
 
@@ -604,10 +639,11 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div class="dev-section">
       <div class="dev-title">Imgur Client-ID</div>
       <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Public identifier for anonymous image uploads. Get a free Client-ID at <strong>api.imgur.com/oauth2/addclient</strong>. Safe to store — it is not a secret key.</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Register an Imgur API app, choose anonymous usage without user authorization, then paste the Client ID only. Do not paste the Client Secret. Uploads use <strong>Authorization: Client-ID</strong>.</div>
         <div class="api-key-row">
-          <input class="api-key-input" id="imgurClientId" type="text" placeholder="xxxxxxxxxxxxxxx">
+          <input class="api-key-input" id="imgurClientId" type="text" placeholder="Client ID from Imgur">
         </div>
+        <div class="key-status" id="imgurStatus"></div>
         <button class="btn btn-primary" onclick="saveImgurClientId()" style="margin-top:10px">Save Client-ID</button>
       </div>
     </div>
@@ -663,11 +699,64 @@ window.addEventListener('unhandledrejection', e => {
 async function logError(data) {
   try {
     const key = 'err_' + Date.now();
-    const payload = { ...data, ts: Date.now(), ua: navigator.userAgent };
+    const payload = { ...data, ts: Date.now(), page: location.href, ua: navigator.userAgent };
     await fetch(`${FB_URL}/${FB_ROOT}/error_log/${key}.json`, {
       method: 'PUT', body: JSON.stringify(payload)
     });
   } catch {} // silent — if this fails, nothing we can do
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[<>&"]/g, ch => ({
+    '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;'
+  }[ch]));
+}
+
+function redactSecret(value) {
+  if (!value) return '';
+  const s = String(value);
+  if (s.length <= 10) return '***';
+  return `${s.slice(0, 6)}...${s.slice(-4)}`;
+}
+
+function safeJsonPreview(value, max = 1200) {
+  try {
+    const str = typeof value === 'string' ? value : JSON.stringify(value);
+    return str.length > max ? str.slice(0, max) + '…' : str;
+  } catch {
+    return '[unserializable]';
+  }
+}
+
+async function readResponsePayload(res) {
+  const text = await res.text();
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch {}
+  return { text, json };
+}
+
+function serverErrorMessage(payload, fallbackStatus) {
+  const err = payload?.json?.data?.error || payload?.json?.error;
+  if (typeof err === 'string') return `[${fallbackStatus}] ${err}`;
+  if (err?.message) return `[${err.code || fallbackStatus}] ${err.message}`;
+  if (payload?.json?.data && typeof payload.json.data === 'string') return `[${fallbackStatus}] ${payload.json.data}`;
+  if (fallbackStatus) return `[${fallbackStatus}] HTTP request failed`;
+  return 'Request failed';
+}
+
+async function logHttpFailure(ctx, res, payload, extra = {}) {
+  const serverErr = payload?.json?.data?.error || payload?.json?.error;
+  await logError({
+    type: 'http_failure',
+    ctx,
+    endpoint: res.url,
+    http_status: res.status,
+    status_text: res.statusText,
+    server_code: serverErr?.code,
+    server_message: typeof serverErr === 'string' ? serverErr : serverErr?.message,
+    raw: safeJsonPreview(payload?.json || payload?.text),
+    ...extra,
+  });
 }
 
 function showErrOverlay(msg) {
@@ -684,7 +773,21 @@ function handleErrOk() {
 async function safe(fn, ctx) {
   try { return await fn(); }
   catch(e) {
-    logError({ type:'safe_catch', ctx: ctx||'unknown', msg: e.message, stack: e.stack });
+    if (!e.logged) {
+      logError({
+        type:'safe_catch',
+        ctx: ctx||'unknown',
+        msg: e.message,
+        stack: e.stack,
+        http_status: e.httpStatus,
+        server_code: e.serverCode,
+        server_message: e.serverMessage,
+        endpoint: e.endpoint,
+        model: e.model,
+        phase: e.phase,
+        raw: e.raw,
+      });
+    }
     const msg = e.message === 'timeout' ? 'Request timed out. Check your connection.'
               : e.message === 'Failed to fetch' ? 'Network error. Check your connection.'
               : e.message || 'Something went wrong.';
@@ -936,6 +1039,7 @@ function logout() {
 // ════════════════════════════════════════════════════════════
 async function loadAll() {
   await loadStoreTab();
+  await loadStoreInfo();
   await loadMenuData();
   await loadOrders();
   await loadStudioTab();
@@ -1020,6 +1124,85 @@ async function saveStoreField(field, val) {
     await fbSet('config/store', s);
     toast(field==='isOpen' ? (val?'Marked OPEN ✓':'Marked CLOSED ✓') : 'Saved ✓');
   }, 'saveStoreField');
+}
+
+// ════════════════════════════════════════════════════════════
+// STORE INFO / ABOUT BUILDER
+// ════════════════════════════════════════════════════════════
+let storeInfoCards = [];
+
+async function loadStoreInfo() {
+  await safe(async () => {
+    const info = await fbGet('config/store_info');
+    const d = info || { enabled: false, title: '', subtitle: '', cards: [] };
+    document.getElementById('iInfoEnabled').checked = !!d.enabled;
+    document.getElementById('iInfoTitle').value    = d.title    || '';
+    document.getElementById('iInfoSubtitle').value = d.subtitle || '';
+    storeInfoCards = Array.isArray(d.cards) ? d.cards.filter(c => c && c.type) : [];
+    renderInfoBuilder();
+  }, 'loadStoreInfo');
+}
+
+function renderInfoBuilder() {
+  const list = document.getElementById('infoBuilderList');
+  if (!storeInfoCards.length) { list.innerHTML = ''; return; }
+  list.innerHTML = storeInfoCards.map((card, i) => {
+    const isPhoto = card.type === 'photo';
+    const isFirst = i === 0, isLast = i === storeInfoCards.length - 1;
+    const sizeOpts = ['full','half','third'].map(s =>
+      `<option value="${s}"${card.size === s ? ' selected' : ''}>${s}</option>`).join('');
+    return `<div class="info-builder-card" data-idx="${i}">
+      <div class="info-builder-card-head">
+        <span class="info-builder-type">${card.type}</span>
+        <div class="info-builder-controls">
+          <button class="btn btn-secondary btn-sm" onclick="moveInfoCard(${i},-1)"${isFirst?' disabled':''}>↑</button>
+          <button class="btn btn-secondary btn-sm" onclick="moveInfoCard(${i},1)"${isLast?' disabled':''}>↓</button>
+          <button class="btn btn-secondary btn-sm" style="color:var(--error)" onclick="removeInfoCard(${i})">✕</button>
+        </div>
+      </div>
+      <div class="info-builder-grid${isPhoto ? '' : ' full'}">
+        ${isPhoto ? `<div class="form-row"><label class="form-label">Image URL</label><input class="form-input" value="${escapeHtml(card.image_url||'')}" oninput="updateInfoCard(${i},'image_url',this.value)" placeholder="https://i.imgur.com/..."></div>` : `<div class="form-row"><label class="form-label">Title</label><input class="form-input" value="${escapeHtml(card.title||'')}" oninput="updateInfoCard(${i},'title',this.value)" placeholder="Optional heading"></div>`}
+        <div class="form-row"><label class="form-label">${isPhoto ? 'Caption' : 'Body text'}</label><textarea class="form-input" rows="2" style="resize:vertical" oninput="updateInfoCard(${i},'body',this.value)" placeholder="${isPhoto ? 'Optional caption' : 'Paragraph text'}">${escapeHtml(card.body||'')}</textarea></div>
+      </div>
+      <div class="form-row" style="margin-top:6px"><label class="form-label">Size</label><select class="form-input" onchange="updateInfoCard(${i},'size',this.value)">${sizeOpts}</select></div>
+    </div>`;
+  }).join('');
+}
+
+function addInfoCard(type) {
+  storeInfoCards.push(type === 'photo'
+    ? { type: 'photo', image_url: '', body: '', size: 'full' }
+    : { type: 'text',  title: '', body: '', size: 'full' });
+  renderInfoBuilder();
+}
+
+function moveInfoCard(idx, dir) {
+  const to = idx + dir;
+  if (to < 0 || to >= storeInfoCards.length) return;
+  [storeInfoCards[idx], storeInfoCards[to]] = [storeInfoCards[to], storeInfoCards[idx]];
+  renderInfoBuilder();
+}
+
+function removeInfoCard(idx) {
+  storeInfoCards.splice(idx, 1);
+  renderInfoBuilder();
+}
+
+function updateInfoCard(idx, field, value) {
+  if (storeInfoCards[idx]) storeInfoCards[idx][field] = value;
+}
+
+async function saveStoreInfo() {
+  await safe(async () => {
+    const info = {
+      enabled:  document.getElementById('iInfoEnabled').checked,
+      title:    document.getElementById('iInfoTitle').value.trim(),
+      subtitle: document.getElementById('iInfoSubtitle').value.trim(),
+      cards:    storeInfoCards.filter(c => c && c.type),
+    };
+    await fbSet('config/store_info', info);
+    toast('About section saved ✓');
+  }, 'saveStoreInfo');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1187,18 +1370,37 @@ function openEditModal(id) {
 async function imgurUpload(file, maxW, maxH) {
   const clientId = await safe(() => fbGet('config/dev/imgur_client_id'), 'imgurClientId');
   if (!clientId) throw new Error('No Imgur Client-ID saved. Add it in Dev ⚙ tab first.');
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error('Imgur upload supports JPG, PNG, or WebP here.');
   const maxPx = Math.max(maxW, maxH);
   const dataUrl = await resizeImageToDataURL(file, maxPx, 0.82);
   const blob = await (await fetch(dataUrl)).blob();
   const form = new FormData();
-  form.append('image', blob);
+  form.append('image', blob, (file.name || 'store-image').replace(/\.(webp|png)$/i, '.jpg'));
+  form.append('type', 'file');
+  form.append('title', `${APP_CONFIG.store.name || 'Store'} ${maxW > maxH ? 'banner' : 'logo'}`);
   const r = await fetch('https://api.imgur.com/3/image', {
     method: 'POST',
-    headers: { Authorization: 'Client-ID ' + clientId },
+    headers: { Authorization: 'Client-ID ' + clientId.trim() },
     body: form
   });
-  const j = await r.json();
-  if (!j.success) throw new Error(j.data?.error || 'Imgur upload failed');
+  const payload = await readResponsePayload(r);
+  const j = payload.json || {};
+  if (!r.ok || !j.success || !j.data?.link) {
+    await logHttpFailure('imgurUpload', r, payload, {
+      phase: 'imgur_anonymous_image_upload',
+      key_hint: redactSecret(clientId),
+      file_type: file.type,
+      original_size: file.size,
+      resized_size: blob.size,
+    });
+    const err = new Error(serverErrorMessage(payload, r.status) || 'Imgur upload failed');
+    err.httpStatus = r.status;
+    err.endpoint = r.url;
+    err.phase = 'imgur_anonymous_image_upload';
+    err.raw = safeJsonPreview(j || payload.text);
+    err.logged = true;
+    throw err;
+  }
   return j.data.link;
 }
 
@@ -1213,7 +1415,12 @@ async function handleLogoUpload(input) {
     const preview = document.getElementById('iLogoPreview');
     preview.src = url; preview.style.display = 'block';
     statusEl.textContent = 'Uploaded ✓ — tap Save Store Info to apply';
-  } catch (e) { statusEl.textContent = 'Upload failed: ' + e.message; }
+  } catch (e) {
+    statusEl.textContent = 'Upload failed: ' + e.message;
+    if (!e.logged) logError({ type:'upload_error', ctx:'handleLogoUpload', msg:e.message, phase:e.phase, http_status:e.httpStatus, raw:e.raw });
+  } finally {
+    input.value = '';
+  }
 }
 
 async function handleBannerUpload(input) {
@@ -1227,14 +1434,29 @@ async function handleBannerUpload(input) {
     const preview = document.getElementById('iBannerPreview');
     preview.src = url; preview.style.display = 'block';
     statusEl.textContent = 'Uploaded ✓ — tap Save Store Info to apply';
-  } catch (e) { statusEl.textContent = 'Upload failed: ' + e.message; }
+  } catch (e) {
+    statusEl.textContent = 'Upload failed: ' + e.message;
+    if (!e.logged) logError({ type:'upload_error', ctx:'handleBannerUpload', msg:e.message, phase:e.phase, http_status:e.httpStatus, raw:e.raw });
+  } finally {
+    input.value = '';
+  }
 }
 
 async function saveImgurClientId() {
   await safe(async () => {
-    const id = document.getElementById('imgurClientId').value.trim();
+    const status = document.getElementById('imgurStatus');
+    const raw = document.getElementById('imgurClientId').value.trim();
+    const id = raw.replace(/^Client-ID\s+/i, '').trim();
     if (!id) { toast('Enter a Client-ID'); return; }
+    if (/secret/i.test(raw) || /\s/.test(id)) {
+      status.textContent = 'Paste the Client ID only, not Client Secret or a full header.';
+      status.className = 'key-status err';
+      return;
+    }
     await fbSet('config/dev/imgur_client_id', id);
+    document.getElementById('imgurClientId').value = id;
+    status.textContent = 'Saved. Logo/banner uploads will use anonymous Imgur upload.';
+    status.className = 'key-status ok';
     toast('Imgur Client-ID saved ✓');
   }, 'saveImgurClientId');
 }
@@ -1975,8 +2197,22 @@ async function sendChat() {
     progress.style.display = 'none';
     thinking.remove();
 
-    const data = await res.json();
-    if (data.error) throw new Error(`[${data.error.code || res.status}] ${data.error.message || 'AI error'}`);
+    const payload = await readResponsePayload(res);
+    const data = payload.json || {};
+    if (!res.ok || data.error) {
+      await logHttpFailure('sendChat', res, payload, {
+        phase: 'openrouter_chat_completion',
+        model: orModel,
+      });
+      const err = new Error(serverErrorMessage(payload, res.status) || 'AI error');
+      err.httpStatus = res.status;
+      err.endpoint = res.url;
+      err.model = orModel;
+      err.phase = 'openrouter_chat_completion';
+      err.raw = safeJsonPreview(data || payload.text);
+      err.logged = true;
+      throw err;
+    }
     if (data.model && data.model !== orModel) orModel = data.model;
 
     const raw  = data.choices?.[0]?.message?.content || '{}';
@@ -2084,10 +2320,21 @@ async function loadErrorLog() {
     const d = document.createElement('div');
     d.className = 'error-row';
     const t = new Date(e.ts).toLocaleString(APP_CONFIG.brand.locale);
+    const meta = [
+      e.type ? `Type: ${e.type}` : '',
+      e.ctx ? `Context: ${e.ctx}` : '',
+      e.phase ? `Phase: ${e.phase}` : '',
+      e.http_status ? `HTTP: ${e.http_status}${e.status_text ? ' ' + e.status_text : ''}` : '',
+      e.server_code ? `Server code: ${e.server_code}` : '',
+      e.model ? `Model: ${e.model}` : '',
+      e.endpoint ? `Endpoint: ${e.endpoint}` : '',
+    ].filter(Boolean);
+    const detail = e.server_message || e.raw || e.stack;
     d.innerHTML = `
       <div class="error-row-time">${t}</div>
-      <div class="error-row-msg">${e.msg || 'Unknown error'}</div>
-      ${e.ctx ? `<div class="error-row-ctx">Context: ${e.ctx}</div>` : ''}`;
+      <div class="error-row-msg">${escapeHtml(e.msg || e.server_message || 'Unknown error')}</div>
+      ${meta.length ? `<div class="error-row-ctx">${escapeHtml(meta.join(' · '))}</div>` : ''}
+      ${detail ? `<pre class="error-row-raw">${escapeHtml(detail)}</pre>` : ''}`;
     el.appendChild(d);
   });
 }
@@ -2104,8 +2351,22 @@ async function testKey() {
                'HTTP-Referer':location.origin,'X-Title':APP_CONFIG.brand.adminName},
       body: JSON.stringify({ model: orModel, messages:[{role:'user',content:'Say: OK'}], max_tokens:30 })
     }, 15000);
-    const d = await r.json();
-    if (d.error) throw new Error(`[${d.error.code || r.status}] ${d.error.message}`);
+    const payload = await readResponsePayload(r);
+    const d = payload.json || {};
+    if (!r.ok || d.error) {
+      await logHttpFailure('testKey', r, payload, {
+        phase: 'openrouter_key_test',
+        model: orModel,
+      });
+      const err = new Error(serverErrorMessage(payload, r.status));
+      err.httpStatus = r.status;
+      err.endpoint = r.url;
+      err.model = orModel;
+      err.phase = 'openrouter_key_test';
+      err.raw = safeJsonPreview(d || payload.text);
+      err.logged = true;
+      throw err;
+    }
     const choice = d.choices?.[0];
     const txt = choice?.message?.content?.trim() || '';
     if (txt) {
@@ -2113,7 +2374,7 @@ async function testKey() {
       status.className = 'key-status ok';
     } else {
       const reason = choice?.finish_reason || 'no choices returned';
-      logError({ type:'testKey_empty_response', model: orModel, http_status: r.status, finish_reason: reason, raw: JSON.stringify(d).slice(0, 500) });
+      logError({ type:'testKey_empty_response', model: orModel, http_status: r.status, finish_reason: reason, raw: safeJsonPreview(d, 500) });
       status.textContent = `⚠ Empty response — finish: ${reason} — see Error Log`;
       status.className = 'key-status err';
     }
@@ -2137,7 +2398,20 @@ async function fetchModels() {
   status.className = 'key-status';
   await safe(async () => {
     const r = await fetchWithTimeout('https://openrouter.ai/api/v1/models', 8000);
-    const data = await r.json();
+    const payload = await readResponsePayload(r);
+    const data = payload.json || {};
+    if (!r.ok || data.error) {
+      await logHttpFailure('fetchModels', r, payload, {
+        phase: 'openrouter_models_list',
+      });
+      const err = new Error(serverErrorMessage(payload, r.status));
+      err.httpStatus = r.status;
+      err.endpoint = r.url;
+      err.phase = 'openrouter_models_list';
+      err.raw = safeJsonPreview(data || payload.text);
+      err.logged = true;
+      throw err;
+    }
     const free = (data.data || []).filter(m =>
       m.pricing?.prompt === '0' && m.pricing?.completion === '0'
     ).sort((a, b) => a.name.localeCompare(b.name));
