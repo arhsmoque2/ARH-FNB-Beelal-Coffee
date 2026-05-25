@@ -196,6 +196,17 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .restore-label strong{color:var(--text);display:block;font-size:13px;}
 
 /* ZIP upload */
+.preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.preset-swatch{border-radius:var(--r2);padding:10px 8px;cursor:pointer;border:2px solid transparent;transition:all 0.18s;text-align:center;user-select:none;}
+.preset-swatch:hover{border-color:var(--accent);transform:translateY(-1px);}
+.preset-swatch.active{border-color:var(--accent);}
+.preset-dots{display:flex;gap:4px;justify-content:center;margin-bottom:6px;}
+.preset-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+.preset-name{font-size:11px;font-weight:600;color:var(--text2);}
+.font-preset-row{display:flex;gap:8px;flex-wrap:wrap;}
+.font-preset-pill{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:12px;transition:all 0.15s;color:var(--text2);}
+.font-preset-pill:hover{border-color:var(--accent);color:var(--accent);}
+.font-preset-pill.active{border-color:var(--accent);background:rgba(200,152,42,0.08);color:var(--text);}
 .zip-drop{border:2px dashed var(--border);border-radius:var(--r);padding:28px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:12px;position:relative;}
 .zip-drop:hover,.zip-drop.drag{border-color:var(--gold);background:rgba(200,152,42,0.04);}
 .zip-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
@@ -610,6 +621,17 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div class="restore-bar" id="masterRestoreBar" style="display:none;border-color:rgba(200,152,42,0.3);background:rgba(200,152,42,0.07)">
       <div class="restore-label"><strong style="color:var(--gold)">Master copy available</strong><span style="color:var(--text3)">Full factory reset — restores original design</span></div>
       <button class="btn btn-secondary btn-sm" onclick="restoreMaster()">Factory Reset</button>
+    </div>
+
+    <!-- QUICK THEME PRESETS -->
+    <div class="a-card" id="presetCard">
+      <div class="a-card-title">Quick Themes</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Tap a theme to apply it instantly. Your current theme is saved first so you can always restore it.</div>
+      <div class="preset-grid" id="presetGrid"></div>
+      <div style="margin-top:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px">Font Style</div>
+        <div class="font-preset-row" id="fontPresetRow"></div>
+      </div>
     </div>
 
     <!-- ZIP UPLOAD -->
@@ -2194,6 +2216,9 @@ async function loadStudioTab() {
     document.getElementById('studioKeyStatus').textContent = key ? '✓ AI ready' : '⚠ No API key — see Dev tab';
     document.getElementById('studioKeyStatus').style.color = key ? 'var(--green)' : 'var(--text3)';
 
+    // Preset swatches
+    renderPresets();
+
     // Quick chips
     const chips = document.getElementById('quickChips');
     chips.innerHTML = '';
@@ -2411,6 +2436,76 @@ async function applyColors() {
     document.getElementById('restoreBar').style.display = 'flex';
     toast('Colors applied — reload index.html to see changes ✓');
   }, 'applyColors');
+}
+
+// ── QUICK THEME PRESETS ──
+const THEME_PRESETS = [
+  { id:'blush',    name:'🌸 Blush Pink',      bg:'#FFF0F3',bg2:'#FFE4EA',bg3:'#FFCDD8',surface:'#FFFFFF',primary:'#5C1A2E',accent:'#E05580',accent2:'#F4A0B5',text:'#2E0D19',text2:'#7A3A4E',text3:'#B07080' },
+  { id:'sage',     name:'🌿 Sage Garden',     bg:'#F2F7F2',bg2:'#E3EFE3',bg3:'#D0E5D0',surface:'#FFFFFF',primary:'#1E4025',accent:'#4A8C55',accent2:'#8FC49A',text:'#0F2013',text2:'#3A6040',text3:'#7A9E80' },
+  { id:'lemon',    name:'☀️ Sunny Lemon',     bg:'#FFFDF0',bg2:'#FFF8D6',bg3:'#FFF0AA',surface:'#FFFFFF',primary:'#4A3800',accent:'#E8A000',accent2:'#FFD055',text:'#2A1F00',text2:'#705A00',text3:'#A08520' },
+  { id:'lavender', name:'💜 Lavender Dream',  bg:'#F5F0FF',bg2:'#EDE4FF',bg3:'#DDD0FF',surface:'#FFFFFF',primary:'#2D1B5E',accent:'#7B5EA7',accent2:'#B09DD4',text:'#1A0F3A',text2:'#5A4480',text3:'#9080B8' },
+  { id:'sky',      name:'🌊 Sky Blue',        bg:'#F0F8FF',bg2:'#E0F0FF',bg3:'#C8E4FF',surface:'#FFFFFF',primary:'#0D3A5C',accent:'#2E86C1',accent2:'#74B9E8',text:'#061E30',text2:'#2A5C7A',text3:'#6A9BB5' },
+  { id:'mocha',    name:'🤎 Warm Mocha',      bg:'#FDF6F0',bg2:'#F7EBE1',bg3:'#EEDFD3',surface:'#FFFFFF',primary:'#5C3D2E',accent:'#C0687A',accent2:'#7BAF96',text:'#2E1B14',text2:'#7A5248',text3:'#A88B84' },
+];
+
+const FONT_PRESETS = [
+  { id:'elegant',  name:'Elegant',  font_display:"'Playfair Display', Georgia, serif", font_body:"'DM Sans', sans-serif" },
+  { id:'modern',   name:'Modern',   font_display:"'Poppins', sans-serif",               font_body:"'Poppins', sans-serif" },
+  { id:'rounded',  name:'Rounded',  font_display:"'Nunito', sans-serif",                font_body:"'Nunito', sans-serif" },
+  { id:'clean',    name:'Simple',   font_display:"'Lato', sans-serif",                  font_body:"'Lato', sans-serif" },
+];
+
+function renderPresets() {
+  const grid = document.getElementById('presetGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  THEME_PRESETS.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'preset-swatch';
+    el.style.background = p.bg2;
+    el.innerHTML = `<div class="preset-dots">
+      <div class="preset-dot" style="background:${p.primary}"></div>
+      <div class="preset-dot" style="background:${p.accent}"></div>
+      <div class="preset-dot" style="background:${p.accent2}"></div>
+    </div><div class="preset-name">${p.name}</div>`;
+    el.onclick = () => applyPreset(p);
+    grid.appendChild(el);
+  });
+  const row = document.getElementById('fontPresetRow');
+  if (!row) return;
+  row.innerHTML = '';
+  FONT_PRESETS.forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'font-preset-pill';
+    el.style.fontFamily = f.font_display;
+    el.textContent = f.name;
+    el.onclick = () => applyFontPreset(f);
+    row.appendChild(el);
+  });
+}
+
+async function applyPreset(p) {
+  await safe(async () => {
+    await snapshotBeforeSave();
+    const t = { ...currentTheme, bg:p.bg, bg2:p.bg2, bg3:p.bg3, surface:p.surface,
+      primary:p.primary, accent:p.accent, accent2:p.accent2,
+      text:p.text, text2:p.text2, text3:p.text3 };
+    await fbSet('config/theme', t);
+    currentTheme = t;
+    document.getElementById('restoreBar').style.display = 'flex';
+    toast(`${p.name} applied — reload menu page to see ✓`);
+  }, 'applyPreset');
+}
+
+async function applyFontPreset(f) {
+  await safe(async () => {
+    await snapshotBeforeSave();
+    const t = { ...currentTheme, font_display: f.font_display, font_body: f.font_body };
+    await fbSet('config/theme', t);
+    currentTheme = t;
+    document.getElementById('restoreBar').style.display = 'flex';
+    toast(`${f.name} font applied — reload menu page to see ✓`);
+  }, 'applyFontPreset');
 }
 
 // ── SNAPSHOT ──
