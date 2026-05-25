@@ -49,7 +49,7 @@ const APP_CONFIG = {
 
   // ── AI Studio ───────────────────────────────────────────────────────────────
   ai: {
-    model: 'google/gemma-4-26b-a4b-it:free',
+    model: 'deepseek/deepseek-v4-flash:free',
 
     storeType: 'specialty coffee shop',
     storeHint: 'Single-origin Arabica, artisan warm atmosphere. Regulars are coffee enthusiasts and young KL professionals.',
