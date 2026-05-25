@@ -1377,22 +1377,25 @@ function mixRgb(a, b, weight) {
 }
 
 function buildDarkTheme(t) {
-  const accent = hexToRgb(t.accent) || hexToRgb('#C8962A');
-  const warmBlack = hexToRgb('#0F0A05');
-  const warmBrown = hexToRgb('#1A1108');
+  const accent  = hexToRgb(t.accent)  || hexToRgb('#C8962A');
+  const primary = hexToRgb(t.primary) || hexToRgb('#1A1108');
+  const black   = { r: 0, g: 0, b: 0 };
+  // Derive dark backgrounds from the preset's primary hue so each theme
+  // keeps its color family in dark mode (pink stays pinkish-dark, etc.)
+  const bg      = rgbToHex(mixRgb(primary, black, 0.88));
+  const bg2     = rgbToHex(mixRgb(primary, black, 0.83));
+  const bg3     = rgbToHex(mixRgb(primary, black, 0.74));
+  const surface = rgbToHex(mixRgb(primary, black, 0.80));
   return {
     ...t,
-    bg: '#100B07',
-    bg2: '#17100A',
-    bg3: '#21170E',
-    surface: '#1C130C',
-    primary: rgbToHex(mixRgb(accent, hexToRgb('#FFF4D8'), 0.72)),
-    accent: t.accent || '#C8962A',
+    bg, bg2, bg3, surface,
+    primary: rgbToHex(mixRgb(accent, { r: 255, g: 244, b: 216 }, 0.72)),
+    accent:  t.accent  || '#C8962A',
     accent2: t.accent2 || '#E8B84B',
-    text: '#F3EBDD',
+    text:  '#F3EBDD',
     text2: '#CBB99D',
     text3: '#927C61',
-    _meta_bg: rgbToHex(mixRgb(warmBlack, warmBrown, 0.4)),
+    _meta_bg: bg2,
   };
 }
 

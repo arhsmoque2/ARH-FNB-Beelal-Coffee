@@ -2455,13 +2455,27 @@ const FONT_PRESETS = [
   { id:'clean',    name:'Simple',   font_display:"'Lato', sans-serif",                  font_body:"'Lato', sans-serif" },
 ];
 
+function activePresetId(theme) {
+  if (!theme) return null;
+  const m = THEME_PRESETS.find(p => p.bg === theme.bg && p.accent === theme.accent && p.primary === theme.primary);
+  return m ? m.id : null;
+}
+
+function activeFontId(theme) {
+  if (!theme) return null;
+  const m = FONT_PRESETS.find(f => f.font_display === theme.font_display);
+  return m ? m.id : null;
+}
+
 function renderPresets() {
   const grid = document.getElementById('presetGrid');
   if (!grid) return;
   grid.innerHTML = '';
+  const activeId = activePresetId(currentTheme);
   THEME_PRESETS.forEach(p => {
     const el = document.createElement('div');
-    el.className = 'preset-swatch';
+    el.className = 'preset-swatch' + (p.id === activeId ? ' active' : '');
+    el.id = 'preset-' + p.id;
     el.style.background = p.bg2;
     el.innerHTML = `<div class="preset-dots">
       <div class="preset-dot" style="background:${p.primary}"></div>
@@ -2474,9 +2488,11 @@ function renderPresets() {
   const row = document.getElementById('fontPresetRow');
   if (!row) return;
   row.innerHTML = '';
+  const activeFId = activeFontId(currentTheme);
   FONT_PRESETS.forEach(f => {
     const el = document.createElement('div');
-    el.className = 'font-preset-pill';
+    el.className = 'font-preset-pill' + (f.id === activeFId ? ' active' : '');
+    el.id = 'font-' + f.id;
     el.style.fontFamily = f.font_display;
     el.textContent = f.name;
     el.onclick = () => applyFontPreset(f);
@@ -2492,8 +2508,11 @@ async function applyPreset(p) {
       text:p.text, text2:p.text2, text3:p.text3 };
     await fbSet('config/theme', t);
     currentTheme = t;
+    document.querySelectorAll('.preset-swatch').forEach(el => el.classList.remove('active'));
+    const sw = document.getElementById('preset-' + p.id);
+    if (sw) sw.classList.add('active');
     document.getElementById('restoreBar').style.display = 'flex';
-    toast(`${p.name} applied — reload menu page to see ✓`);
+    toast(`${p.name} applied — works in light & dark mode ✓`);
   }, 'applyPreset');
 }
 
@@ -2503,6 +2522,9 @@ async function applyFontPreset(f) {
     const t = { ...currentTheme, font_display: f.font_display, font_body: f.font_body };
     await fbSet('config/theme', t);
     currentTheme = t;
+    document.querySelectorAll('.font-preset-pill').forEach(el => el.classList.remove('active'));
+    const pill = document.getElementById('font-' + f.id);
+    if (pill) pill.classList.add('active');
     document.getElementById('restoreBar').style.display = 'flex';
     toast(`${f.name} font applied — reload menu page to see ✓`);
   }, 'applyFontPreset');
