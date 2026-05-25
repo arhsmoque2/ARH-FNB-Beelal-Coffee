@@ -1021,7 +1021,30 @@ html.dark .icon-btn .icon-moon { display: block; }
   .pulse-once   { animation: none; }
   .section      { animation: none; }
   .loader-spinner { animation: none; }
-}</style>
+}
+
+/* ── POST-ORDER FEEDBACK ─────────────────────────────────── */
+.feedback-modal-bg{position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,0.58);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.feedback-modal-bg.open{opacity:1;pointer-events:all;}
+.feedback-modal{width:100%;max-height:88vh;overflow-y:auto;background:var(--surface);color:var(--text);border-radius:24px 24px 0 0;padding:20px 20px 28px;box-shadow:var(--shadow-lg);transform:translateY(100%);transition:transform 0.22s cubic-bezier(0.32,0.72,0,1);}
+.feedback-modal-bg.open .feedback-modal{transform:translateY(0);}
+.feedback-title{font-family:var(--font-display);font-size:22px;font-weight:900;color:var(--primary);margin-bottom:4px;}
+.feedback-sub{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px;}
+.feedback-block{border:1px solid var(--border2);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--surface2);}
+.feedback-block-title{font-size:11px;font-weight:800;color:var(--accent);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.rating-row{display:flex;gap:6px;margin-bottom:10px;}
+.rating-btn{width:38px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:800 13px var(--font-body);cursor:pointer;}
+.rating-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.feedback-chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+.feedback-chip{border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:999px;padding:7px 10px;font:700 12px var(--font-body);cursor:pointer;}
+.feedback-chip.active{background:rgba(200,150,42,0.16);color:var(--primary);border-color:var(--accent);}
+.feedback-note{width:100%;min-height:70px;resize:vertical;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font:13px var(--font-body);padding:10px;margin-top:10px;}
+.feedback-privacy{font-size:11px;color:var(--text3);line-height:1.55;margin:10px 0;}
+.feedback-actions{display:flex;gap:8px;}
+.feedback-send,.feedback-skip{flex:1;border-radius:12px;padding:12px;font:800 13px var(--font-body);cursor:pointer;}
+.feedback-send{border:none;background:var(--accent);color:#fff;}
+.feedback-skip{border:1px solid var(--border);background:var(--surface);color:var(--text2);}
+</style>
 </head>
 <body>
 
@@ -1140,6 +1163,34 @@ html.dark .icon-btn .icon-moon { display: block; }
   </div>
 </div>
 
+<!-- POST-ORDER FEEDBACK -->
+<div class="feedback-modal-bg" id="feedbackModal" onclick="if(event.target===this)closeFeedbackModal()">
+  <div class="feedback-modal">
+    <div class="sheet-handle"></div>
+    <div class="feedback-title">How was it?</div>
+    <div class="feedback-sub">Private feedback helps the store improve service and helps us improve this ordering app. It is shown only to the relevant owner/developer view.</div>
+
+    <div class="feedback-block">
+      <div class="feedback-block-title">Food, drinks, and service</div>
+      <div class="rating-row" id="storeRatingBtns"></div>
+      <div class="feedback-chip-row" id="storeFeedbackChips"></div>
+    </div>
+
+    <div class="feedback-block">
+      <div class="feedback-block-title">Ordering app experience</div>
+      <div class="rating-row" id="appRatingBtns"></div>
+      <div class="feedback-chip-row" id="appFeedbackChips"></div>
+    </div>
+
+    <textarea class="feedback-note" id="feedbackComment" maxlength="500" placeholder="Optional comment"></textarea>
+    <div class="feedback-privacy">Feedback is linked to this order session to keep it relevant and reduce spam. It will not be published publicly without a future opt-in and moderation step.</div>
+    <div class="feedback-actions">
+      <button class="feedback-skip" type="button" onclick="closeFeedbackModal()">Not now</button>
+      <button class="feedback-send" type="button" onclick="submitPostOrderFeedback()">Send feedback</button>
+    </div>
+  </div>
+</div>
+
 <!-- IMAGE LIGHTBOX -->
 <div class="img-lightbox" id="imgLightbox" onclick="closeImgLightbox()">
   <img id="lightboxImg" src="" alt="">
@@ -1221,6 +1272,27 @@ let sizePending   = null;
 let addonsPending = null; // { item, size, oz, price }
 let activeTheme   = { ...DEFAULT_CONFIG.theme };
 let signatureTouched = false;
+let lastOrderContext = null;
+let feedbackState = {
+  storeRating: 0,
+  appRating: 0,
+  storeTags: new Set(),
+  appTags: new Set(),
+};
+const STORE_FEEDBACK_TAGS = [
+  'Food/drinks were good',
+  'Service was good',
+  'Price was clear',
+  'Menu was easy to understand',
+  'Store info needs update',
+];
+const APP_FEEDBACK_TAGS = [
+  'Order process was smooth',
+  'Font too small',
+  'Button hard to tap',
+  'Layout issue',
+  'Slow or stuck',
+];
 
 // ════════════════════════════════════════════════════════════
 // FIREBASE HELPERS WITH TIMEOUT & PARALLEL FETCHING
@@ -1254,6 +1326,10 @@ async function fbSet(path, data) {
       body: JSON.stringify(data)
     });
   } catch {}
+}
+
+function fbPushKey(prefix = 'fb') {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
 
@@ -2102,8 +2178,8 @@ async function sendOrder() {
   // called after any await, treating it as an unsolicited popup.
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 
-  // Log to Firebase in the background — no need to block on this.
-  logOrder({
+  const orderId = 'ord_' + Date.now();
+  const orderPayload = {
     name,
     items: cart.map(i => ({ name:i.name, size:i.size, price:i.price, addons:i.addons })),
     total,
@@ -2115,10 +2191,21 @@ async function sendOrder() {
       consented_at: Date.now(),
     },
     ts: Date.now(),
-  });
+  };
+  lastOrderContext = {
+    order_id: orderId,
+    order_ts: orderPayload.ts,
+    order_total: total,
+    item_count: cart.length,
+  };
+  sessionStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
+
+  // Log to Firebase in the background — no need to block on this.
+  logOrder(orderId, orderPayload);
+  setTimeout(openFeedbackModal, 700);
 }
 
-async function logOrder(order) {
+async function logOrder(orderId, order) {
   try {
     const snap = await fbGet('orders');
     let orders = snap ? Object.entries(snap).map(([k,v]) => ({ key:k, ...v })) : [];
@@ -2128,9 +2215,121 @@ async function logOrder(order) {
       const oldest = orders[0].key;
       await fetch(`${FB_URL}/${FB_ROOT}/orders/${oldest}.json`, { method:'DELETE' });
     }
-    const newKey = 'ord_' + Date.now();
-    await fbSet('orders/' + newKey, order);
+    await fbSet('orders/' + orderId, order);
   } catch {}
+}
+
+// ════════════════════════════════════════════════════════════
+// POST-ORDER FEEDBACK
+// ════════════════════════════════════════════════════════════
+function initFeedbackControls() {
+  renderRatingButtons('storeRatingBtns', 'storeRating');
+  renderRatingButtons('appRatingBtns', 'appRating');
+  renderFeedbackChips('storeFeedbackChips', STORE_FEEDBACK_TAGS, 'storeTags');
+  renderFeedbackChips('appFeedbackChips', APP_FEEDBACK_TAGS, 'appTags');
+}
+
+function renderRatingButtons(containerId, field) {
+  const el = document.getElementById(containerId);
+  if (!el || el.dataset.ready) return;
+  el.dataset.ready = '1';
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rating-btn';
+    btn.textContent = String(i);
+    btn.onclick = () => {
+      feedbackState[field] = i;
+      [...el.children].forEach((child, idx) => child.classList.toggle('active', idx < i));
+    };
+    el.appendChild(btn);
+  }
+}
+
+function renderFeedbackChips(containerId, tags, field) {
+  const el = document.getElementById(containerId);
+  if (!el || el.dataset.ready) return;
+  el.dataset.ready = '1';
+  tags.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'feedback-chip';
+    btn.textContent = tag;
+    btn.onclick = () => {
+      if (feedbackState[field].has(tag)) feedbackState[field].delete(tag);
+      else feedbackState[field].add(tag);
+      btn.classList.toggle('active');
+    };
+    el.appendChild(btn);
+  });
+}
+
+function resetFeedbackForm() {
+  feedbackState = { storeRating: 0, appRating: 0, storeTags: new Set(), appTags: new Set() };
+  document.querySelectorAll('.rating-btn,.feedback-chip').forEach(el => el.classList.remove('active'));
+  const comment = document.getElementById('feedbackComment');
+  if (comment) comment.value = '';
+}
+
+function openFeedbackModal() {
+  initFeedbackControls();
+  const stored = sessionStorage.getItem('arh_last_order_context');
+  if (!lastOrderContext && stored) {
+    try { lastOrderContext = JSON.parse(stored); } catch {}
+  }
+  if (!lastOrderContext?.order_id) return;
+  document.getElementById('feedbackModal').classList.add('open');
+}
+
+function closeFeedbackModal() {
+  document.getElementById('feedbackModal').classList.remove('open');
+}
+
+async function submitPostOrderFeedback() {
+  if (!lastOrderContext?.order_id) return;
+  const comment = document.getElementById('feedbackComment').value.trim();
+  const now = Date.now();
+  const common = {
+    order_id: lastOrderContext.order_id,
+    order_ts: lastOrderContext.order_ts,
+    order_total: lastOrderContext.order_total,
+    item_count: lastOrderContext.item_count,
+    comment,
+    page: location.pathname || '/',
+    viewport: `${window.innerWidth}x${window.innerHeight}`,
+    user_agent: navigator.userAgent,
+    created_at: now,
+    status: 'new',
+    public_allowed: false,
+    public_status: 'private',
+  };
+  const writes = [];
+  if (feedbackState.storeRating || feedbackState.storeTags.size || comment) {
+    writes.push(fbSet(`feedback/customer_to_store/${fbPushKey('cstore')}`, {
+      ...common,
+      channel: 'customer_to_store',
+      store_rating: feedbackState.storeRating,
+      tags: [...feedbackState.storeTags],
+      visible_to_owner: true,
+    }));
+  }
+  if (feedbackState.appRating || feedbackState.appTags.size) {
+    writes.push(fbSet(`feedback/customer_to_developer/${fbPushKey('cdev')}`, {
+      ...common,
+      channel: 'customer_to_developer',
+      app_rating: feedbackState.appRating,
+      tags: [...feedbackState.appTags],
+      visible_to_owner: false,
+    }));
+  }
+  if (!writes.length) {
+    closeFeedbackModal();
+    return;
+  }
+  await Promise.all(writes);
+  resetFeedbackForm();
+  closeFeedbackModal();
+  alert('Thank you. Your feedback was sent.');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2156,6 +2355,7 @@ function observeSections() {
 // ════════════════════════════════════════════════════════════
 // START
 // ════════════════════════════════════════════════════════════
+initFeedbackControls();
 init();
 </script>
 </body>

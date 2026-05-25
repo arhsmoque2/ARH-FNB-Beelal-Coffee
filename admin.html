@@ -275,6 +275,18 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 .key-status.err{color:var(--red2);}
 .model-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-family:var(--fb);font-size:12px;color:var(--text);outline:none;appearance:none;-webkit-appearance:none;transition:border-color 0.2s,box-shadow 0.2s;}
 .model-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,152,42,0.15);}
+.update-badge{position:fixed;right:14px;bottom:18px;z-index:700;background:var(--gold);color:var(--bg);border:none;border-radius:999px;padding:9px 14px;font-family:var(--fb);font-size:12px;font-weight:800;box-shadow:0 8px 26px rgba(0,0,0,0.35);display:none;cursor:pointer;}
+.feedback-row,.release-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px;margin-bottom:8px;}
+.feedback-meta,.release-meta{font-size:10px;color:var(--text3);margin-bottom:5px;line-height:1.5;}
+.feedback-title,.release-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.feedback-body,.release-body{font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+.feedback-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.feedback-tag{font-size:10px;font-weight:700;color:var(--gold);background:rgba(200,152,42,0.12);border:1px solid var(--border2);border-radius:999px;padding:3px 8px;}
+.status-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.status-btn{border:1px solid var(--border);background:var(--bg3);color:var(--text2);border-radius:8px;padding:6px 9px;font-family:var(--fb);font-size:11px;font-weight:800;cursor:pointer;}
+.status-btn.active{background:var(--gold);color:var(--bg);border-color:var(--gold);}
+.inline-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:560px){.inline-grid{grid-template-columns:1fr;}}
 
 /* ── MODAL ───────────────────────────────────────────── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:800;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.2s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
@@ -366,6 +378,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div class="tab-btn active" onclick="showTab('store',this)">Store</div>
     <div class="tab-btn" onclick="showTab('menu',this)">Menu</div>
     <div class="tab-btn" onclick="showTab('orders',this)">Orders</div>
+    <div class="tab-btn" onclick="showTab('feedback',this)">Feedback</div>
     <div class="tab-btn" onclick="showTab('security',this)">Security</div>
     <div class="tab-btn" onclick="showTab('studio',this)">Theme Studio</div>
     <div class="tab-btn hidden" id="devTabBtn" onclick="showTab('dev',this)">Dev ⚙</div>
@@ -525,6 +538,31 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
     <div class="sec-sub">Latest 1000 stored — oldest overwritten automatically</div>
     <div id="ordersList"><div style="color:var(--text2);font-size:13px;padding:20px 0">Loading...</div></div>
+  </div>
+
+  <!-- FEEDBACK TAB -->
+  <div class="tab-panel" id="tab-feedback">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="sec-title">Feedback</div>
+      <button class="btn btn-secondary btn-sm" onclick="loadOwnerFeedback()">↻ Refresh</button>
+    </div>
+    <div class="sec-sub">Private customer feedback about food, drinks, service, menu, and store experience.</div>
+    <div class="a-card">
+      <div class="a-card-title">Send Feedback to Developer</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Use this for AI Studio problems, Firebase/network errors, admin bugs, confusing workflows, or feature requests.</div>
+      <select class="form-input" id="ownerDevType">
+        <option value="bug">Bug report</option>
+        <option value="feature">Feature request</option>
+        <option value="confusion">Confusing workflow</option>
+        <option value="ai_studio">AI Studio issue</option>
+        <option value="firebase">Firebase/network issue</option>
+        <option value="business">Business need</option>
+      </select>
+      <textarea class="form-input" id="ownerDevComment" style="height:90px;margin-top:8px;resize:vertical" placeholder="Describe what needs attention"></textarea>
+      <button class="btn btn-primary" onclick="submitOwnerToDeveloperFeedback()" style="margin-top:10px">Send Developer Feedback</button>
+    </div>
+    <div class="a-card-title">Customer to Store</div>
+    <div id="ownerFeedbackList"><div style="color:var(--text2);font-size:13px;padding:20px 0">Loading...</div></div>
   </div>
 
   <!-- SECURITY TAB -->
@@ -695,12 +733,42 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
 
     <div class="dev-section">
+      <div class="dev-title">What's New</div>
+      <div class="a-card">
+        <div id="releaseList"><div style="color:var(--text2);font-size:13px">Loading...</div></div>
+        <button class="btn btn-primary" onclick="markAllReleasesSeen()" style="margin-top:10px">Mark Updates as Read</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
+      <div class="dev-title">Developer Feedback Inbox</div>
+      <div class="a-card">
+        <div class="inline-grid" style="margin-bottom:10px">
+          <button class="btn btn-secondary" onclick="loadDeveloperFeedback('customer_to_developer')">Customer App Feedback</button>
+          <button class="btn btn-secondary" onclick="loadDeveloperFeedback('owner_to_developer')">Owner Support Feedback</button>
+        </div>
+        <div id="devFeedbackList"><div style="color:var(--text2);font-size:13px">Choose a feedback channel.</div></div>
+      </div>
+    </div>
+
+    <div class="dev-section">
       <div class="dev-title">Error Log</div>
       <div id="errorLog"><div style="color:var(--text2);font-size:13px">Loading...</div></div>
     </div>
   </div>
 
 </div><!-- end app -->
+
+<!-- RELEASE MODAL -->
+<div class="modal-bg" id="releaseModal" onclick="if(event.target===this)closeReleasePanel()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">What's New</div>
+    <div id="releaseModalList"><div style="color:var(--text2);font-size:13px">Loading...</div></div>
+    <button class="btn btn-primary" onclick="markAllReleasesSeen()" style="margin-top:12px">Mark Updates as Read</button>
+    <button class="btn btn-secondary" onclick="closeReleasePanel()" style="margin-top:8px">Close</button>
+  </div>
+</div>
 
 <!-- IMPORT MENU MODAL -->
 <div class="modal-bg" id="importMenuModal" onclick="if(event.target===this)closeImportMenuModal()">
@@ -759,6 +827,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+<button class="update-badge" id="updateBadge" onclick="openReleasePanel()">Updates</button>
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -767,6 +836,22 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 const FB_URL  = APP_CONFIG.firebase.url;
 const FB_ROOT = APP_CONFIG.firebase.root;
 const CUR     = APP_CONFIG.store.currency;
+const APP_VERSION = '2026.05.25.1';
+const LOCAL_RELEASES = {
+  [APP_VERSION]: {
+    version: APP_VERSION,
+    title: 'Private feedback channels and update notices',
+    summary: 'Admin now separates store feedback from developer feedback, and owners can see relevant app updates.',
+    details: 'Customer feedback is private by default. Store/service feedback appears in the owner Feedback tab. App experience feedback and owner support requests stay in the Dev tab.',
+    type: 'feature',
+    audience: 'owner',
+    severity: 'medium',
+    requires_owner_action: false,
+    created_at: Date.now(),
+    store_specific: false,
+  },
+};
+let releaseCache = {};
 
 // ════════════════════════════════════════════════════════════
 // ERROR BOUNDARY — belt and suspenders
@@ -909,6 +994,18 @@ async function fbSet(path, data) {
 }
 async function fbDelete(path) {
   await fetch(`${FB_URL}/${FB_ROOT}/${path}.json`, { method:'DELETE' });
+}
+async function fbGetGlobal(path) {
+  try {
+    const r = await fetchWithTimeout(`${FB_URL}/${path}.json`);
+    return await r.json();
+  } catch { return null; }
+}
+async function fbSetGlobal(path, data) {
+  await fetch(`${FB_URL}/${path}.json`, { method:'PUT', body:JSON.stringify(data) });
+}
+function fbPushKey(prefix = 'fb') {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1127,6 +1224,8 @@ async function loadAll() {
   await loadStoreInfo();
   await loadMenuData();
   await loadOrders();
+  await loadOwnerFeedback();
+  await checkWhatsNew();
   await loadStudioTab();
   if (currentRole === 'dev') await loadDevTab();
 }
@@ -1849,6 +1948,199 @@ async function loadOrders() {
       el.appendChild(r);
     });
   }, 'loadOrders');
+}
+
+// ════════════════════════════════════════════════════════════
+// RELEASE ANNOUNCEMENTS
+// ════════════════════════════════════════════════════════════
+async function getReleases() {
+  const global = await fbGetGlobal('global/releases');
+  releaseCache = { ...LOCAL_RELEASES, ...(global || {}) };
+  return releaseCache;
+}
+
+function releaseVisibleToRole(rel) {
+  if (!rel) return false;
+  if (rel.audience === 'customer') return false;
+  if (rel.store_slugs && Array.isArray(rel.store_slugs)) {
+    return rel.store_slugs.includes(FB_ROOT);
+  }
+  return true;
+}
+
+async function checkWhatsNew() {
+  await safe(async () => {
+    const releases = await getReleases();
+    const seen = await fbGet('meta/seen_releases') || {};
+    const unread = Object.entries(releases)
+      .filter(([ver, rel]) => releaseVisibleToRole(rel) && !seen[ver])
+      .sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
+    const badge = document.getElementById('updateBadge');
+    if (unread.length) {
+      badge.textContent = `${unread.length} update${unread.length > 1 ? 's' : ''}`;
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+    renderReleaseList(releases, seen);
+  }, 'checkWhatsNew');
+}
+
+async function openReleasePanel() {
+  if (!Object.keys(releaseCache || {}).length) await checkWhatsNew();
+  document.getElementById('releaseModal').classList.add('open');
+}
+
+function closeReleasePanel() {
+  document.getElementById('releaseModal').classList.remove('open');
+}
+
+function renderReleaseList(releases, seen) {
+  const targets = [document.getElementById('releaseList'), document.getElementById('releaseModalList')].filter(Boolean);
+  const rows = Object.entries(releases || {})
+    .filter(([, rel]) => releaseVisibleToRole(rel))
+    .sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
+  if (!rows.length) {
+    targets.forEach(el => { el.innerHTML = '<div style="color:var(--text2);font-size:13px">No updates yet.</div>'; });
+    return;
+  }
+  targets.forEach(el => {
+    el.innerHTML = '';
+    rows.forEach(([ver, rel]) => {
+      const row = document.createElement('div');
+      row.className = 'release-row';
+      const meta = document.createElement('div');
+      meta.className = 'release-meta';
+      meta.textContent = `${seen?.[ver] ? 'Read' : 'New'} · ${rel.type || 'update'} · ${rel.severity || 'low'} · ${ver}`;
+      const title = document.createElement('div');
+      title.className = 'release-title';
+      title.textContent = rel.title || ver;
+      const body = document.createElement('div');
+      body.className = 'release-body';
+      body.textContent = rel.details || rel.summary || '';
+      row.append(meta, title, body);
+      el.appendChild(row);
+    });
+  });
+}
+
+async function markAllReleasesSeen() {
+  await safe(async () => {
+    const releases = await getReleases();
+    const seen = await fbGet('meta/seen_releases') || {};
+    Object.keys(releases).forEach(ver => { seen[ver] = true; });
+    await fbSet('meta/seen_releases', seen);
+    toast('Updates marked as read');
+    closeReleasePanel();
+    await checkWhatsNew();
+  }, 'markAllReleasesSeen');
+}
+
+// ════════════════════════════════════════════════════════════
+// FEEDBACK
+// ════════════════════════════════════════════════════════════
+function feedbackDate(ts) {
+  return ts ? new Date(ts).toLocaleString(APP_CONFIG.brand.locale) : 'Unknown time';
+}
+
+function feedbackSummary(fb) {
+  const parts = [];
+  if (fb.store_rating) parts.push(`Store ${fb.store_rating}/5`);
+  if (fb.app_rating) parts.push(`App ${fb.app_rating}/5`);
+  if (fb.type) parts.push(fb.type.replace(/_/g, ' '));
+  parts.push(fb.status || 'new');
+  return parts.join(' · ');
+}
+
+function renderFeedbackRows(container, entries, channel) {
+  container.innerHTML = '';
+  if (!entries.length) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:12px 0">No feedback yet.</div>';
+    return;
+  }
+  entries.forEach(([key, fb]) => {
+    const row = document.createElement('div');
+    row.className = 'feedback-row';
+    const meta = document.createElement('div');
+    meta.className = 'feedback-meta';
+    meta.textContent = `${feedbackDate(fb.created_at)} · ${feedbackSummary(fb)}`;
+    const title = document.createElement('div');
+    title.className = 'feedback-title';
+    title.textContent = channel.replace(/_/g, ' ');
+    const body = document.createElement('div');
+    body.className = 'feedback-body';
+    body.textContent = fb.comment || 'No comment';
+    const tags = document.createElement('div');
+    tags.className = 'feedback-tags';
+    (fb.tags || []).forEach(t => {
+      const chip = document.createElement('span');
+      chip.className = 'feedback-tag';
+      chip.textContent = t;
+      tags.appendChild(chip);
+    });
+    const status = document.createElement('div');
+    status.className = 'status-row';
+    ['new','triaged','resolved','spam'].forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'status-btn' + ((fb.status || 'new') === s ? ' active' : '');
+      btn.textContent = s;
+      btn.onclick = () => updateFeedbackStatus(channel, key, fb, s);
+      status.appendChild(btn);
+    });
+    row.append(meta, title, body, tags, status);
+    container.appendChild(row);
+  });
+}
+
+async function loadOwnerFeedback() {
+  await safe(async () => {
+    const snap = await fbGet('feedback/customer_to_store');
+    const entries = Object.entries(snap || {}).sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
+    renderFeedbackRows(document.getElementById('ownerFeedbackList'), entries, 'customer_to_store');
+  }, 'loadOwnerFeedback');
+}
+
+async function loadDeveloperFeedback(channel = 'customer_to_developer') {
+  await safe(async () => {
+    const snap = await fbGet(`feedback/${channel}`);
+    const entries = Object.entries(snap || {}).sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
+    renderFeedbackRows(document.getElementById('devFeedbackList'), entries, channel);
+  }, 'loadDeveloperFeedback');
+}
+
+async function updateFeedbackStatus(channel, key, fb, status) {
+  await safe(async () => {
+    await fbSet(`feedback/${channel}/${key}`, { ...fb, status, last_updated_at: Date.now() });
+    toast('Feedback updated');
+    if (channel === 'customer_to_store') await loadOwnerFeedback();
+    else await loadDeveloperFeedback(channel);
+  }, 'updateFeedbackStatus');
+}
+
+async function submitOwnerToDeveloperFeedback() {
+  const type = document.getElementById('ownerDevType').value;
+  const comment = document.getElementById('ownerDevComment').value.trim();
+  if (!comment) { toast('Describe the issue first'); return; }
+  await safe(async () => {
+    await fbSet(`feedback/owner_to_developer/${fbPushKey('odev')}`, {
+      channel: 'owner_to_developer',
+      type,
+      comment,
+      admin_tab: document.querySelector('.tab-panel.active')?.id || '',
+      role: currentRole,
+      page: location.pathname,
+      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      user_agent: navigator.userAgent,
+      created_at: Date.now(),
+      status: 'new',
+      visible_to_owner: false,
+      public_allowed: false,
+      public_status: 'private',
+    });
+    document.getElementById('ownerDevComment').value = '';
+    toast('Developer feedback sent');
+    if (currentRole === 'dev') await loadDeveloperFeedback('owner_to_developer');
+  }, 'submitOwnerToDeveloperFeedback');
 }
 
 // ════════════════════════════════════════════════════════════
