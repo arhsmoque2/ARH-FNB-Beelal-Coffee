@@ -984,10 +984,10 @@ let storeData     = {};
 let chatHistory   = [];   // { role, content, ts }
 let orModel       = APP_CONFIG.ai.model; // active model, updated from Firebase
 const FREE_MODEL_FALLBACKS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'qwen/qwen3-8b:free',
-  'mistralai/mistral-7b-instruct:free',
-  'openrouter/free',
+  'google/gemini-2.0-flash-exp:free',       // Google — fast, multilingual, strong chat
+  'google/gemma-3-27b-it:free',             // Google — instruction-tuned, 27B
+  'meta-llama/llama-3.3-70b-instruct:free', // Meta — proven conversational, 70B
+  'mistralai/mistral-small-3.1-24b-instruct:free', // Mistral — chat-optimised, 24B
 ];
 const WEB_SEARCH_DOMAINS = [
   'coolors.co',
