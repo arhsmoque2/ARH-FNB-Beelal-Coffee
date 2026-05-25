@@ -236,6 +236,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 .chat-msg.user{background:linear-gradient(135deg,var(--gold) 0%,#b8871e 100%);color:var(--bg);align-self:flex-end;border-radius:14px 14px 4px 14px;box-shadow:0 4px 12px rgba(200,152,42,0.24);}
 .chat-msg.ai{background:var(--bg3);color:var(--text);align-self:flex-start;border-radius:14px 14px 14px 2px;border:1px solid var(--border2);}
 .chat-msg.system{background:none;color:var(--text3);font-size:11px;font-style:italic;align-self:center;text-align:center;}
+.chat-msg.error{background:rgba(180,80,20,0.09);color:var(--text);align-self:flex-start;border-radius:14px 14px 14px 2px;border:1px solid rgba(180,80,20,0.25);}
 .chat-thinking{display:flex;gap:6px;padding:10px 13px;align-self:flex-start;}
 .chat-thinking span{width:7px;height:7px;border-radius:50%;background:var(--text3);animation:bounce 1.2s infinite;}
 .chat-thinking span:nth-child(2){animation-delay:0.2s;}
@@ -984,10 +985,9 @@ let storeData     = {};
 let chatHistory   = [];   // { role, content, ts }
 let orModel       = APP_CONFIG.ai.model; // active model, updated from Firebase
 const FREE_MODEL_FALLBACKS = [
-  'google/gemini-2.0-flash-exp:free',       // Google — fast, multilingual, strong chat
-  'google/gemma-3-27b-it:free',             // Google — instruction-tuned, 27B
-  'meta-llama/llama-3.3-70b-instruct:free', // Meta — proven conversational, 70B
-  'mistralai/mistral-small-3.1-24b-instruct:free', // Mistral — chat-optimised, 24B
+  'google/gemma-4-31b-it:free',   // Google — instruction-tuned, 31B
+  'google/gemma-4-26b-a4b-it:free', // Google — instruction-tuned, 26B MoE
+  'openai/gpt-oss-120b',           // OpenAI — large open-weight chat model
 ];
 const WEB_SEARCH_DOMAINS = [
   'coolors.co',
@@ -2284,6 +2284,21 @@ function buildChatRequestBody(model, messages, useWebSearch, forceSimple = false
   return body;
 }
 
+function classifyChatError(e) {
+  const status = e.httpStatus || 0;
+  const msg    = String(e.message || '').toLowerCase();
+  if (status === 429 || /rate.?limit|quota|too many|credit|usage limit|rpm|rpl|exceeded/i.test(msg)) {
+    return "⏳ You've used up the free AI requests for now — all models are temporarily rate-limited. Free usage typically resets every 12 hours, so try again a bit later.";
+  }
+  if (status === 404 || status === 410 || /no longer|not found|deprecated|no endpoints|does not exist|not support/i.test(msg)) {
+    return "⚠️ The AI model set up for this app is no longer available — it may have been updated or removed by the provider. Contact your developer to update the model selection.";
+  }
+  if (e.message === 'timeout' || e.message === 'Failed to fetch' || /network|connect/i.test(msg)) {
+    return "⚠️ Couldn't reach the AI service. Check your internet connection and try again.";
+  }
+  return "⚠️ Couldn't get a response from the AI. Try again in a moment.";
+}
+
 async function requestOpenRouterChat(key, messages, userText) {
   const modelRotation = [orModel, ...FREE_MODEL_FALLBACKS.filter(m => m !== orModel)];
   const useWebSearch = shouldUseWebSearch(userText);
@@ -2375,10 +2390,18 @@ async function sendChat() {
       })));
     }
 
-    const { data, model: usedModel } = await requestOpenRouterChat(key, messages, msg);
+    let chatResult;
+    try {
+      chatResult = await requestOpenRouterChat(key, messages, msg);
+    } catch(e) {
+      chatHistory.push({ role:'error', content: classifyChatError(e), ts: Date.now() });
+      renderChatHistory();
+      return; // error already logged in requestOpenRouterChat; cleanup runs outside safe()
+    }
     clearInterval(progTimer);
     progress.style.display = 'none';
     thinking.remove();
+    const { data, model: usedModel } = chatResult;
     if (usedModel && usedModel !== orModel) orModel = usedModel;
     if (data.model && data.model !== orModel) orModel = data.model;
 
@@ -2646,10 +2669,8 @@ function toast(msg) {
 // MENU IMAGE IMPORT
 // ════════════════════════════════════════════════════════════
 const VISION_MODELS = [
-  'google/gemini-2.0-flash-exp:free',
-  'google/gemini-flash-1.5',
-  'meta-llama/llama-4-scout:free',
-  'openai/gpt-4o-mini',
+  'google/gemma-4-31b-it:free',     // Google vision — 31B
+  'google/gemma-4-26b-a4b-it:free', // Google vision — 26B MoE
 ];
 
 function openImportMenuModal() {
