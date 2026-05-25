@@ -283,6 +283,15 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
 .modal-title{font-family:var(--fd);font-size:18px;font-weight:900;color:var(--text);margin-bottom:14px;}
 
+/* ── IMPORT REVIEW ───────────────────────────────────── */
+.import-cat-header{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.import-item-row{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:start;padding:8px 0;border-bottom:1px solid var(--bg3);}
+.import-item-row:last-child{border-bottom:none;}
+.import-item-fields{display:flex;flex-direction:column;gap:5px;}
+.import-price-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.import-price-lbl{font-size:11px;color:var(--text3);}
+.import-price-inp{width:68px!important;font-size:12px!important;padding:6px 8px!important;}
+
 /* ── TOAST ───────────────────────────────────────────── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--text);z-index:900;transition:transform 0.3s;white-space:nowrap;pointer-events:none;}
 .toast.show{transform:translateX(-50%) translateY(0);}
@@ -442,7 +451,10 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
   <div class="tab-panel" id="tab-menu">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <div class="sec-title">Menu</div>
-      <button class="btn btn-secondary btn-sm" onclick="toggleAddForm()">+ Add Item</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="openImportMenuModal()">📷 Import</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleAddForm()">+ Add Item</button>
+      </div>
     </div>
     <div class="sec-sub">Tap Sold Out to hide an item from customers</div>
     <div class="add-form" id="addForm">
@@ -688,6 +700,52 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
   </div>
 
 </div><!-- end app -->
+
+<!-- IMPORT MENU MODAL -->
+<div class="modal-bg" id="importMenuModal" onclick="if(event.target===this)closeImportMenuModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="importMenuTitle">Import Menu from Image</div>
+    <div id="importMenuBody">
+      <!-- Step 1: Upload -->
+      <div id="importStep1">
+        <div style="color:var(--text2);font-size:13px;margin-bottom:16px">Upload a photo or scan of your menu. AI will detect items and pre-fill your menu automatically — you review before saving.</div>
+        <div class="photo-upload-area" id="importDropArea">
+          <img id="importPreview" class="photo-preview">
+          <div id="importPlaceholder" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0">
+            <div style="font-size:36px">📋</div>
+            <div style="font-size:13px;color:var(--text2)">Choose a menu photo to get started</div>
+            <div style="font-size:11px;color:var(--text3)">JPG or PNG</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center">
+            <label class="photo-upload-btn">📁 Choose File<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handleMenuImageSelect(this)"></label>
+            <label class="photo-upload-btn">📷 Take Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleMenuImageSelect(this)"></label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="importParseBtn" style="display:none" onclick="parseMenuWithVision()">✨ Parse Menu</button>
+          <button class="btn btn-secondary" onclick="closeImportMenuModal()">Cancel</button>
+        </div>
+      </div>
+      <!-- Step 2: Loading -->
+      <div id="importStep2" style="display:none;text-align:center;padding:24px 0">
+        <div style="font-size:40px;margin-bottom:12px">🔍</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px">Parsing your menu...</div>
+        <div style="font-size:13px;color:var(--text2)">This may take 10–20 seconds</div>
+      </div>
+      <!-- Step 3: Review -->
+      <div id="importStep3" style="display:none">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:14px" id="importSummaryText"></div>
+        <div id="importReviewList"></div>
+        <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="importConfirmBtn" onclick="importSelectedItems()">Import Selected</button>
+          <button class="btn btn-secondary" onclick="showImportStep(1)">← Back</button>
+          <button class="btn btn-secondary" onclick="closeImportMenuModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- EDIT ITEM MODAL -->
 <div class="modal-bg" id="editModal" onclick="if(event.target===this)closeEditModal()">
@@ -947,8 +1005,10 @@ let fontChoices   = {};   // { targetId: 'current' | 'template' }
 let colorChoices  = {};   // { targetId: hex }
 let currentTheme  = {};
 let lastSavedTheme = null;
-let editingId     = null;
-let toastTimer    = null;
+let editingId         = null;
+let toastTimer        = null;
+let importImageDataUrl = null;
+let importParsedData   = null;
 
 // ════════════════════════════════════════════════════════════
 // INIT
@@ -2580,6 +2640,275 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ════════════════════════════════════════════════════════════
+// MENU IMAGE IMPORT
+// ════════════════════════════════════════════════════════════
+const VISION_MODELS = [
+  'google/gemini-2.0-flash-exp:free',
+  'google/gemini-flash-1.5',
+  'meta-llama/llama-4-scout:free',
+  'openai/gpt-4o-mini',
+];
+
+function openImportMenuModal() {
+  importImageDataUrl = null;
+  importParsedData   = null;
+  const preview = document.getElementById('importPreview');
+  preview.src = ''; preview.style.display = 'none';
+  document.getElementById('importPlaceholder').style.display = 'flex';
+  document.getElementById('importParseBtn').style.display = 'none';
+  showImportStep(1);
+  document.getElementById('importMenuModal').classList.add('open');
+}
+
+function closeImportMenuModal() {
+  document.getElementById('importMenuModal').classList.remove('open');
+}
+
+function showImportStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('importStep'+i).style.display = i===n ? 'block' : 'none';
+  });
+  document.getElementById('importMenuTitle').textContent =
+    n===1 ? 'Import Menu from Image' :
+    n===2 ? 'Parsing Menu...' :
+            'Review Detected Items';
+}
+
+async function handleMenuImageSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!['image/jpeg','image/png'].includes(file.type)) { toast('JPG or PNG only'); input.value=''; return; }
+  toast('Loading image...');
+  try {
+    importImageDataUrl = await resizeImageToDataURL(file, 1200, 0.85);
+    const preview = document.getElementById('importPreview');
+    preview.src = importImageDataUrl; preview.style.display = 'block';
+    document.getElementById('importPlaceholder').style.display = 'none';
+    document.getElementById('importParseBtn').style.display = 'inline-flex';
+    toast('Image ready — tap Parse Menu ✓');
+  } catch { toast('Failed to load image'); }
+}
+
+async function parseMenuWithVision() {
+  const key = await fbGet('config/dev/or_key');
+  if (!key) { toast('OpenRouter API key not set — go to Dev tab'); return; }
+
+  showImportStep(2);
+
+  const prompt = `You are a menu parser. Carefully read this restaurant or café menu image and extract ALL visible items.
+
+Return ONLY a valid JSON object with no explanation and no markdown:
+{
+  "categories": [
+    { "label": "Category Name", "emoji": "☕", "type": "drinks" }
+  ],
+  "items": [
+    {
+      "category": "Category Name",
+      "name": "Item Name",
+      "desc": "optional short description",
+      "emoji": "🍽️",
+      "price": null,
+      "hot": 6.50,
+      "cold": 8.00,
+      "frappe": null
+    }
+  ]
+}
+
+Rules:
+- type is "drinks" for beverages, "food" for food items
+- For drinks with multiple sizes (hot/iced/cold/frappé), fill hot/cold/frappe fields and set price to null
+- For food or single-price items, fill the price field and set hot/cold/frappe to null
+- Use appropriate food/drink emojis for each item
+- Preserve the original language of item names (Malay, English, or mixed)
+- If a price is unclear or missing from the image, set it to null
+- The category field in each item must exactly match a label in the categories array`;
+
+  const messages = [{
+    role: 'user',
+    content: [
+      { type: 'text', text: prompt },
+      { type: 'image_url', image_url: { url: importImageDataUrl } }
+    ]
+  }];
+
+  let parsed = null;
+  let lastErr = null;
+
+  for (const model of VISION_MODELS) {
+    try {
+      const res = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': location.origin,
+          'X-Title': APP_CONFIG.brand.adminName,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          max_completion_tokens: 2000,
+          temperature: 0.1,
+          response_format: { type: 'json_object' },
+        }),
+      }, 35000);
+
+      if (!res.ok) { lastErr = `${model}: HTTP ${res.status}`; continue; }
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content?.trim();
+      if (!text) { lastErr = `${model}: empty response`; continue; }
+
+      let raw;
+      try {
+        const cleaned = text.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'');
+        raw = JSON.parse(cleaned);
+      } catch { lastErr = `${model}: invalid JSON`; continue; }
+
+      if (!Array.isArray(raw.categories) || !Array.isArray(raw.items)) {
+        lastErr = `${model}: unexpected structure`; continue;
+      }
+      if (!raw.items.length) { lastErr = `${model}: no items found`; continue; }
+
+      parsed = raw; break;
+    } catch(e) { lastErr = `${model}: ${e.message}`; continue; }
+  }
+
+  if (!parsed) {
+    showImportStep(1);
+    toast('Parse failed — ' + (lastErr || 'unknown error'));
+    return;
+  }
+
+  importParsedData = parsed;
+  renderImportReview(parsed);
+  showImportStep(3);
+}
+
+function renderImportReview({ categories, items }) {
+  const total = items.length;
+  document.getElementById('importSummaryText').textContent =
+    `Detected ${total} item${total!==1?'s':''} across ${categories.length} categor${categories.length!==1?'ies':'y'}. Uncheck any to skip, edit names or prices as needed, then tap Import.`;
+
+  const list = document.getElementById('importReviewList');
+  list.innerHTML = '';
+
+  categories.forEach((cat, ci) => {
+    const catItems = items.filter(it => it.category === cat.label);
+    if (!catItems.length) return;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'import-cat-header';
+    hdr.textContent = `${cat.emoji||'📋'} ${cat.label}`;
+    list.appendChild(hdr);
+
+    catItems.forEach((item, ii) => {
+      const isDrink = item.hot!=null || item.cold!=null || item.frappe!=null;
+      const rid = `ir_${ci}_${ii}`;
+      const row = document.createElement('div');
+      row.className = 'import-item-row';
+      row.dataset.catLabel = cat.label;
+      row.dataset.catEmoji = cat.emoji || '📋';
+      row.dataset.catType  = cat.type  || 'food';
+      row.dataset.rid      = rid;
+      row.dataset.emoji    = item.emoji || '🍽️';
+      row.dataset.desc     = item.desc  || '';
+      row.dataset.isDrink  = isDrink ? '1' : '0';
+      row.innerHTML = `
+        <input type="checkbox" id="chk_${rid}" checked style="margin-top:3px;accent-color:var(--accent)">
+        <div class="import-item-fields">
+          <input class="form-input" id="name_${rid}" value="${escapeHtml(item.name)}" placeholder="Item name" style="font-size:13px;font-weight:600">
+          <div class="import-price-row">
+            ${isDrink ? `
+              <span class="import-price-lbl">🔥 Hot</span>
+              <input class="form-input import-price-inp" id="hot_${rid}" type="number" step="0.5" value="${item.hot??''}" placeholder="—">
+              <span class="import-price-lbl">❄️ Cold</span>
+              <input class="form-input import-price-inp" id="cold_${rid}" type="number" step="0.5" value="${item.cold??''}" placeholder="—">
+              <span class="import-price-lbl">🧋 Frappé</span>
+              <input class="form-input import-price-inp" id="frappe_${rid}" type="number" step="0.5" value="${item.frappe??''}" placeholder="—">
+            ` : `
+              <span class="import-price-lbl">${CUR}</span>
+              <input class="form-input import-price-inp" id="price_${rid}" type="number" step="0.5" value="${item.price??''}" placeholder="Price">
+            `}
+          </div>
+        </div>`;
+      list.appendChild(row);
+    });
+  });
+
+  updateImportConfirmLabel();
+  list.querySelectorAll('input[type=checkbox]').forEach(cb =>
+    cb.addEventListener('change', updateImportConfirmLabel));
+}
+
+function updateImportConfirmLabel() {
+  const n = document.querySelectorAll('#importReviewList input[type=checkbox]:checked').length;
+  document.getElementById('importConfirmBtn').textContent = `Import ${n} Item${n!==1?'s':''}`;
+}
+
+async function importSelectedItems() {
+  await safe(async () => {
+    const rows = [...document.querySelectorAll('#importReviewList .import-item-row')];
+    const catMap = {};
+    const toImport = [];
+
+    for (const row of rows) {
+      const rid = row.dataset.rid;
+      if (!document.getElementById('chk_'+rid).checked) continue;
+      const name = document.getElementById('name_'+rid).value.trim();
+      if (!name) continue;
+      const isDrink = row.dataset.isDrink === '1';
+      const catLabel = row.dataset.catLabel;
+      if (!catMap[catLabel]) catMap[catLabel] = { label:catLabel, emoji:row.dataset.catEmoji, type:row.dataset.catType, id:null };
+      toImport.push({
+        catLabel, name,
+        desc:   row.dataset.desc,
+        emoji:  row.dataset.emoji,
+        isDrink,
+        hot:    isDrink ? parseFloat(document.getElementById('hot_'+rid)?.value)||null   : null,
+        cold:   isDrink ? parseFloat(document.getElementById('cold_'+rid)?.value)||null  : null,
+        frappe: isDrink ? parseFloat(document.getElementById('frappe_'+rid)?.value)||null: null,
+        price: !isDrink ? parseFloat(document.getElementById('price_'+rid)?.value)||null : null,
+      });
+    }
+
+    if (!toImport.length) { toast('No items selected'); return; }
+
+    // Resolve or create categories
+    for (const [label, cat] of Object.entries(catMap)) {
+      const existing = menuCats.find(c => c.label.toLowerCase() === label.toLowerCase());
+      if (existing) { cat.id = existing.id; continue; }
+      const id = 'cat_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
+      const newCat = { id, label: cat.label, emoji: cat.emoji };
+      if (cat.type === 'drinks') newCat.type = 'drinks';
+      await fbSet('menu/categories/'+id, newCat);
+      menuCats.push(newCat);
+      cat.id = id;
+    }
+
+    // Write items
+    for (const it of toImport) {
+      const id = 'item_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
+      const item = {
+        id, name: it.name, cat: catMap[it.catLabel].id,
+        desc: it.desc, emoji: it.emoji, img_url: '',
+        hot: it.hot, cold: it.cold, frappe: it.frappe, price: it.price,
+        addons: [], avail: true,
+      };
+      await fbSet('menu/items/'+id, item);
+      menuItems.push(item);
+    }
+
+    renderCatList();
+    renderMenuList();
+    updateCatDropdown();
+    closeImportMenuModal();
+    toast(`Imported ${toImport.length} item${toImport.length!==1?'s':''} ✓`);
+  }, 'importSelectedItems');
 }
 
 // ════════════════════════════════════════════════════════════
