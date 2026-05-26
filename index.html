@@ -819,28 +819,8 @@ body {
   margin-top: 2px;
   accent-color: var(--accent);
 }
-.signature-pad {
-  width: 100%;
-  height: 92px;
-  margin-top: 10px;
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-  touch-action: none;
-  display: block;
-}
-.signature-tools {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-  gap: 10px;
-}
-.signature-hint {
-  color: var(--text3);
-  font-size: 10px;
-}
 .signature-clear {
+  display: none; /* retained for compat; signature pad removed */
   border: none;
   background: none;
   color: var(--accent);
@@ -1140,20 +1120,15 @@ html.dark .icon-btn .icon-moon { display: block; }
     <input class="form-input" id="custName" placeholder="e.g. Ahmad" maxlength="40">
     <label class="form-label">Notes (optional)</label>
     <textarea class="form-textarea" id="custNote" placeholder="e.g. Less ice, no sugar, extra spicy..."></textarea>
-    <div class="consent-box">
+    <div class="consent-box" id="consentGate">
       <div class="consent-title">Privacy & Order Record</div>
       <div class="consent-text">
-        This free community ordering app stores your name, order items, notes, timestamp, and signature as an order record in the store database. Records are used for order handling, support, abuse prevention, and service continuity. They are not sold and will not be used for illegal purposes.
+        This free community ordering app stores your name, order items, notes, and timestamp as an order record in the store database. Records are used for order handling, support, abuse prevention, and service continuity. They are not sold and will not be used for illegal purposes.
       </div>
       <label class="consent-check">
         <input type="checkbox" id="privacyAgree">
         <span>I understand and agree before sending this order.</span>
       </label>
-      <canvas class="signature-pad" id="signaturePad" width="640" height="180" aria-label="Signature pad"></canvas>
-      <div class="signature-tools">
-        <span class="signature-hint">Sign inside the box</span>
-        <button type="button" class="signature-clear" onclick="clearSignature()">Clear signature</button>
-      </div>
       <div class="consent-error" id="consentError"></div>
     </div>
     <button class="wa-order-btn" id="waOrderBtn" onclick="sendOrder()">
@@ -1271,7 +1246,9 @@ let cartUid       = 0;
 let sizePending   = null;
 let addonsPending = null; // { item, size, oz, price }
 let activeTheme   = { ...DEFAULT_CONFIG.theme };
-let signatureTouched = false;
+function _consentKey() { return 'arh_consent_v' + (APP_CONFIG.checkout?.privacyVersion || '1'); }
+function _hasConsented() { return APP_CONFIG.checkout?.consentOnce !== false && localStorage.getItem(_consentKey()) === '1'; }
+function _markConsented() { localStorage.setItem(_consentKey(), '1'); }
 let lastOrderContext = null;
 let feedbackState = {
   storeRating: 0,
@@ -1480,7 +1457,7 @@ async function init() {
   renderHeader();
   renderStoreInfo(storeInfo);
   renderMenu();
-  setupSignaturePad();
+  if (_hasConsented()) { const g = document.getElementById('consentGate'); if (g) g.style.display = 'none'; }
 
   clearTimeout(loaderTimeout);
   document.getElementById('loader').classList.add('hidden');
@@ -2098,66 +2075,22 @@ function renderCartSheet() {
   });
 }
 
-function setupSignaturePad() {
-  const canvas = document.getElementById('signaturePad');
-  if (!canvas || canvas.dataset.ready) return;
-  canvas.dataset.ready = '1';
-  const ctx = canvas.getContext('2d');
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#2C1A0E';
-  let drawing = false;
-
-  function point(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) * (canvas.width / rect.width),
-      y: (e.clientY - rect.top) * (canvas.height / rect.height),
-    };
-  }
-
-  canvas.addEventListener('pointerdown', e => {
-    drawing = true;
-    signatureTouched = true;
-    canvas.setPointerCapture(e.pointerId);
-    const p = point(e);
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    document.getElementById('consentError').textContent = '';
-  });
-  canvas.addEventListener('pointermove', e => {
-    if (!drawing) return;
-    const p = point(e);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
-  });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => {
-    canvas.addEventListener(type, () => { drawing = false; });
-  });
-}
-
-function clearSignature() {
-  const canvas = document.getElementById('signaturePad');
-  if (!canvas) return;
-  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-  signatureTouched = false;
-  document.getElementById('consentError').textContent = '';
-}
+function clearSignature() {} // stub — signature pad removed; kept to avoid errors from any cached callers
 
 // ════════════════════════════════════════════════════════════
 // SEND ORDER
 // ════════════════════════════════════════════════════════════
 async function sendOrder() {
   if (!cart.length || storeConfig?.isOpen === false) return;
-  const agreed = document.getElementById('privacyAgree').checked;
-  const consentError = document.getElementById('consentError');
-  if (!agreed) {
-    consentError.textContent = 'Please tick the privacy agreement before sending.';
-    return;
-  }
-  if (!signatureTouched) {
-    consentError.textContent = 'Please sign inside the box before sending.';
-    return;
+  if (!_hasConsented()) {
+    const agreed = document.getElementById('privacyAgree').checked;
+    const consentError = document.getElementById('consentError');
+    if (!agreed) {
+      consentError.textContent = 'Please tick the privacy agreement before sending.';
+      return;
+    }
+    _markConsented();
+    document.getElementById('consentGate').style.display = 'none';
   }
   const name  = document.getElementById('custName').value.trim() || 'Customer';
   const note  = document.getElementById('custNote').value.trim();
