@@ -850,7 +850,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div class="dev-section">
       <div class="dev-title">Media Storage Usage</div>
       <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Tracked on upload. Hard cap: <strong style="color:var(--text)">100 MB per store</strong> · Per clip: 5 MB max · 5 sec · 720p.</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Tracked on upload. Hard cap: <strong style="color:var(--text)">150 MB per store</strong> · Per clip: 5 MB max · 5 sec · 720p.</div>
         <div id="storageUsageBar" style="margin-bottom:8px"></div>
         <button class="btn btn-secondary" onclick="loadStorageUsage()" style="margin-top:4px">↻ Refresh</button>
       </div>
@@ -1942,14 +1942,14 @@ async function loadStorageUsage() {
   const el = document.getElementById('storageUsageBar');
   if (!el) return;
   const used  = Number(await fbGet('config/dev/storage_bytes_used') || 0);
-  const cap   = 100 * 1024 * 1024;
+  const cap   = 150 * 1024 * 1024;
   const usedMb = (used / 1024 / 1024).toFixed(1);
   const pct    = Math.min((used / cap) * 100, 100).toFixed(1);
   const color  = used > cap * 0.9 ? 'var(--red2)' : used > cap * 0.7 ? '#c08020' : 'var(--green)';
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
       <span style="color:${color};font-weight:700">${usedMb} MB used</span>
-      <span style="color:var(--text2)">100 MB cap · ${pct}%</span>
+      <span style="color:var(--text2)">150 MB cap · ${pct}%</span>
     </div>
     <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
       <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width .4s"></div>
@@ -2035,7 +2035,7 @@ function getVideoMeta(file) {
   });
 }
 
-const STORE_MEDIA_CAP = 100 * 1024 * 1024; // 100 MB per store
+const STORE_MEDIA_CAP = 150 * 1024 * 1024; // 150 MB per store
 const MAX_VIDEO_SIZE  =   5 * 1024 * 1024; // 5 MB per clip
 const MAX_VIDEO_SECS  = 5;                  // 5 seconds
 const MAX_VIDEO_PX    = 1280;               // 720p width
@@ -2056,12 +2056,12 @@ async function handleVideoUpload(input) {
     return;
   }
 
-  // Per-store 100 MB cap
+  // Per-store 150 MB cap
   const usedBytes = Number(await fbGet('config/dev/storage_bytes_used') || 0);
   if (usedBytes + file.size > STORE_MEDIA_CAP) {
     const usedMb  = (usedBytes / 1024 / 1024).toFixed(1);
     const fileMb  = (file.size  / 1024 / 1024).toFixed(1);
-    setStatus(`Store cap reached: ${usedMb} MB used + ${fileMb} MB = over 100 MB limit.`, 'var(--red2)');
+    setStatus(`Store cap reached: ${usedMb} MB used + ${fileMb} MB = over 150 MB limit.`, 'var(--red2)');
     return;
   }
 
