@@ -771,6 +771,38 @@
       letter-spacing: .04em; text-transform: uppercase;
       pointer-events: none;
     }
+    .addon-sheet-sub {
+      font-size: 13px; color: var(--muted); font-weight: 700;
+      margin: -10px 0 16px;
+    }
+    .addon-group { margin-bottom: 18px; }
+    .addon-group-label {
+      font-size: 13px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: .04em; color: var(--muted); margin-bottom: 8px;
+    }
+    .addon-required {
+      display: inline-block; font-size: 10px; font-weight: 800;
+      background: var(--brand); color: #fff; border-radius: 3px;
+      padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+    }
+    .addon-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: var(--radius);
+      border: 1px solid var(--line); margin-bottom: 6px;
+      cursor: pointer; font-weight: 700; background: #fff;
+      transition: border-color .15s, background .15s;
+    }
+    .addon-opt:hover { border-color: var(--brand); background: #fff8f6; }
+    .addon-opt input { accent-color: var(--brand); width: 16px; height: 16px; flex-shrink: 0; }
+    .addon-opt-price { margin-left: auto; color: var(--brand); font-weight: 900; }
+    .addon-confirm-btn {
+      width: 100%; margin-top: 8px; padding: 16px; border-radius: var(--radius);
+      background: var(--brand); color: #fff; border: none;
+      font-size: 16px; font-weight: 900; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .addon-confirm-btn:hover { opacity: .88; }
+    .cart-addons { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -867,6 +899,18 @@
       <div class="consent-error" id="consentError"></div>
       <div class="preview-note">This opens WhatsApp with your order summary. The store receives it after you send the message there.</div>
       <button class="send-btn" id="sendBtn" type="button" onclick="sendLiveOrder()">Send order on WhatsApp</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="addonsSheet" onclick="handleAddonsBackdrop(event)">
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="addonsSheetTitle">
+      <div class="sheet-head">
+        <h2 class="sheet-title" id="addonsSheetTitle">Customise</h2>
+        <button class="icon-btn" type="button" onclick="closeAddonsSheet()" aria-label="Close">&times;</button>
+      </div>
+      <div class="addon-sheet-sub" id="addonsSheetSub"></div>
+      <div id="addonsSheetOpts"></div>
+      <button class="addon-confirm-btn" type="button" onclick="confirmAddons()">Add to cart</button>
     </div>
   </div>
 
@@ -1162,19 +1206,90 @@
       return card;
     }
 
+    let addonsPending = null;
+
     function addToCart(itemId, optionIndex) {
       const item = menuData.items.find(i => i.id === itemId);
       if (!item || item.avail === false) return;
       const option = itemOptions(item)[optionIndex] || itemOptions(item)[0];
       if (!option) return;
+      if (item.addons && item.addons.length) {
+        openAddonsSheet(item, option);
+      } else {
+        pushCartItem(item, option, []);
+      }
+    }
+
+    function pushCartItem(item, option, addons) {
+      const addonTotal = (addons || []).reduce((s, a) => s + (Number(a.price) || 0), 0);
       cart.push({
         uid: Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         id: item.id,
         name: item.name,
         option: option.label,
-        price: option.price
+        price: option.price + addonTotal,
+        addons: addons || []
       });
       updateCart();
+    }
+
+    function openAddonsSheet(item, option) {
+      addonsPending = { item, option };
+      document.getElementById("addonsSheetTitle").textContent = item.name;
+      const sub = option.label
+        ? `${option.label} — ${money(option.price)}`
+        : money(option.price);
+      document.getElementById("addonsSheetSub").textContent = sub;
+      const opts = document.getElementById("addonsSheetOpts");
+      opts.innerHTML = "";
+      item.addons.forEach(addon => {
+        const group = document.createElement("div");
+        group.className = "addon-group";
+        if (addon.type === "select") {
+          group.innerHTML = `<div class="addon-group-label">${esc(addon.name)} <span class="addon-required">Required</span></div>`;
+          (addon.options || []).forEach((opt, idx) => {
+            const lbl = document.createElement("label");
+            lbl.className = "addon-opt";
+            lbl.innerHTML = `<input type="radio" name="addon_${esc(addon.id)}" value="${esc(opt)}" ${idx === 0 ? "checked" : ""}><span>${esc(opt)}</span>`;
+            group.appendChild(lbl);
+          });
+        } else {
+          const lbl = document.createElement("label");
+          lbl.className = "addon-opt";
+          lbl.innerHTML = `<input type="checkbox" id="addon_${esc(addon.id)}"><span>${esc(addon.name)}</span><span class="addon-opt-price">+${money(addon.price)}</span>`;
+          group.appendChild(lbl);
+        }
+        opts.appendChild(group);
+      });
+      document.getElementById("addonsSheet").classList.add("open");
+      document.body.classList.add("sheet-open");
+    }
+
+    function confirmAddons() {
+      if (!addonsPending) return;
+      const { item, option } = addonsPending;
+      const selectedAddons = [];
+      (item.addons || []).forEach(addon => {
+        if (addon.type === "select") {
+          const sel = document.querySelector(`input[name="addon_${addon.id}"]:checked`);
+          if (sel) selectedAddons.push({ name: addon.name, value: sel.value, price: 0 });
+        } else {
+          const cb = document.getElementById(`addon_${addon.id}`);
+          if (cb && cb.checked) selectedAddons.push({ name: addon.name, value: "Yes", price: Number(addon.price) || 0 });
+        }
+      });
+      closeAddonsSheet();
+      pushCartItem(item, option, selectedAddons);
+    }
+
+    function closeAddonsSheet() {
+      document.getElementById("addonsSheet").classList.remove("open");
+      document.body.classList.remove("sheet-open");
+      addonsPending = null;
+    }
+
+    function handleAddonsBackdrop(event) {
+      if (event.target.id === "addonsSheet") closeAddonsSheet();
     }
 
     function removeCart(uid) {
@@ -1246,16 +1361,19 @@
         updateCart();
         return;
       }
-      list.innerHTML = cart.map(item => `
+      list.innerHTML = cart.map(item => {
+        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}`).join(" · ");
+        return `
         <div class="cart-row">
           <div>
             <div class="cart-name">${esc(item.name)}</div>
-            <div class="cart-option">${esc(item.option || "Regular")}</div>
+            ${item.option ? `<div class="cart-option">${esc(item.option)}</div>` : ""}
+            ${addonsStr ? `<div class="cart-addons">${esc(addonsStr)}</div>` : ""}
           </div>
           <strong>${money(item.price)}</strong>
           <button class="remove-btn" type="button" onclick="removeCart('${esc(item.uid)}')" aria-label="Remove ${esc(item.name)}">&times;</button>
-        </div>
-      `).join("");
+        </div>`;
+      }).join("");
       updateCart();
     }
 
@@ -1306,21 +1424,23 @@
       const note = document.getElementById("custNote").value.trim();
       const total = cart.reduce((sum, item) => sum + item.price, 0);
       const phone = storeConfig.phone || APP_CONFIG.store.phone;
-      let msg = `Order - ${storeConfig.name}\n`;
-      msg += `Name: ${name}\n\n`;
-      msg += `Items:\n`;
+      let msg = `🍵 *Order – ${storeConfig.name}*\n`;
+      msg += `👤 ${name}\n\n*Items:*\n`;
       cart.forEach((item, index) => {
-        msg += `${index + 1}. ${item.name}${item.option ? ` (${item.option})` : ""} - ${money(item.price)}\n`;
+        msg += `${index + 1}. ${item.name}${item.option ? ` (${item.option})` : ""} — ${money(item.price)}\n`;
+        (item.addons || []).forEach(a => {
+          msg += `   • ${a.name}: ${a.value}${a.price ? ` (+${money(a.price)})` : ""}\n`;
+        });
       });
-      msg += `\nTotal: ${money(total)}`;
-      if (note) msg += `\n\nNote: ${note}`;
-      msg += `\n\nvia ${APP_CONFIG.brand.appName} menu`;
+      msg += `\n💰 *Total: ${money(total)}*`;
+      if (note) msg += `\n\n📝 ${note}`;
+      msg += `\n\n_via ${APP_CONFIG.brand.appName} menu_`;
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
 
       const orderId = "ord_" + Date.now();
       logOrder(orderId, {
         name,
-        items: cart.map(item => ({ name: item.name, size: item.option || null, price: item.price, addons: [] })),
+        items: cart.map(item => ({ name: item.name, size: item.option || null, price: item.price, addons: item.addons || [] })),
         total,
         note,
         source: "index-v2-live",
@@ -1344,7 +1464,7 @@
       renderMenu();
     });
     document.addEventListener("keydown", event => {
-      if (event.key === "Escape") closeCart();
+      if (event.key === "Escape") { closeCart(); closeAddonsSheet(); }
     });
 
     init().catch(() => {
