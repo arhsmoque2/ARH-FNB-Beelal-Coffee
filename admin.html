@@ -848,6 +848,15 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
 
     <div class="dev-section">
+      <div class="dev-title">Media Storage Usage</div>
+      <div class="a-card">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Tracked on upload. Hard cap: <strong style="color:var(--text)">100 MB per store</strong> · Per clip: 5 MB max · 5 sec · 720p.</div>
+        <div id="storageUsageBar" style="margin-bottom:8px"></div>
+        <button class="btn btn-secondary" onclick="loadStorageUsage()" style="margin-top:4px">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
       <div class="dev-title">Master Snapshot</div>
       <div class="a-card">
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Take a master snapshot of current theme. This becomes the factory reset point. Cannot be overwritten except from this panel.</div>
@@ -1778,7 +1787,7 @@ function openEditModal(id) {
       </div>
     </div>
     <div class="form-row">
-      <label class="form-label">Live Clip <span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;color:var(--text2)">3–8 sec · max 8 MB · MP4 or WebM</span></label>
+      <label class="form-label">Live Clip <span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;color:var(--text2)">max 5 sec · 720p · 5 MB — MP4 or WebM</span></label>
       <div class="photo-upload-area">
         <input type="hidden" id="eVideoUrl" value="${escapeHtml(item.video_url||'')}">
         ${item.video_url ? `<div style="font-size:11px;color:var(--green);margin-bottom:4px">▶ Clip set</div>` : ''}
@@ -1929,6 +1938,24 @@ async function saveImgurClientId() {
   }, 'saveImgurClientId');
 }
 
+async function loadStorageUsage() {
+  const el = document.getElementById('storageUsageBar');
+  if (!el) return;
+  const used  = Number(await fbGet('config/dev/storage_bytes_used') || 0);
+  const cap   = 100 * 1024 * 1024;
+  const usedMb = (used / 1024 / 1024).toFixed(1);
+  const pct    = Math.min((used / cap) * 100, 100).toFixed(1);
+  const color  = used > cap * 0.9 ? 'var(--red2)' : used > cap * 0.7 ? '#c08020' : 'var(--green)';
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+      <span style="color:${color};font-weight:700">${usedMb} MB used</span>
+      <span style="color:var(--text2)">100 MB cap · ${pct}%</span>
+    </div>
+    <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width .4s"></div>
+    </div>`;
+}
+
 async function saveVideoUploadSecret() {
   await safe(async () => {
     const status = document.getElementById('videoSecretStatus');
@@ -1995,15 +2022,23 @@ function removeItemPhoto(previewId, hiddenId) {
 
 // ── VIDEO UPLOAD ──────────────────────────────────────────────────────
 
-function getVideoDuration(file) {
+function getVideoMeta(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const vid = document.createElement('video');
-    vid.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(vid.duration); };
-    vid.onerror    = () => { URL.revokeObjectURL(url); reject(new Error('Cannot read video metadata')); };
+    vid.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve({ duration: vid.duration, width: vid.videoWidth, height: vid.videoHeight });
+    };
+    vid.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Cannot read video metadata')); };
     vid.src = url;
   });
 }
+
+const STORE_MEDIA_CAP = 100 * 1024 * 1024; // 100 MB per store
+const MAX_VIDEO_SIZE  =   5 * 1024 * 1024; // 5 MB per clip
+const MAX_VIDEO_SECS  = 5;                  // 5 seconds
+const MAX_VIDEO_PX    = 1280;               // 720p width
 
 async function handleVideoUpload(input) {
   const file = input.files[0];
@@ -2015,22 +2050,37 @@ async function handleVideoUpload(input) {
     statusEl.style.color = color || 'var(--text2)';
   };
 
-  // Client-side size gate (8 MB)
-  const MAX = 8 * 1024 * 1024;
-  if (file.size > MAX) {
-    setStatus(`Too large: ${(file.size/1024/1024).toFixed(1)} MB — max is 8 MB.`, 'var(--red2)');
+  // Per-clip size gate (5 MB)
+  if (file.size > MAX_VIDEO_SIZE) {
+    setStatus(`Too large: ${(file.size/1024/1024).toFixed(1)} MB — max is 5 MB (≈ 5s 720p).`, 'var(--red2)');
     return;
   }
 
-  // Client-side duration gate (8 s)
-  let dur;
+  // Per-store 100 MB cap
+  const usedBytes = Number(await fbGet('config/dev/storage_bytes_used') || 0);
+  if (usedBytes + file.size > STORE_MEDIA_CAP) {
+    const usedMb  = (usedBytes / 1024 / 1024).toFixed(1);
+    const fileMb  = (file.size  / 1024 / 1024).toFixed(1);
+    setStatus(`Store cap reached: ${usedMb} MB used + ${fileMb} MB = over 100 MB limit.`, 'var(--red2)');
+    return;
+  }
+
+  // Duration gate (5 s) and resolution gate (720p = 1280px wide)
+  let dur, vidW, vidH;
   try {
-    dur = await getVideoDuration(file);
-    if (dur > 8) {
-      setStatus(`Too long: ${dur.toFixed(1)}s — max is 8 seconds.`, 'var(--red2)');
+    const meta = await getVideoMeta(file);
+    dur  = meta.duration;
+    vidW = meta.width;
+    vidH = meta.height;
+    if (dur > MAX_VIDEO_SECS) {
+      setStatus(`Too long: ${dur.toFixed(1)}s — max is 5 seconds.`, 'var(--red2)');
       return;
     }
-  } catch { /* continue — server will gate on size at minimum */ }
+    if (vidW > MAX_VIDEO_PX) {
+      setStatus(`Resolution too high: ${vidW}px wide — max is 720p (1280px). Compress first.`, 'var(--red2)');
+      return;
+    }
+  } catch { /* non-fatal — server size gate still applies */ }
 
   setStatus('Uploading…');
 
@@ -2052,9 +2102,15 @@ async function handleVideoUpload(input) {
 
     document.getElementById('eVideoUrl').value = payload.url;
     document.getElementById('eVideoUrlDirect').value = payload.url;
+
+    // Increment store storage counter
+    const prev = Number(await fbGet('config/dev/storage_bytes_used') || 0);
+    await fbSet('config/dev/storage_bytes_used', prev + file.size).catch(() => {});
+
     const sizeMb = (file.size / 1024 / 1024).toFixed(1);
-    const durStr = dur != null ? ` · ${dur.toFixed(1)}s` : '';
-    setStatus(`✓ Uploaded — ${sizeMb} MB${durStr}`, 'var(--green)');
+    const durStr = dur  != null ? ` · ${dur.toFixed(1)}s`  : '';
+    const resStr = vidW != null ? ` · ${vidW}×${vidH}px` : '';
+    setStatus(`✓ Uploaded — ${sizeMb} MB${durStr}${resStr}`, 'var(--green)');
   } catch (err) {
     setStatus(`Upload failed: ${err.message}`, 'var(--red2)');
   }
@@ -3313,6 +3369,9 @@ async function loadDevTab() {
       document.getElementById('videoSecretStatus').textContent = '✓ Secret set';
       document.getElementById('videoSecretStatus').className = 'key-status ok';
     }
+
+    // Storage usage bar
+    await loadStorageUsage();
 
     // System prompt
     const sp = await fbGet('config/dev/sys_prompt');
