@@ -1767,7 +1767,7 @@ function openEditModal(id) {
     </div>
     <div class="form-row">
       <label class="form-label">Live Clip URL (optional — video for motion preview in menu)</label>
-      <input class="form-input" id="eVideoUrl" value="${esc(item.video_url||'')}" placeholder="https://... (MP4/WebM URL)">
+      <input class="form-input" id="eVideoUrl" value="${escapeHtml(item.video_url||'')}" placeholder="https://... (MP4/WebM URL)">
       ${item.video_url?`<div style="font-size:11px;color:var(--text2);margin-top:4px">▶ Live clip set — customers will see animated preview</div>`:''}
     </div>
     ${isDrink?`
@@ -1779,7 +1779,7 @@ function openEditModal(id) {
     </div>`:`<div class="form-row"><label class="form-label">Price (${CUR})</label><input class="form-input" id="ePrice" type="number" step="0.5" value="${item.price??''}"></div>`}
     <div class="form-row">
       <label class="form-label">Subsection (optional)</label>
-      <input class="form-input" id="eSub" value="${esc(item.sub||'')}" placeholder="e.g. Signature, Cold Brew, Seasonal...">
+      <input class="form-input" id="eSub" value="${escapeHtml(item.sub||'')}" placeholder="e.g. Signature, Cold Brew, Seasonal...">
     </div>
     <div class="form-row">
       <label class="form-label">Badge</label>
