@@ -427,6 +427,79 @@
       box-shadow: 0 8px 20px rgba(86, 18, 22, .055);
     }
     .item-card.sold-out { opacity: .54; }
+    .item-card.item-featured {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, #fff9f0 0%, #fff 60%);
+      box-shadow: 0 4px 18px rgba(217,162,58,.18);
+    }
+    .item-badge {
+      display: inline-block; font-size: 10px; font-weight: 800;
+      background: var(--gold); color: #fff; border-radius: 10px;
+      padding: 2px 8px; margin-bottom: 5px; letter-spacing: .03em;
+    }
+    .subsection-label {
+      font-size: 11px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); margin: 18px 0 8px;
+      padding-left: 2px; border-left: 3px solid var(--brand);
+      padding-left: 8px;
+    }
+    .menu-section.cat-featured {
+      background: linear-gradient(135deg, #1a0a0a 0%, #2a1010 100%);
+      border-radius: 14px; padding: 18px; margin-bottom: 24px;
+    }
+    .menu-section.cat-featured .section-title { color: #ffd36f; }
+    .menu-section.cat-featured .section-meta { color: rgba(255,220,140,.55); }
+    .menu-section.cat-featured .item-card {
+      background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.12); color: #ede0c4;
+    }
+    .menu-section.cat-featured .item-name { color: #fff; }
+    .menu-section.cat-featured .item-desc { color: rgba(237,224,196,.65); }
+    .addon-running-total {
+      font-size: 14px; font-weight: 900; color: var(--brand);
+      text-align: right; margin: 10px 0 4px; min-height: 20px;
+    }
+    .feedback-ov {
+      position: fixed; inset: 0; z-index: 180;
+      background: rgba(14,5,5,0); display: none;
+      align-items: flex-end; justify-content: center;
+      padding: 16px; backdrop-filter: blur(0px);
+      transition: background .3s, backdrop-filter .3s;
+    }
+    .feedback-ov.open {
+      background: rgba(14,5,5,.72); backdrop-filter: blur(8px);
+    }
+    .feedback-panel {
+      width: min(480px, 100%); background: #fff; border-radius: 16px;
+      padding: 24px; box-shadow: 0 28px 70px rgba(0,0,0,.3);
+      transform: translateY(24px); opacity: 0;
+      transition: transform .36s cubic-bezier(.16,1,.3,1), opacity .3s;
+    }
+    .feedback-ov.open .feedback-panel { transform: translateY(0); opacity: 1; }
+    .feedback-title { font-family:"Playfair Display",serif; font-size: 22px; margin: 0 0 4px; }
+    .feedback-sub { font-size: 13px; color: var(--muted); margin: 0 0 18px; }
+    .emoji-row { display: flex; justify-content: space-around; margin-bottom: 18px; }
+    .emoji-opt { font-size: 34px; cursor: pointer; padding: 8px; border-radius: 12px;
+      border: 2px solid transparent; transition: border-color .15s, transform .15s; }
+    .emoji-opt.selected { border-color: var(--brand); transform: scale(1.18); }
+    .feedback-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .feedback-tag { font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 14px;
+      border: 1px solid var(--line); cursor: pointer; background: #fff8f6; transition: background .15s, border-color .15s; }
+    .feedback-tag.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .feedback-skip { width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: var(--radius);
+      background: #fff; color: var(--muted); font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+    .feedback-send { width: 100%; padding: 14px; border: none; border-radius: var(--radius);
+      background: var(--brand); color: #fff; font-size: 15px; font-weight: 900; cursor: pointer; margin-bottom: 8px; }
+    .info-strip { padding: 24px 0; }
+    .info-cards { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+    .info-cards::-webkit-scrollbar { display: none; }
+    .info-card {
+      flex-shrink: 0; width: 220px; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--line); background: var(--paper);
+    }
+    .info-card-img { width: 100%; height: 140px; object-fit: cover; display: block; }
+    .info-card-body { padding: 12px 14px; }
+    .info-card-title { font-weight: 900; font-size: 14px; margin-bottom: 4px; }
+    .info-card-text { font-size: 13px; color: var(--muted); line-height: 1.55; }
     .item-media {
       width: 86px;
       height: 86px;
@@ -870,7 +943,37 @@
       <aside class="side-panel" id="sidePanel" aria-label="Menu categories"></aside>
       <div class="menu-space" id="menuSpace"></div>
     </section>
+
+    <section class="shell info-strip" id="infoStrip" style="display:none">
+      <h2 class="section-title" id="infoTitle" style="margin-bottom:6px"></h2>
+      <p class="item-desc" id="infoSubtitle" style="margin-bottom:14px"></p>
+      <div class="info-cards" id="infoCards"></div>
+    </section>
   </main>
+
+  <div class="feedback-ov" id="feedbackOv">
+    <div class="feedback-panel">
+      <h3 class="feedback-title">How was your order?</h3>
+      <p class="feedback-sub">Quick reaction — totally optional</p>
+      <div class="emoji-row" id="emojiRow">
+        <span class="emoji-opt" data-val="1" onclick="selectEmoji(this)">😞</span>
+        <span class="emoji-opt" data-val="2" onclick="selectEmoji(this)">😐</span>
+        <span class="emoji-opt" data-val="3" onclick="selectEmoji(this)">🙂</span>
+        <span class="emoji-opt" data-val="4" onclick="selectEmoji(this)">😊</span>
+        <span class="emoji-opt" data-val="5" onclick="selectEmoji(this)">🤩</span>
+      </div>
+      <div class="feedback-tags" id="feedbackTags">
+        <span class="feedback-tag" onclick="toggleTag(this)">Food was great</span>
+        <span class="feedback-tag" onclick="toggleTag(this)">Fast response</span>
+        <span class="feedback-tag" onclick="toggleTag(this)">Easy to order</span>
+        <span class="feedback-tag" onclick="toggleTag(this)">Will order again</span>
+        <span class="feedback-tag" onclick="toggleTag(this)">Wrong item</span>
+        <span class="feedback-tag" onclick="toggleTag(this)">Slow response</span>
+      </div>
+      <button class="feedback-send" type="button" id="feedbackSendBtn" onclick="submitFeedback()">Send feedback</button>
+      <button class="feedback-skip" type="button" onclick="closeFeedback()">Skip</button>
+    </div>
+  </div>
 
   <button class="floating-cart" id="floatingCart" type="button" onclick="openCart()">
     <span id="floatingCartLabel">0 items</span>
@@ -910,6 +1013,7 @@
       </div>
       <div class="addon-sheet-sub" id="addonsSheetSub"></div>
       <div id="addonsSheetOpts"></div>
+      <div class="addon-running-total" id="addonRunningTotal"></div>
       <button class="addon-confirm-btn" type="button" onclick="confirmAddons()">Add to cart</button>
     </div>
   </div>
@@ -1043,6 +1147,7 @@
       renderShell();
       renderNavigation();
       renderMenu();
+      renderStoreInfo();
       updateCart();
       if (hasConsented()) document.getElementById("consentRow").style.display = "none";
       document.getElementById("loader").classList.add("hidden");
@@ -1058,8 +1163,21 @@
       document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme.bg || "#fff7f4");
     }
 
+    function setMeta(name, content, prop) {
+      if (!content) return;
+      let el = document.querySelector(prop ? `meta[property="${name}"]` : `meta[name="${name}"]`);
+      if (!el) { el = document.createElement("meta"); if (prop) el.setAttribute("property", name); else el.setAttribute("name", name); document.head.appendChild(el); }
+      el.setAttribute("content", content);
+    }
+
     function renderShell() {
-      document.title = storeConfig.name;
+      const meta = storeConfig.meta || {};
+      document.title = meta.title || storeConfig.name;
+      setMeta("description", meta.description || storeConfig.slogan);
+      setMeta("og:title", meta.title || storeConfig.name, true);
+      setMeta("og:description", meta.description || storeConfig.slogan, true);
+      setMeta("og:type", "website", true);
+      if (meta.og_image_url) setMeta("og:image", meta.og_image_url, true);
       document.getElementById("brandTitle").textContent = storeConfig.name;
       document.getElementById("brandSub").textContent = storeConfig.slogan || storeConfig.hours || "";
       document.getElementById("heroTitle").textContent = storeConfig.name;
@@ -1161,24 +1279,57 @@
 
       space.innerHTML = "";
       groups.forEach(group => {
+        const isFeaturedCat = group.cat.style === "featured";
         const section = document.createElement("section");
-        section.className = "menu-section";
+        section.className = "menu-section" + (isFeaturedCat ? " cat-featured" : "");
         section.innerHTML = `
           <div class="section-head">
             <h2 class="section-title">${esc(group.cat.label || "Menu")}</h2>
             <div class="section-meta">${group.items.length} item${group.items.length === 1 ? "" : "s"}</div>
           </div>
-          <div class="items-grid"></div>
         `;
-        const grid = section.querySelector(".items-grid");
-        group.items.forEach(item => grid.appendChild(renderItemCard(item)));
+        // Group items by subsection
+        const subGroups = {};
+        const noSub = [];
+        group.items.forEach(item => {
+          if (item.sub) {
+            if (!subGroups[item.sub]) subGroups[item.sub] = [];
+            subGroups[item.sub].push(item);
+          } else {
+            noSub.push(item);
+          }
+        });
+        const hasSubs = Object.keys(subGroups).length > 0;
+        if (!hasSubs) {
+          const grid = document.createElement("div");
+          grid.className = "items-grid";
+          noSub.forEach(item => grid.appendChild(renderItemCard(item)));
+          section.appendChild(grid);
+        } else {
+          if (noSub.length) {
+            const grid = document.createElement("div");
+            grid.className = "items-grid";
+            noSub.forEach(item => grid.appendChild(renderItemCard(item)));
+            section.appendChild(grid);
+          }
+          Object.entries(subGroups).forEach(([sub, subItems]) => {
+            const lbl = document.createElement("div");
+            lbl.className = "subsection-label";
+            lbl.textContent = sub;
+            section.appendChild(lbl);
+            const grid = document.createElement("div");
+            grid.className = "items-grid";
+            subItems.forEach(item => grid.appendChild(renderItemCard(item)));
+            section.appendChild(grid);
+          });
+        }
         space.appendChild(section);
       });
     }
 
     function renderItemCard(item) {
       const card = document.createElement("article");
-      card.className = "item-card" + (item.avail === false ? " sold-out" : "");
+      card.className = "item-card" + (item.avail === false ? " sold-out" : "") + (item.featured ? " item-featured" : "");
       const safeImg = item.img_url ? item.img_url.replace(/'/g, "\\'") : "";
       const safeName = item.name.replace(/'/g, "\\'");
       const media = item.img_url
@@ -1195,6 +1346,7 @@
       card.innerHTML = `
         ${media}
         <div>
+          ${item.badge ? `<div class="item-badge">${esc(item.badge)}</div>` : ""}
           <h3 class="item-name">${esc(item.name)}</h3>
           <p class="item-desc">${esc(item.desc || "")}</p>
           <div class="item-actions">${actions}</div>
@@ -1261,8 +1413,32 @@
         }
         opts.appendChild(group);
       });
+      // Attach live-total listeners after DOM update
+      requestAnimationFrame(() => {
+        opts.querySelectorAll("input[type=checkbox], input[type=radio]").forEach(el => {
+          el.addEventListener("change", updateAddonTotal);
+        });
+        updateAddonTotal();
+      });
       document.getElementById("addonsSheet").classList.add("open");
       document.body.classList.add("sheet-open");
+    }
+
+    function updateAddonTotal() {
+      if (!addonsPending) return;
+      const { option } = addonsPending;
+      let extra = 0;
+      (addonsPending.item.addons || []).forEach(addon => {
+        if (addon.type !== "select") {
+          const cb = document.getElementById(`addon_${addon.id}`);
+          if (cb && cb.checked) extra += Number(addon.price) || 0;
+        }
+      });
+      const total = option.price + extra;
+      const el = document.getElementById("addonRunningTotal");
+      if (el) el.textContent = extra > 0 ? `Total: ${money(option.price)} + ${money(extra)} = ${money(total)}` : `Total: ${money(total)}`;
+      const btn = document.querySelector("#addonsSheet .addon-confirm-btn");
+      if (btn) btn.textContent = `Add to cart — ${money(total)}`;
     }
 
     function confirmAddons() {
@@ -1452,6 +1628,58 @@
         },
         ts: Date.now()
       });
+      // Show feedback modal 1.2s after order is sent
+      setTimeout(openFeedback, 1200);
+    }
+
+    // ── FEEDBACK MODAL ─────────────────────────────────────────
+    let selectedEmoji = null;
+    function openFeedback() {
+      selectedEmoji = null;
+      document.querySelectorAll(".emoji-opt").forEach(e => e.classList.remove("selected"));
+      document.querySelectorAll(".feedback-tag").forEach(t => t.classList.remove("active"));
+      const ov = document.getElementById("feedbackOv");
+      ov.style.display = "flex";
+      requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("open")));
+    }
+    function closeFeedback() {
+      const ov = document.getElementById("feedbackOv");
+      ov.classList.remove("open");
+      ov.addEventListener("transitionend", () => { ov.style.display = "none"; }, { once: true });
+    }
+    function selectEmoji(el) {
+      document.querySelectorAll(".emoji-opt").forEach(e => e.classList.remove("selected"));
+      el.classList.add("selected");
+      selectedEmoji = Number(el.dataset.val);
+    }
+    function toggleTag(el) { el.classList.toggle("active"); }
+    async function submitFeedback() {
+      const tags = [...document.querySelectorAll(".feedback-tag.active")].map(t => t.textContent);
+      const entry = { rating: selectedEmoji, tags, ts: Date.now(), source: "v2" };
+      await fbSet("feedback/customer/" + Date.now(), entry).catch(() => {});
+      closeFeedback();
+    }
+
+    // ── STORE INFO ─────────────────────────────────────────────
+    async function renderStoreInfo() {
+      let info = null;
+      try { const r = await fbGetSafe("config/store_info"); info = r.data; } catch {}
+      if (!info || !info.enabled || !info.cards?.length) return;
+      document.getElementById("infoTitle").textContent = info.title || "";
+      document.getElementById("infoSubtitle").textContent = info.subtitle || "";
+      const container = document.getElementById("infoCards");
+      container.innerHTML = "";
+      (info.cards || []).forEach(card => {
+        const el = document.createElement("div");
+        el.className = "info-card";
+        if (card.type === "photo" && card.image_url) {
+          el.innerHTML = `<img class="info-card-img" src="${esc(card.image_url)}" alt="${esc(card.title || '')}"><div class="info-card-body"><div class="info-card-title">${esc(card.title || "")}</div></div>`;
+        } else {
+          el.innerHTML = `<div class="info-card-body"><div class="info-card-title">${esc(card.title || "")}</div><div class="info-card-text">${esc(card.body || "")}</div></div>`;
+        }
+        container.appendChild(el);
+      });
+      document.getElementById("infoStrip").style.display = "block";
     }
 
     document.getElementById("searchInput").addEventListener("input", event => {
@@ -1464,7 +1692,7 @@
       renderMenu();
     });
     document.addEventListener("keydown", event => {
-      if (event.key === "Escape") { closeCart(); closeAddonsSheet(); }
+      if (event.key === "Escape") { closeCart(); closeAddonsSheet(); closeFeedback(); }
     });
 
     init().catch(() => {

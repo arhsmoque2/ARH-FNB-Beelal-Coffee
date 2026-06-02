@@ -179,6 +179,12 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .addon-editor-del{background:none;border:none;color:var(--red2);font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;padding:2px 6px;}
 .addon-fields{display:flex;flex-direction:column;gap:5px;}
 
+/* badge picker */
+.badge-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.badge-opt{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text2);transition:border-color .15s,color .15s;}
+.badge-opt:has(input:checked){border-color:var(--gold);color:var(--gold);}
+.badge-opt input{accent-color:var(--gold);width:12px;height:12px;}
+
 /* ── ORDERS TAB ──────────────────────────────────────── */
 .order-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px 14px;margin-bottom:4px;box-shadow:0 1px 2px rgba(0,0,0,0.24),0 2px 8px rgba(0,0,0,0.13);}
 .order-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
@@ -470,6 +476,21 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       </div>
       <button class="btn btn-primary" style="margin-top:14px" onclick="saveStoreInfo()">Save About Section</button>
     </div>
+    <div class="a-card">
+      <div class="a-card-title">SEO &amp; Social Sharing</div>
+      <div class="sec-sub" style="margin-bottom:12px">Controls the page title, description, and preview image when your menu link is shared on WhatsApp or social media.</div>
+      <div class="form-row"><label class="form-label">Page Title</label><input class="form-input" id="iMetaTitle" placeholder="Beelal Coffee — Order Online"></div>
+      <div class="form-row"><label class="form-label">Description</label><input class="form-input" id="iMetaDesc" placeholder="Browse our menu and send your order via WhatsApp."></div>
+      <div class="form-row">
+        <label class="form-label">Share Image (shown when link is shared on WhatsApp/social)</label>
+        <div class="photo-upload-area">
+          <img id="iMetaImgPreview" class="photo-preview" style="display:none">
+          <input type="hidden" id="iMetaImg">
+          <label class="photo-upload-btn">📷 Choose Image<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handlePhotoUpload(this,'iMetaImgPreview','iMetaImg')"></label>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveMeta()">Save SEO Settings</button>
+    </div>
   </div>
 
   <!-- MENU TAB -->
@@ -517,6 +538,22 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
           <div><label class="form-label">Emoji</label><input class="form-input" id="eCatEmoji" placeholder="☕" maxlength="2"></div>
           <div><label class="form-label">Label</label><input class="form-input" id="eCatLabel" placeholder="Category name"></div>
         </div>
+        <div style="margin-bottom:8px">
+          <label class="form-label">Type</label>
+          <select class="form-input" id="eCatType">
+            <option value="">Standard</option>
+            <option value="drinks">☕ Drinks — shows size legend</option>
+            <option value="food">🍽️ Food</option>
+          </select>
+        </div>
+        <div class="toggle-row" style="margin-bottom:6px">
+          <div><div class="toggle-label" style="font-size:12px">Featured Style</div><div class="toggle-sub">Dark spotlight look on public menu</div></div>
+          <label class="toggle"><input type="checkbox" id="eCatFeatured"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row" style="margin-bottom:10px">
+          <div><div class="toggle-label" style="font-size:12px">Show Add-ons Row</div><div class="toggle-sub">List store add-ons at bottom of this category</div></div>
+          <label class="toggle"><input type="checkbox" id="eCatShowAddons"><span class="toggle-slider"></span></label>
+        </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary btn-sm" onclick="saveCatEdit()">Save</button>
           <button class="btn btn-secondary btn-sm" onclick="closeEditCatForm()">Cancel</button>
@@ -530,6 +567,22 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;margin-bottom:8px">
           <div><label class="form-label">Emoji</label><input class="form-input" id="newCatEmoji" placeholder="☕" maxlength="2"></div>
           <div><label class="form-label">Name</label><input class="form-input" id="newCatLabel" placeholder="Category name"></div>
+        </div>
+        <div style="margin-bottom:8px">
+          <label class="form-label">Type</label>
+          <select class="form-input" id="newCatType">
+            <option value="">Standard</option>
+            <option value="drinks">☕ Drinks — shows size legend</option>
+            <option value="food">🍽️ Food</option>
+          </select>
+        </div>
+        <div class="toggle-row" style="margin-bottom:6px">
+          <div><div class="toggle-label" style="font-size:12px">Featured Style</div><div class="toggle-sub">Dark spotlight look on public menu</div></div>
+          <label class="toggle"><input type="checkbox" id="newCatFeatured"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row" style="margin-bottom:10px">
+          <div><div class="toggle-label" style="font-size:12px">Show Add-ons Row</div><div class="toggle-sub">List store add-ons at bottom of this category</div></div>
+          <label class="toggle"><input type="checkbox" id="newCatShowAddons"><span class="toggle-slider"></span></label>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary btn-sm" onclick="saveNewCat()">Add</button>
@@ -1295,6 +1348,12 @@ async function loadStoreTab() {
   document.getElementById('iSize2').value = legend[1] || '';
   document.getElementById('iSize3').value = legend[2] || '';
   document.getElementById('iSize4').value = legend[3] || '';
+  const meta = storeData.meta || {};
+  document.getElementById('iMetaTitle').value = meta.title || '';
+  document.getElementById('iMetaDesc').value  = meta.description || '';
+  document.getElementById('iMetaImg').value   = meta.og_image_url || '';
+  const mp = document.getElementById('iMetaImgPreview');
+  if (meta.og_image_url) { mp.src = meta.og_image_url; mp.style.display = 'block'; } else { mp.style.display = 'none'; }
 }
 async function saveStore() {
   await safe(async () => {
@@ -1343,6 +1402,19 @@ async function saveSizeLegend() {
     await fbSet('config/store', s);
     toast('Size legend saved ✓');
   }, 'saveSizeLegend');
+}
+async function saveMeta() {
+  await safe(async () => {
+    const s = await fbGet('config/store') || {};
+    s.meta = {
+      title:        document.getElementById('iMetaTitle').value.trim(),
+      description:  document.getElementById('iMetaDesc').value.trim(),
+      og_image_url: document.getElementById('iMetaImg').value.trim()
+    };
+    await fbSet('config/store', s);
+    storeData = s;
+    toast('SEO settings saved ✓');
+  }, 'saveMeta');
 }
 async function saveStoreField(field, val) {
   await safe(async () => {
@@ -1593,6 +1665,20 @@ function openEditModal(id) {
       <div class="size-config-row"><span class="size-config-label">❄️ Cold</span><input class="form-input" id="eCold" type="number" step="0.5" placeholder="Price" value="${item.cold??''}"><input class="form-input" id="eColdOz" placeholder="e.g. 12oz" value="${item.cold_oz||''}"></div>
       <div class="size-config-row"><span class="size-config-label">🧋 Frappé</span><input class="form-input" id="eFrappe" type="number" step="0.5" placeholder="Price" value="${item.frappe??''}"><input class="form-input" id="eFrappeOz" placeholder="e.g. 16oz" value="${item.frappe_oz||''}"></div>
     </div>`:`<div class="form-row"><label class="form-label">Price (${CUR})</label><input class="form-input" id="ePrice" type="number" step="0.5" value="${item.price??''}"></div>`}
+    <div class="form-row">
+      <label class="form-label">Subsection (optional)</label>
+      <input class="form-input" id="eSub" value="${esc(item.sub||'')}" placeholder="e.g. Signature, Cold Brew, Seasonal...">
+    </div>
+    <div class="form-row">
+      <label class="form-label">Badge</label>
+      <div class="badge-picker">
+        ${['','🔥 Popular','⭐ New','👨‍🍳 Chef\'s Pick','⚡ Limited'].map(b=>`<label class="badge-opt"><input type="radio" name="eBadge" value="${b}" ${(item.badge||'')=== b?'checked':''}>${b||'None'}</label>`).join('')}
+      </div>
+    </div>
+    <div class="toggle-row" style="margin-bottom:10px">
+      <div><div class="toggle-label">Spotlight Item</div><div class="toggle-sub">Featured card — stands out in the menu</div></div>
+      <label class="toggle"><input type="checkbox" id="eFeatured" ${item.featured?'checked':''}><span class="toggle-slider"></span></label>
+    </div>
     <div class="form-row" style="margin-top:4px">
       <div class="a-card-title">Options / Add-ons</div>
       <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Choice = required selection (e.g. sauce type). Optional = checkbox with extra price.</div>
@@ -1775,7 +1861,10 @@ async function saveEdit() {
     } else {
       item.price  = parseFloat(document.getElementById('ePrice').value)||null;
     }
-    item.addons = collectAddons();
+    item.addons   = collectAddons();
+    item.sub      = document.getElementById('eSub')?.value.trim() || null;
+    item.badge    = document.querySelector('input[name="eBadge"]:checked')?.value || null;
+    item.featured = document.getElementById('eFeatured')?.checked || false;
     await fbSet('menu/items/'+item.id, item);
     renderMenuList();
     closeEditModal();
@@ -1814,6 +1903,9 @@ function openEditCatForm(id) {
   if (!cat) return;
   document.getElementById('eCatEmoji').value = cat.emoji || '';
   document.getElementById('eCatLabel').value = cat.label || '';
+  document.getElementById('eCatType').value = cat.type || '';
+  document.getElementById('eCatFeatured').checked = cat.style === 'featured';
+  document.getElementById('eCatShowAddons').checked = cat.showAddons || false;
   document.getElementById('editCatFormTitle').textContent = `Edit: ${cat.label}`;
   document.getElementById('editCatForm').style.display = 'block';
   document.getElementById('addCatForm').style.display = 'none';
@@ -1829,8 +1921,11 @@ async function saveCatEdit() {
   await safe(async () => {
     const cat = menuCats.find(c => c.id === editingCatId);
     if (!cat) return;
-    cat.emoji = emoji || cat.emoji;
-    cat.label = label;
+    cat.emoji      = emoji || cat.emoji;
+    cat.label      = label;
+    cat.type       = document.getElementById('eCatType').value || null;
+    cat.style      = document.getElementById('eCatFeatured').checked ? 'featured' : null;
+    cat.showAddons = document.getElementById('eCatShowAddons').checked;
     await fbSet('menu/categories/' + cat.id, cat);
     renderCatList();
     renderMenuList();
@@ -1853,7 +1948,12 @@ async function saveNewCat() {
   if (!label) { toast('Category name required'); return; }
   await safe(async () => {
     const id = 'cat_' + Date.now();
-    const cat = { id, label, emoji };
+    const cat = {
+      id, label, emoji,
+      type:       document.getElementById('newCatType').value || null,
+      style:      document.getElementById('newCatFeatured').checked ? 'featured' : null,
+      showAddons: document.getElementById('newCatShowAddons').checked
+    };
     await fbSet('menu/categories/' + id, cat);
     menuCats.push(cat);
     renderCatList();
