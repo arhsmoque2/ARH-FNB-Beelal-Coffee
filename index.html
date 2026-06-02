@@ -526,6 +526,25 @@
       will-change: transform;
       pointer-events: none;
     }
+    .item-media.has-video {
+      cursor: zoom-in;
+      box-shadow: 0 4px 14px rgba(86,18,22,.13);
+      position: relative;
+    }
+    .item-media.has-video:hover {
+      box-shadow: 0 10px 28px rgba(86,18,22,.24);
+      transform: scale(1.06);
+    }
+    .item-media video {
+      width: 100%; height: 100%; object-fit: cover;
+      pointer-events: none;
+    }
+    .live-badge {
+      position: absolute; bottom: 4px; left: 4px;
+      background: rgba(0,0,0,.58); color: #fff;
+      font-size: 9px; font-weight: 800; letter-spacing: .5px;
+      padding: 2px 6px; border-radius: 4px; pointer-events: none;
+    }
     .item-name {
       margin: 0;
       font-size: 18px;
@@ -838,6 +857,49 @@
       transition: background .18s; padding: 0;
     }
     .photo-x:hover { background: rgba(14,5,5,.78); }
+    .photo-frame video {
+      width: 100%; max-height: 72vh; object-fit: contain; display: block;
+    }
+    .photo-mute {
+      position: absolute; top: 12px; left: 12px;
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(14,5,5,.52); border: 1px solid rgba(255,255,255,.26);
+      color: #fff; font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .18s; padding: 0;
+    }
+    .photo-mute:hover { background: rgba(14,5,5,.78); }
+    .upsell-strip {
+      margin: 0 0 16px;
+      padding: 12px 0 0;
+      border-top: 1px solid rgba(91,20,23,.1);
+    }
+    .upsell-label {
+      font-size: 11px; font-weight: 900; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+    }
+    .upsell-items {
+      display: flex; gap: 9px; overflow-x: auto; scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .upsell-items::-webkit-scrollbar { display: none; }
+    .upsell-item {
+      flex: 0 0 auto; min-width: 110px; max-width: 130px;
+      background: #fff8f4; border: 1px solid rgba(91,20,23,.12);
+      border-radius: var(--radius); padding: 9px 10px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .upsell-item-name {
+      font-size: 12px; font-weight: 800; line-height: 1.2;
+      color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .upsell-item-price { font-size: 11px; color: var(--muted); font-weight: 700; }
+    .upsell-add-btn {
+      margin-top: 4px; padding: 4px 0; font-size: 11px; font-weight: 900;
+      background: var(--ink); color: #fff; border: none; border-radius: 5px;
+      cursor: pointer; width: 100%; letter-spacing: .02em;
+    }
+    .upsell-add-btn:active { opacity: .75; }
     .photo-tap-hint {
       position: absolute; bottom: 18px; right: 18px;
       font-size: 11px; font-weight: 800; color: rgba(255,255,255,.46);
@@ -1325,16 +1387,23 @@
         }
         space.appendChild(section);
       });
+      requestAnimationFrame(observeItemVideos);
     }
 
     function renderItemCard(item) {
       const card = document.createElement("article");
       card.className = "item-card" + (item.avail === false ? " sold-out" : "") + (item.featured ? " item-featured" : "");
       const safeImg = item.img_url ? item.img_url.replace(/'/g, "\\'") : "";
+      const safeVid = item.video_url ? item.video_url.replace(/'/g, "\\'") : "";
       const safeName = item.name.replace(/'/g, "\\'");
-      const media = item.img_url
-        ? `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openPhoto('${safeImg}','${safeName}')" onkeydown="if(event.key==='Enter'||event.key===' ')openPhoto('${safeImg}','${safeName}')"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`
-        : `<div class="item-media">${esc(item.emoji || "☕")}</div>`;
+      let media;
+      if (item.video_url) {
+        media = `<div class="item-media has-video" role="button" tabindex="0" aria-label="View clip of ${esc(item.name)}" onclick="openMedia('${safeVid}','${safeImg}','${safeName}',true)" onkeydown="if(event.key==='Enter'||event.key===' ')openMedia('${safeVid}','${safeImg}','${safeName}',true)"><video autoplay muted loop playsinline data-src="${esc(item.video_url)}"><source src="${esc(item.video_url)}"></video><span class="live-badge">▶ Live</span></div>`;
+      } else if (item.img_url) {
+        media = `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openMedia('','${safeImg}','${safeName}',false)" onkeydown="if(event.key==='Enter'||event.key===' ')openMedia('','${safeImg}','${safeName}',false)"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`;
+      } else {
+        media = `<div class="item-media">${esc(item.emoji || "☕")}</div>`;
+      }
       const options = itemOptions(item);
       const actions = item.avail === false
         ? `<span class="sold-pill">Sold out</span>`
@@ -1498,7 +1567,7 @@
       if (event.target.id === "cartSheet") closeCart();
     }
 
-    function openPhoto(src, name) {
+    function openMedia(videoSrc, imgSrc, name, isVideo) {
       let ov = document.getElementById("photoOv");
       if (!ov) {
         ov = document.createElement("div");
@@ -1506,21 +1575,48 @@
         ov.className = "photo-ov";
         ov.innerHTML = `
           <div class="photo-frame" id="photoFrame" onclick="event.stopPropagation()">
-            <img id="photoImg" src="" alt="">
+            <img id="photoImg" src="" alt="" style="display:none">
+            <video id="photoVid" loop playsinline style="display:none"></video>
             <div class="photo-cap" id="photoCap"></div>
-            <button class="photo-x" onclick="closePhoto()" aria-label="Close photo">×</button>
+            <button class="photo-x" onclick="closePhoto()" aria-label="Close">×</button>
+            <button class="photo-mute" id="photoMuteBtn" onclick="toggleLightboxMute()" style="display:none" aria-label="Toggle sound">🔇</button>
           </div>`;
         ov.addEventListener("click", closePhoto);
         document.addEventListener("keydown", e => { if (e.key === "Escape") closePhoto(); });
         document.body.appendChild(ov);
       }
-      document.getElementById("photoImg").src = src;
-      document.getElementById("photoImg").alt = name;
+      const img = document.getElementById("photoImg");
+      const vid = document.getElementById("photoVid");
+      const muteBtn = document.getElementById("photoMuteBtn");
+      if (isVideo && videoSrc) {
+        vid.src = videoSrc;
+        vid.muted = true;
+        vid.style.display = "block";
+        img.style.display = "none";
+        muteBtn.style.display = "flex";
+        muteBtn.textContent = "🔇";
+        vid.play().catch(() => {});
+      } else {
+        img.src = imgSrc;
+        img.alt = name;
+        img.style.display = "block";
+        vid.style.display = "none";
+        vid.src = "";
+        muteBtn.style.display = "none";
+      }
       document.getElementById("photoCap").textContent = name;
       ov.style.display = "flex";
       requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("open")));
       document.body.classList.add("sheet-open");
     }
+    function toggleLightboxMute() {
+      const vid = document.getElementById("photoVid");
+      const btn = document.getElementById("photoMuteBtn");
+      if (!vid) return;
+      vid.muted = !vid.muted;
+      btn.textContent = vid.muted ? "🔇" : "🔊";
+    }
+    function openPhoto(src, name) { openMedia("", src, name, false); }
     function closePhoto() {
       const ov = document.getElementById("photoOv");
       if (!ov || !ov.classList.contains("open")) return;
@@ -1528,8 +1624,35 @@
       ov.addEventListener("transitionend", () => {
         ov.style.display = "none";
         document.body.classList.remove("sheet-open");
+        const vid = document.getElementById("photoVid");
+        if (vid) { vid.pause(); vid.src = ""; }
       }, { once: true });
     }
+
+    // Pause/resume item card videos based on viewport visibility
+    const _videoObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const vid = entry.target;
+        if (entry.isIntersecting) { vid.play().catch(() => {}); }
+        else { vid.pause(); }
+      });
+    }, { threshold: 0.1 });
+
+    function observeItemVideos() {
+      document.querySelectorAll(".item-media.has-video video").forEach(v => _videoObserver.observe(v));
+    }
+    function getUpsellItems() {
+      if (!menuData.items || !menuData.items.length) return [];
+      const inCart = new Set(cart.map(c => c.id));
+      const available = menuData.items.filter(i => i.avail !== false && !inCart.has(i.id));
+      // Prefer featured items, then items from categories not already in cart
+      const cartCats = new Set(cart.map(c => menuData.items.find(i => i.id === c.id)?.cat).filter(Boolean));
+      const fromOtherCat = available.filter(i => !cartCats.has(i.cat));
+      const featured = available.filter(i => i.featured);
+      const pool = [...new Map([...featured, ...fromOtherCat, ...available].map(i => [i.id, i])).values()];
+      return pool.slice(0, 3);
+    }
+
     function renderCart() {
       const list = document.getElementById("cartList");
       if (!cart.length) {
@@ -1550,6 +1673,25 @@
           <button class="remove-btn" type="button" onclick="removeCart('${esc(item.uid)}')" aria-label="Remove ${esc(item.name)}">&times;</button>
         </div>`;
       }).join("");
+      // Upsell strip
+      const upsells = getUpsellItems();
+      if (upsells.length) {
+        const strip = document.createElement("div");
+        strip.className = "upsell-strip";
+        strip.innerHTML = `<div class="upsell-label">Complete your order</div>
+          <div class="upsell-items">${upsells.map(u => {
+            const opts = itemOptions(u);
+            const price = opts.length ? opts[0].price : null;
+            const label = opts.length && opts[0].label ? opts[0].label : "";
+            return `<div class="upsell-item">
+              <div class="upsell-item-name">${esc(u.name)}</div>
+              ${label ? `<div class="upsell-item-price">${esc(label)}</div>` : ""}
+              ${price != null ? `<div class="upsell-item-price">${money(price)}</div>` : ""}
+              <button class="upsell-add-btn" onclick="addToCart('${esc(u.id)}',0);renderCart()">+ Add</button>
+            </div>`;
+          }).join("")}</div>`;
+        list.appendChild(strip);
+      }
       updateCart();
     }
 

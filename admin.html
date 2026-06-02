@@ -541,6 +541,10 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         </div>
       </div>
       <div class="form-row">
+        <label class="form-label">Live Clip URL (optional — video for motion preview)</label>
+        <input class="form-input" id="nVideoUrl" placeholder="https://... (MP4/WebM URL)">
+      </div>
+      <div class="form-row">
         <div class="form-label" style="margin-bottom:8px">Drink Sizes (leave Price blank to hide that size)</div>
         <div class="size-config-row"><span class="size-config-label">🔥 Hot</span><input class="form-input" id="nHot" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nHotOz" placeholder="e.g. 8oz"></div>
         <div class="size-config-row"><span class="size-config-label">❄️ Cold</span><input class="form-input" id="nCold" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nColdOz" placeholder="e.g. 12oz"></div>
@@ -1641,6 +1645,7 @@ async function addItem() {
       desc:      document.getElementById('nDesc').value.trim(),
       emoji:     document.getElementById('nEmoji').value.trim()||'🍽️',
       img_url:   document.getElementById('nImg').value.trim(),
+      video_url: document.getElementById('nVideoUrl')?.value.trim() || null,
       hot:       parseFloat(document.getElementById('nHot').value)||null,
       hot_oz:    document.getElementById('nHotOz').value.trim()||null,
       cold:      parseFloat(document.getElementById('nCold').value)||null,
@@ -1655,7 +1660,7 @@ async function addItem() {
     menuItems.push(item);
     renderMenuList();
     toggleAddForm();
-    ['nName','nDesc','nEmoji','nImg','nHot','nHotOz','nCold','nColdOz','nFrappe','nFrappeOz','nPrice'].forEach(i=>document.getElementById(i).value='');
+    ['nName','nDesc','nEmoji','nImg','nVideoUrl','nHot','nHotOz','nCold','nColdOz','nFrappe','nFrappeOz','nPrice'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
     const np = document.getElementById('nImgPreview'); np.src=''; np.style.display='none';
     toast('Item added ✓');
   }, 'addItem');
@@ -1679,6 +1684,11 @@ function openEditModal(id) {
         <label class="photo-upload-btn">📷 ${item.img_url?'Change Photo':'Upload Photo'}<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handlePhotoUpload(this,'eImgPreview','eImg')"></label>
         ${item.img_url?`<button class="photo-remove-btn" onclick="removeItemPhoto('eImgPreview','eImg')">✕ Remove photo</button>`:''}
       </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Live Clip URL (optional — video for motion preview in menu)</label>
+      <input class="form-input" id="eVideoUrl" value="${esc(item.video_url||'')}" placeholder="https://... (MP4/WebM URL)">
+      ${item.video_url?`<div style="font-size:11px;color:var(--text2);margin-top:4px">▶ Live clip set — customers will see animated preview</div>`:''}
     </div>
     ${isDrink?`
     <div class="form-row">
@@ -1883,10 +1893,11 @@ async function saveEdit() {
     } else {
       item.price  = parseFloat(document.getElementById('ePrice').value)||null;
     }
-    item.addons   = collectAddons();
-    item.sub      = document.getElementById('eSub')?.value.trim() || null;
-    item.badge    = document.querySelector('input[name="eBadge"]:checked')?.value || null;
-    item.featured = document.getElementById('eFeatured')?.checked || false;
+    item.addons     = collectAddons();
+    item.sub        = document.getElementById('eSub')?.value.trim() || null;
+    item.badge      = document.querySelector('input[name="eBadge"]:checked')?.value || null;
+    item.featured   = document.getElementById('eFeatured')?.checked || false;
+    item.video_url  = document.getElementById('eVideoUrl')?.value.trim() || null;
     await fbSet('menu/items/'+item.id, item);
     renderMenuList();
     closeEditModal();
