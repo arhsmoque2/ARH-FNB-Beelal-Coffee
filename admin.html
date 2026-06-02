@@ -293,10 +293,27 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 .model-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-family:var(--fb);font-size:12px;color:var(--text);outline:none;appearance:none;-webkit-appearance:none;transition:border-color 0.2s,box-shadow 0.2s;}
 .model-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,152,42,0.15);}
 .update-badge{position:fixed;right:14px;bottom:18px;z-index:700;background:var(--gold);color:var(--bg);border:none;border-radius:999px;padding:9px 14px;font-family:var(--fb);font-size:12px;font-weight:800;box-shadow:0 8px 26px rgba(0,0,0,0.35);display:none;cursor:pointer;}
-.feedback-row,.release-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px;margin-bottom:8px;}
-.feedback-meta,.release-meta{font-size:10px;color:var(--text3);margin-bottom:5px;line-height:1.5;}
-.feedback-title,.release-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.update-banner{background:linear-gradient(90deg,rgba(200,152,42,.18),rgba(200,152,42,.08));border-bottom:1px solid rgba(200,152,42,.25);padding:10px 20px;display:none;align-items:center;gap:10px;position:sticky;top:0;z-index:49;}
+.update-banner.visible{display:flex;}
+.update-banner-text{flex:1;font-size:12px;font-weight:700;color:var(--gold);}
+.update-banner-cta{font-size:11px;font-weight:800;background:var(--gold);color:var(--bg);border:none;border-radius:999px;padding:5px 12px;cursor:pointer;white-space:nowrap;}
+.update-banner-dismiss{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;}
+.feedback-row,.release-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px;margin-bottom:8px;transition:border-color .15s;}
+.release-row.unread{border-color:rgba(200,152,42,.4);}
+.release-row.action-required{border-color:rgba(192,57,43,.5);background:rgba(192,57,43,.06);}
+.feedback-meta,.release-meta{font-size:10px;color:var(--text3);margin-bottom:5px;line-height:1.5;display:flex;flex-wrap:wrap;align-items:center;gap:5px;}
+.feedback-title,.release-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .feedback-body,.release-body{font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;}
+.release-body.collapsed{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.release-tag{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-radius:999px;padding:2px 7px;}
+.release-tag.feature{background:rgba(31,173,90,.15);color:#1fad5a;}
+.release-tag.fix{background:rgba(200,152,42,.15);color:var(--gold);}
+.release-tag.important{background:rgba(192,57,43,.15);color:#e74c3c;}
+.release-tag.new-badge{background:var(--gold);color:var(--bg);}
+.release-tag.action{background:rgba(192,57,43,.18);color:#e74c3c;}
+.release-expand{background:none;border:none;color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;padding:4px 0;font-family:var(--fb);}
+.release-gotit{background:none;border:1px solid var(--border);border-radius:999px;color:var(--text2);font-size:10px;font-weight:700;padding:3px 10px;cursor:pointer;font-family:var(--fb);margin-top:6px;transition:background .15s,color .15s;}
+.release-gotit:hover{background:var(--card2);}
 .feedback-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
 .feedback-tag{font-size:10px;font-weight:700;color:var(--gold);background:rgba(200,152,42,0.12);border:1px solid var(--border2);border-radius:999px;padding:3px 8px;}
 .status-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
@@ -390,6 +407,11 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
   <div class="topbar">
     <div><div class="topbar-title" id="topbarTitle">Admin Panel</div><div class="topbar-role" id="roleLabel">Owner</div></div>
     <button class="lock-btn" onclick="logout()">Lock</button>
+  </div>
+  <div class="update-banner" id="updateBannerBar">
+    <span class="update-banner-text" id="updateBannerText">🔔 New updates available</span>
+    <button class="update-banner-cta" onclick="openReleasePanel()">See what's new →</button>
+    <button class="update-banner-dismiss" onclick="dismissUpdateBanner()" aria-label="Dismiss">✕</button>
   </div>
   <div class="tab-nav">
     <div class="tab-btn active" onclick="showTab('store',this)">Store</div>
@@ -922,7 +944,7 @@ const LOCAL_RELEASES = {
     audience: 'owner',
     severity: 'medium',
     requires_owner_action: false,
-    created_at: Date.now(),
+    created_at: 1748793600000,
     store_specific: false,
   },
 };
@@ -2090,6 +2112,22 @@ function releaseVisibleToRole(rel) {
   return true;
 }
 
+function timeSince(ts) {
+  if (!ts) return '';
+  const secs = Math.floor((Date.now() - ts) / 1000);
+  if (secs < 60) return 'just now';
+  if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
+  if (secs < 86400) return Math.floor(secs / 3600) + 'h ago';
+  if (secs < 86400 * 7) return Math.floor(secs / 86400) + 'd ago';
+  return new Date(ts).toLocaleDateString();
+}
+
+function dismissUpdateBanner() {
+  const bar = document.getElementById('updateBannerBar');
+  if (bar) { bar.classList.remove('visible'); bar.style.display = 'none'; }
+  sessionStorage.setItem('update_banner_dismissed', '1');
+}
+
 async function checkWhatsNew() {
   await safe(async () => {
     const releases = await getReleases();
@@ -2097,6 +2135,8 @@ async function checkWhatsNew() {
     const unread = Object.entries(releases)
       .filter(([ver, rel]) => releaseVisibleToRole(rel) && !seen[ver])
       .sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
+
+    // Floating badge (always)
     const badge = document.getElementById('updateBadge');
     if (unread.length) {
       badge.textContent = `${unread.length} update${unread.length > 1 ? 's' : ''}`;
@@ -2104,6 +2144,25 @@ async function checkWhatsNew() {
     } else {
       badge.style.display = 'none';
     }
+
+    // Inline banner (shown if there are unread updates and not dismissed this session)
+    const bar = document.getElementById('updateBannerBar');
+    const bannerDismissed = sessionStorage.getItem('update_banner_dismissed');
+    if (unread.length && !bannerDismissed) {
+      document.getElementById('updateBannerText').textContent =
+        `🔔 ${unread.length} new update${unread.length > 1 ? 's' : ''} — ${unread[0][1].title || 'see what changed'}`;
+      bar.classList.add('visible');
+    } else {
+      bar.classList.remove('visible');
+    }
+
+    // Auto-open for important unread items (only once per session)
+    const hasUrgent = unread.some(([, rel]) => rel.severity === 'high' || rel.requires_owner_action);
+    if (hasUrgent && !sessionStorage.getItem('release_modal_auto_shown')) {
+      sessionStorage.setItem('release_modal_auto_shown', '1');
+      setTimeout(() => openReleasePanel(), 1400);
+    }
+
     renderReleaseList(releases, seen);
   }, 'checkWhatsNew');
 }
@@ -2115,6 +2174,12 @@ async function openReleasePanel() {
 
 function closeReleasePanel() {
   document.getElementById('releaseModal').classList.remove('open');
+}
+
+function releaseTypeTag(type) {
+  const map = { feature: ['feature','Feature'], fix: ['fix','Fix'], important: ['important','Important'] };
+  const [cls, label] = map[type] || ['fix', type || 'Update'];
+  return `<span class="release-tag ${cls}">${label}</span>`;
 }
 
 function renderReleaseList(releases, seen) {
@@ -2129,21 +2194,64 @@ function renderReleaseList(releases, seen) {
   targets.forEach(el => {
     el.innerHTML = '';
     rows.forEach(([ver, rel]) => {
+      const isUnread = !seen?.[ver];
+      const isActionRequired = !!rel.requires_owner_action;
+      const details = rel.details || rel.summary || '';
+      const isLong = details.length > 120;
       const row = document.createElement('div');
-      row.className = 'release-row';
+      row.className = 'release-row' + (isUnread ? ' unread' : '') + (isActionRequired ? ' action-required' : '');
+
       const meta = document.createElement('div');
       meta.className = 'release-meta';
-      meta.textContent = `${seen?.[ver] ? 'Read' : 'New'} · ${rel.type || 'update'} · ${rel.severity || 'low'} · ${ver}`;
+      meta.innerHTML = `
+        ${releaseTypeTag(rel.type)}
+        ${isUnread ? '<span class="release-tag new-badge">NEW</span>' : ''}
+        ${isActionRequired ? '<span class="release-tag action">Action required</span>' : ''}
+        <span style="margin-left:auto">${timeSince(rel.created_at)}</span>`;
+
       const title = document.createElement('div');
       title.className = 'release-title';
       title.textContent = rel.title || ver;
+
       const body = document.createElement('div');
-      body.className = 'release-body';
-      body.textContent = rel.details || rel.summary || '';
+      body.className = 'release-body' + (isLong ? ' collapsed' : '');
+      body.id = 'rbody_' + ver.replace(/\W/g,'_');
+      body.textContent = details;
+
       row.append(meta, title, body);
+
+      if (isLong) {
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'release-expand';
+        expandBtn.textContent = 'Show more ↓';
+        expandBtn.onclick = () => {
+          const isCollapsed = body.classList.contains('collapsed');
+          body.classList.toggle('collapsed', !isCollapsed);
+          expandBtn.textContent = isCollapsed ? 'Show less ↑' : 'Show more ↓';
+        };
+        row.appendChild(expandBtn);
+      }
+
+      if (isUnread) {
+        const gotit = document.createElement('button');
+        gotit.className = 'release-gotit';
+        gotit.textContent = 'Got it ✓';
+        gotit.onclick = () => markReleaseSeen(ver);
+        row.appendChild(gotit);
+      }
+
       el.appendChild(row);
     });
   });
+}
+
+async function markReleaseSeen(ver) {
+  await safe(async () => {
+    const seen = await fbGet('meta/seen_releases') || {};
+    seen[ver] = true;
+    await fbSet('meta/seen_releases', seen);
+    await checkWhatsNew();
+  }, 'markReleaseSeen');
 }
 
 async function markAllReleasesSeen() {
@@ -2152,7 +2260,8 @@ async function markAllReleasesSeen() {
     const seen = await fbGet('meta/seen_releases') || {};
     Object.keys(releases).forEach(ver => { seen[ver] = true; });
     await fbSet('meta/seen_releases', seen);
-    toast('Updates marked as read');
+    toast('All updates marked as read');
+    dismissUpdateBanner();
     closeReleasePanel();
     await checkWhatsNew();
   }, 'markAllReleasesSeen');
