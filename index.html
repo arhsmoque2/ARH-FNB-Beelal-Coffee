@@ -686,11 +686,13 @@
       .quick-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .controls { top: 68px; }
     }
+    .classic-mobile { display: none; }
     @media (max-width: 640px) {
       .shell { width: min(100% - 24px, 1180px); }
       .topbar-inner { min-height: 64px; }
       .top-actions .chip.preview, .top-actions .ghost-btn { display: none; }
       .brand-sub { max-width: 44vw; }
+      .classic-mobile { display: inline; font-size: 13px; opacity: .7; }
       .hero { padding-top: 18px; gap: 18px; }
       h1 { font-size: clamp(44px, 17vw, 68px); }
       .quick-row { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 26px; }
@@ -802,6 +804,7 @@
             <a class="solid-btn" href="#menu">Browse menu</a>
             <button class="ghost-btn" type="button" onclick="openCart()">Review cart</button>
           </div>
+          <a class="classic-mobile" href="index-legacy.html">Switch to classic design &rarr;</a>
         </div>
         <div class="quick-row" id="quickStats"></div>
       </div>
