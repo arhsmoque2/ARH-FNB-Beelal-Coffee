@@ -618,6 +618,16 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
 
     <div id="menuList"></div>
+
+    <!-- ORDER INSIGHTS -->
+    <div class="a-card" style="margin-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="a-card-title" style="margin-bottom:0">Order Insights — Last 7 Days</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadInsights()" id="insightsBtn">Load Stats</button>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Auto-tags (🔥 Popular, ✨ New) are computed from real customer orders — not set manually.</div>
+      <div id="insightsBody"></div>
+    </div>
   </div>
 
   <!-- ORDERS TAB -->
@@ -1572,6 +1582,75 @@ async function loadMenuData() {
   }, 'loadMenu');
 }
 
+async function loadInsights() {
+  const btn = document.getElementById('insightsBtn');
+  const body = document.getElementById('insightsBody');
+  btn.textContent = 'Loading…'; btn.disabled = true;
+  try {
+    const now = Date.now();
+    const dates = Array.from({ length: 7 }, (_, d) =>
+      new Date(now - d * 86400000).toISOString().slice(0, 10)
+    );
+    const snaps = await Promise.all(
+      dates.map(date => fbGet(`telemetry/daily/${date}/orders`))
+    );
+
+    const counts = {};
+    snaps.forEach(snap => {
+      if (!snap) return;
+      Object.values(snap).forEach(order => {
+        Object.entries(order).forEach(([itemId, qty]) => {
+          counts[itemId] = (counts[itemId] || 0) + Number(qty);
+        });
+      });
+    });
+
+    const totalOrders7d = Object.values(counts).reduce((s, c) => s + c, 0);
+    const avgPerItem = menuItems.length > 0 ? totalOrders7d / menuItems.length : 0;
+    const hotThreshold = Math.max(0.70 * avgPerItem, 3);
+
+    if (!totalOrders7d) {
+      body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:4px 0">No order data yet. Tags will appear automatically as customers order via WhatsApp.</div>`;
+    } else {
+      const sorted = [...menuItems].sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
+      body.innerHTML = `
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
+          <strong style="color:var(--text)">${totalOrders7d}</strong> items ordered ·
+          Hot threshold: <strong style="color:var(--text)">${hotThreshold.toFixed(1)}+</strong> orders
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="color:var(--text2)">
+              <th style="padding:5px 6px;text-align:left;font-weight:700">Item</th>
+              <th style="padding:5px 6px;text-align:right;font-weight:700">Orders</th>
+              <th style="padding:5px 6px;text-align:left;font-weight:700">Auto-tag</th>
+            </tr></thead>
+            <tbody>
+            ${sorted.map(item => {
+              const count = counts[item.id] || 0;
+              const isHot = count >= hotThreshold;
+              const isNew = item.created_at && (now - item.created_at) < 30 * 24 * 60 * 60 * 1000;
+              const bar = totalOrders7d ? Math.round((count / Math.max(...Object.values(counts))) * 100) : 0;
+              const tags = [isHot ? '🔥 Popular' : '', isNew ? '✨ New' : ''].filter(Boolean).join(' · ');
+              return `<tr style="border-top:1px solid var(--border2)">
+                <td style="padding:7px 6px">
+                  <div style="font-weight:600">${item.name}</div>
+                  ${count > 0 ? `<div style="margin-top:3px;height:3px;width:${bar}%;background:var(--gold);border-radius:2px;max-width:100px"></div>` : ''}
+                </td>
+                <td style="padding:7px 6px;text-align:right;font-weight:700;color:${count > 0 ? 'var(--text)' : 'var(--text3)'}">${count}</td>
+                <td style="padding:7px 6px;color:${isHot ? '#c08020' : 'var(--text3)'};font-weight:${tags ? 700 : 400}">${tags || '—'}</td>
+              </tr>`;
+            }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+  } catch (e) {
+    body.innerHTML = `<div style="color:var(--red2);font-size:12px">Failed to load stats: ${e.message}</div>`;
+  }
+  btn.textContent = '↻ Refresh'; btn.disabled = false;
+}
+
 function renderMenuList() {
   const el = document.getElementById('menuList');
   el.innerHTML = '';
@@ -1644,9 +1723,10 @@ async function addItem() {
       cat:       document.getElementById('nCat').value,
       desc:      document.getElementById('nDesc').value.trim(),
       emoji:     document.getElementById('nEmoji').value.trim()||'🍽️',
-      img_url:   document.getElementById('nImg').value.trim(),
-      video_url: document.getElementById('nVideoUrl')?.value.trim() || null,
-      hot:       parseFloat(document.getElementById('nHot').value)||null,
+      img_url:    document.getElementById('nImg').value.trim(),
+      video_url:  document.getElementById('nVideoUrl')?.value.trim() || null,
+      created_at: Date.now(),
+      hot:        parseFloat(document.getElementById('nHot').value)||null,
       hot_oz:    document.getElementById('nHotOz').value.trim()||null,
       cold:      parseFloat(document.getElementById('nCold').value)||null,
       cold_oz:   document.getElementById('nColdOz').value.trim()||null,
@@ -1704,7 +1784,8 @@ function openEditModal(id) {
     <div class="form-row">
       <label class="form-label">Badge</label>
       <div class="badge-picker">
-        ${['','🔥 Popular','⭐ New','👨‍🍳 Chef\'s Pick','⚡ Limited'].map(b=>`<label class="badge-opt"><input type="radio" name="eBadge" value="${b}" ${(item.badge||'')=== b?'checked':''}>${b||'None'}</label>`).join('')}
+        <div style="font-size:10px;color:var(--text2);margin-bottom:6px">🔥 Popular and ✨ New are set automatically from order data — not manually.</div>
+      ${['','👨‍🍳 Chef\'s Pick','⚡ Limited'].map(b=>`<label class="badge-opt"><input type="radio" name="eBadge" value="${b}" ${(item.badge||'')=== b?'checked':''}>${b||'None'}</label>`).join('')}
       </div>
     </div>
     <div class="toggle-row" style="margin-bottom:10px">

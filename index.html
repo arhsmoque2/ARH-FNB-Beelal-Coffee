@@ -545,6 +545,20 @@
       font-size: 9px; font-weight: 800; letter-spacing: .5px;
       padding: 2px 6px; border-radius: 4px; pointer-events: none;
     }
+    .item-auto-badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 20px;
+      font-size: 10px; font-weight: 900; letter-spacing: .04em;
+      margin-bottom: 4px; margin-right: 3px;
+    }
+    .item-auto-badge.hot {
+      background: rgba(212,64,0,.1); color: #c43600;
+      border: 1px solid rgba(212,64,0,.2);
+    }
+    .item-auto-badge.new-item {
+      background: rgba(21,122,69,.1); color: #0f7040;
+      border: 1px solid rgba(21,122,69,.2);
+    }
     .item-name {
       margin: 0;
       font-size: 18px;
@@ -1206,6 +1220,9 @@
       };
       menuData.categories = menuData.categories.filter(cat => menuData.items.some(item => item.cat === cat.id));
 
+      // Compute auto-tags from telemetry before rendering — non-blocking
+      computeAutoTags().then(() => renderMenu());
+
       renderShell();
       renderNavigation();
       renderMenu();
@@ -1213,6 +1230,63 @@
       updateCart();
       if (hasConsented()) document.getElementById("consentRow").style.display = "none";
       document.getElementById("loader").classList.add("hidden");
+    }
+
+    // ── TELEMETRY ─────────────────────────────────────────────────
+    // Write one record per order under telemetry/daily/{date}/orders/{orderId}
+    // No read needed — each order gets its own key, no conflicts.
+    function logTelemetry() {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const counts = {};
+        cart.forEach(ci => { counts[ci.id] = (counts[ci.id] || 0) + 1; });
+        const orderId = "t_" + Date.now();
+        fbSet(`telemetry/daily/${today}/orders/${orderId}`, counts).catch(() => {});
+      } catch {}
+    }
+
+    // Read last 7 days of telemetry, compute 70%-rule + HN time-decay scores,
+    // and annotate menuData.items in-memory with auto_tags and _orders_7d.
+    async function computeAutoTags() {
+      try {
+        const now = Date.now();
+        const dates = Array.from({ length: 7 }, (_, d) =>
+          new Date(now - d * 86400000).toISOString().slice(0, 10)
+        );
+        const snaps = await Promise.all(
+          dates.map(date => fbGetSafe(`telemetry/daily/${date}/orders`))
+        );
+
+        // Aggregate order counts per item across the 7-day window
+        const counts = {};
+        snaps.forEach(snap => {
+          if (!snap.data) return;
+          Object.values(snap.data).forEach(order => {
+            Object.entries(order).forEach(([itemId, qty]) => {
+              counts[itemId] = (counts[itemId] || 0) + Number(qty);
+            });
+          });
+        });
+
+        // 70% rule: threshold = 70% of per-item average, minimum 3 orders
+        const activeItems = menuData.items.filter(i => i.avail !== false);
+        const totalOrders7d = Object.values(counts).reduce((s, c) => s + c, 0);
+        const avgPerItem = activeItems.length > 0 ? totalOrders7d / activeItems.length : 0;
+        const hotThreshold = Math.max(0.70 * avgPerItem, 3);
+
+        menuData.items.forEach(item => {
+          const tags = [];
+          // NEW: created within 30 days (only if item has created_at stored)
+          if (item.created_at && (now - item.created_at) < 30 * 24 * 60 * 60 * 1000) {
+            tags.push("new");
+          }
+          // HOT: meets or exceeds popularity threshold
+          const orderCount = counts[item.id] || 0;
+          if (orderCount >= hotThreshold) tags.push("hot");
+          item.auto_tags = tags;
+          item._orders_7d = orderCount;
+        });
+      } catch {}
     }
 
     function applyTheme(theme) {
@@ -1415,7 +1489,10 @@
       card.innerHTML = `
         ${media}
         <div>
-          ${item.badge ? `<div class="item-badge">${esc(item.badge)}</div>` : ""}
+          ${(item.auto_tags || []).map(t =>
+            t === "hot" ? `<span class="item-auto-badge hot">🔥 Popular</span>` :
+            t === "new" ? `<span class="item-auto-badge new-item">✨ New</span>` : ""
+          ).join("")}${item.badge ? `<div class="item-badge">${esc(item.badge)}</div>` : ""}
           <h3 class="item-name">${esc(item.name)}</h3>
           <p class="item-desc">${esc(item.desc || "")}</p>
           <div class="item-actions">${actions}</div>
@@ -1770,7 +1847,7 @@
         },
         ts: Date.now()
       });
-      // Show feedback modal 1.2s after order is sent
+      logTelemetry(); // fire-and-forget — powers auto-tags
       setTimeout(openFeedback, 1200);
     }
 
