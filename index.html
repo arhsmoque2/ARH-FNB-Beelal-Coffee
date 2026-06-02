@@ -1472,7 +1472,8 @@
       const safeName = item.name.replace(/'/g, "\\'");
       let media;
       if (item.video_url) {
-        media = `<div class="item-media has-video" role="button" tabindex="0" aria-label="View clip of ${esc(item.name)}" onclick="openMedia('${safeVid}','${safeImg}','${safeName}',true)" onkeydown="if(event.key==='Enter'||event.key===' ')openMedia('${safeVid}','${safeImg}','${safeName}',true)"><video autoplay muted loop playsinline data-src="${esc(item.video_url)}"><source src="${esc(item.video_url)}"></video><span class="live-badge">▶ Live</span></div>`;
+        const poster = item.img_url ? ` poster="${esc(item.img_url)}"` : "";
+        media = `<div class="item-media has-video" role="button" tabindex="0" aria-label="View clip of ${esc(item.name)}" onclick="openMedia('${safeVid}','${safeImg}','${safeName}',true)" onkeydown="if(event.key==='Enter'||event.key===' ')openMedia('${safeVid}','${safeImg}','${safeName}',true)"><video autoplay muted loop playsinline${poster}><source src="${esc(item.video_url)}"></video><span class="live-badge">▶ Live</span></div>`;
       } else if (item.img_url) {
         media = `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openMedia('','${safeImg}','${safeName}',false)" onkeydown="if(event.key==='Enter'||event.key===' ')openMedia('','${safeImg}','${safeName}',false)"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`;
       } else {

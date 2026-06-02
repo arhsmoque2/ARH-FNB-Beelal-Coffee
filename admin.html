@@ -836,6 +836,18 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
 
     <div class="dev-section">
+      <div class="dev-title">Video Upload Secret</div>
+      <div class="a-card">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Required for uploading Live Clips from admin. Must match the <code style="background:var(--bg3);padding:1px 4px;border-radius:3px">UPLOAD_SECRET</code> Worker secret set via <code style="background:var(--bg3);padding:1px 4px;border-radius:3px">wrangler secret put UPLOAD_SECRET</code>. Keep private — do not share.</div>
+        <div class="api-key-row">
+          <input class="api-key-input" id="videoUploadSecretInput" type="password" placeholder="Paste secret here">
+        </div>
+        <div class="key-status" id="videoSecretStatus"></div>
+        <button class="btn btn-primary" onclick="saveVideoUploadSecret()" style="margin-top:10px">Save Secret</button>
+      </div>
+    </div>
+
+    <div class="dev-section">
       <div class="dev-title">Master Snapshot</div>
       <div class="a-card">
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Take a master snapshot of current theme. This becomes the factory reset point. Cannot be overwritten except from this panel.</div>
@@ -1766,8 +1778,20 @@ function openEditModal(id) {
       </div>
     </div>
     <div class="form-row">
-      <label class="form-label">Live Clip URL (optional — video for motion preview in menu)</label>
-      <input class="form-input" id="eVideoUrl" value="${escapeHtml(item.video_url||'')}" placeholder="https://... (MP4/WebM URL)">
+      <label class="form-label">Live Clip <span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;color:var(--text2)">3–8 sec · max 8 MB · MP4 or WebM</span></label>
+      <div class="photo-upload-area">
+        <input type="hidden" id="eVideoUrl" value="${escapeHtml(item.video_url||'')}">
+        ${item.video_url ? `<div style="font-size:11px;color:var(--green);margin-bottom:4px">▶ Clip set</div>` : ''}
+        <label class="photo-upload-btn">🎬 ${item.video_url?'Replace Clip':'Upload Clip'}
+          <input type="file" accept="video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleVideoUpload(this)">
+        </label>
+        ${item.video_url ? `<button class="photo-remove-btn" onclick="document.getElementById('eVideoUrl').value='';document.getElementById('eVideoUrlDirect').value='';document.getElementById('videoUploadStatus').textContent='Clip removed';this.previousElementSibling.textContent='🎬 Upload Clip';this.remove()">✕ Remove clip</button>` : ''}
+      </div>
+      <div id="videoUploadStatus" style="font-size:11px;margin-top:4px"></div>
+      <div style="margin-top:8px">
+        <label class="form-label" style="margin-bottom:4px">Or paste URL directly</label>
+        <input class="form-input" id="eVideoUrlDirect" value="${escapeHtml(item.video_url||'')}" placeholder="https://... (MP4/WebM)" oninput="document.getElementById('eVideoUrl').value=this.value">
+      </div>
       ${item.video_url?`<div style="font-size:11px;color:var(--text2);margin-top:4px">▶ Live clip set — customers will see animated preview</div>`:''}
     </div>
     ${isDrink?`
@@ -1904,6 +1928,20 @@ async function saveImgurClientId() {
     toast('Imgur Client-ID saved ✓');
   }, 'saveImgurClientId');
 }
+
+async function saveVideoUploadSecret() {
+  await safe(async () => {
+    const status = document.getElementById('videoSecretStatus');
+    const val = document.getElementById('videoUploadSecretInput').value.trim();
+    if (!val) { toast('Enter a secret value'); return; }
+    await fbSet('config/dev/video_upload_secret', val);
+    document.getElementById('videoUploadSecretInput').value = val;
+    status.textContent = 'Saved. Video uploads from admin will use this secret.';
+    status.className = 'key-status ok';
+    toast('Video upload secret saved ✓');
+  }, 'saveVideoUploadSecret');
+}
+
 // ════════════════════════════════════════════════════════════
 // PHOTO UPLOAD
 // ════════════════════════════════════════════════════════════
@@ -1953,6 +1991,73 @@ function removeItemPhoto(previewId, hiddenId) {
   preview.src = ''; preview.style.display = 'none';
   document.getElementById(hiddenId).value = '';
   toast('Photo removed — tap Save to apply');
+}
+
+// ── VIDEO UPLOAD ──────────────────────────────────────────────────────
+
+function getVideoDuration(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const vid = document.createElement('video');
+    vid.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(vid.duration); };
+    vid.onerror    = () => { URL.revokeObjectURL(url); reject(new Error('Cannot read video metadata')); };
+    vid.src = url;
+  });
+}
+
+async function handleVideoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('videoUploadStatus');
+  const setStatus = (msg, color) => {
+    statusEl.textContent = msg;
+    statusEl.style.color = color || 'var(--text2)';
+  };
+
+  // Client-side size gate (8 MB)
+  const MAX = 8 * 1024 * 1024;
+  if (file.size > MAX) {
+    setStatus(`Too large: ${(file.size/1024/1024).toFixed(1)} MB — max is 8 MB.`, 'var(--red2)');
+    return;
+  }
+
+  // Client-side duration gate (8 s)
+  let dur;
+  try {
+    dur = await getVideoDuration(file);
+    if (dur > 8) {
+      setStatus(`Too long: ${dur.toFixed(1)}s — max is 8 seconds.`, 'var(--red2)');
+      return;
+    }
+  } catch { /* continue — server will gate on size at minimum */ }
+
+  setStatus('Uploading…');
+
+  try {
+    const secret = await safe(() => fbGet('config/dev/video_upload_secret'), 'videoUploadSecret');
+    if (!secret) throw new Error('No upload secret set. Add it in Dev ⚙ → Video Upload Secret first.');
+
+    const form = new FormData();
+    form.append('video', file);
+    form.append('item_id', editingId || 'item');
+
+    const res = await fetch('/api/upload/video', {
+      method: 'POST',
+      headers: { 'X-Admin-Secret': secret },
+      body: form,
+    });
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+
+    document.getElementById('eVideoUrl').value = payload.url;
+    document.getElementById('eVideoUrlDirect').value = payload.url;
+    const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+    const durStr = dur != null ? ` · ${dur.toFixed(1)}s` : '';
+    setStatus(`✓ Uploaded — ${sizeMb} MB${durStr}`, 'var(--green)');
+  } catch (err) {
+    setStatus(`Upload failed: ${err.message}`, 'var(--red2)');
+  }
 }
 
 async function saveEdit() {
@@ -3200,6 +3305,14 @@ async function loadDevTab() {
     // Imgur Client-ID
     const imgurId = await fbGet('config/dev/imgur_client_id');
     if (imgurId) document.getElementById('imgurClientId').value = imgurId;
+
+    // Video upload secret
+    const vidSecret = await fbGet('config/dev/video_upload_secret');
+    if (vidSecret) {
+      document.getElementById('videoUploadSecretInput').value = vidSecret;
+      document.getElementById('videoSecretStatus').textContent = '✓ Secret set';
+      document.getElementById('videoSecretStatus').className = 'key-status ok';
+    }
 
     // System prompt
     const sp = await fbGet('config/dev/sys_prompt');
