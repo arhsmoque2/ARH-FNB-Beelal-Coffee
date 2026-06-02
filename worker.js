@@ -3,12 +3,14 @@
  *
  * Routes:
  *   POST /api/upload/video   — validate & store video to R2, return URL
+ *   POST /api/upload/image   — validate & store image to R2, return URL
  *   GET  /media/*            — serve media files from R2 (edge-cached)
  *   *                        — pass through to static assets (Pages)
  *
  * Limits:
- *   Per file  — 5 MB max, MP4/WebM only (duration enforced client-side: max 5s, 720p)
- *   Per store — 100 MB soft cap tracked in Firebase by admin; Worker enforces per-file only
+ *   Video — 5 MB max, MP4/WebM only (duration enforced client-side: max 5s, 720p)
+ *   Image — 2 MB max, JPEG/PNG/WebP only
+ *   Per store — 150 MB soft cap tracked in Firebase by admin; Worker enforces per-file only
  *
  * Required Worker secrets (wrangler secret put):
  *   UPLOAD_SECRET   — random string; mirror in Firebase config/dev/video_upload_secret
@@ -24,6 +26,7 @@ const CORS = {
 };
 
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB — ~5s 720p at good quality
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB — more than enough for a resized menu photo
 
 export default {
   async fetch(request, env, ctx) {
@@ -36,6 +39,11 @@ export default {
     if (url.pathname === '/api/upload/video') {
       if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
       return handleVideoUpload(request, env);
+    }
+
+    if (url.pathname === '/api/upload/image') {
+      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+      return handleImageUpload(request, env);
     }
 
     if (url.pathname.startsWith('/media/')) {
@@ -96,6 +104,58 @@ async function handleVideoUpload(request, env) {
   const rawId = (formData.get('item_id') || 'item').replace(/[^a-z0-9_-]/gi, '').slice(0, 40);
   const ext   = file.type === 'video/webm' ? 'webm' : 'mp4';
   const filename = `clips/${rawId}_${Date.now()}.${ext}`;
+
+  await env.MEDIA_BUCKET.put(filename, buffer, {
+    httpMetadata: {
+      contentType: file.type,
+      cacheControl: 'public, max-age=31536000, immutable',
+    },
+  });
+
+  const origin = new URL(request.url).origin;
+  return json({ url: `${origin}/media/${filename}`, filename, size_bytes: buffer.byteLength });
+}
+
+// ── Image upload handler ───────────────────────────────────────────────
+
+async function handleImageUpload(request, env) {
+  const provided = request.headers.get('X-Admin-Secret') || '';
+  if (!env.UPLOAD_SECRET || provided !== env.UPLOAD_SECRET) {
+    return json({ error: 'Unauthorized. Set UPLOAD_SECRET via wrangler secret put.' }, 401);
+  }
+
+  const contentLength = parseInt(request.headers.get('Content-Length') || '0', 10);
+  if (contentLength > MAX_IMAGE_BYTES) {
+    return json({
+      error: `File too large: ${(contentLength / 1024 / 1024).toFixed(1)} MB sent. Limit is 2 MB.`,
+    }, 413);
+  }
+
+  let formData;
+  try { formData = await request.formData(); }
+  catch { return json({ error: 'Could not parse multipart upload.' }, 400); }
+
+  const file = formData.get('image');
+  if (!file || typeof file === 'string') {
+    return json({ error: 'No image file attached. Use field name "image".' }, 400);
+  }
+
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowed.includes(file.type)) {
+    return json({ error: `Unsupported format: ${file.type}. Use JPEG, PNG, or WebP.` }, 415);
+  }
+
+  const buffer = await file.arrayBuffer();
+  if (buffer.byteLength > MAX_IMAGE_BYTES) {
+    return json({
+      error: `File too large: ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB. Limit is 2 MB.`,
+    }, 413);
+  }
+
+  const rawId    = (formData.get('item_id') || 'img').replace(/[^a-z0-9_-]/gi, '').slice(0, 40);
+  const extMap   = { 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+  const ext      = extMap[file.type] || 'jpg';
+  const filename = `images/${rawId}_${Date.now()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(filename, buffer, {
     httpMetadata: {
