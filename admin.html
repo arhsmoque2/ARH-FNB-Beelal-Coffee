@@ -179,12 +179,6 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .addon-editor-del{background:none;border:none;color:var(--red2);font-size:13px;font-weight:700;cursor:pointer;margin-left:auto;padding:2px 6px;}
 .addon-fields{display:flex;flex-direction:column;gap:5px;}
 
-/* badge picker */
-.badge-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
-.badge-opt{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text2);transition:border-color .15s,color .15s;}
-.badge-opt:has(input:checked){border-color:var(--gold);color:var(--gold);}
-.badge-opt input{accent-color:var(--gold);width:12px;height:12px;}
-
 /* ── ORDERS TAB ──────────────────────────────────────── */
 .order-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px 14px;margin-bottom:4px;box-shadow:0 1px 2px rgba(0,0,0,0.24),0 2px 8px rgba(0,0,0,0.13);}
 .order-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
@@ -293,27 +287,10 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 .model-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-family:var(--fb);font-size:12px;color:var(--text);outline:none;appearance:none;-webkit-appearance:none;transition:border-color 0.2s,box-shadow 0.2s;}
 .model-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,152,42,0.15);}
 .update-badge{position:fixed;right:14px;bottom:18px;z-index:700;background:var(--gold);color:var(--bg);border:none;border-radius:999px;padding:9px 14px;font-family:var(--fb);font-size:12px;font-weight:800;box-shadow:0 8px 26px rgba(0,0,0,0.35);display:none;cursor:pointer;}
-.update-banner{background:linear-gradient(90deg,rgba(200,152,42,.18),rgba(200,152,42,.08));border-bottom:1px solid rgba(200,152,42,.25);padding:10px 20px;display:none;align-items:center;gap:10px;position:sticky;top:0;z-index:49;}
-.update-banner.visible{display:flex;}
-.update-banner-text{flex:1;font-size:12px;font-weight:700;color:var(--gold);}
-.update-banner-cta{font-size:11px;font-weight:800;background:var(--gold);color:var(--bg);border:none;border-radius:999px;padding:5px 12px;cursor:pointer;white-space:nowrap;}
-.update-banner-dismiss{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;}
-.feedback-row,.release-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px;margin-bottom:8px;transition:border-color .15s;}
-.release-row.unread{border-color:rgba(200,152,42,.4);}
-.release-row.action-required{border-color:rgba(192,57,43,.5);background:rgba(192,57,43,.06);}
-.feedback-meta,.release-meta{font-size:10px;color:var(--text3);margin-bottom:5px;line-height:1.5;display:flex;flex-wrap:wrap;align-items:center;gap:5px;}
-.feedback-title,.release-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.feedback-row,.release-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px;margin-bottom:8px;}
+.feedback-meta,.release-meta{font-size:10px;color:var(--text3);margin-bottom:5px;line-height:1.5;}
+.feedback-title,.release-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;}
 .feedback-body,.release-body{font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;}
-.release-body.collapsed{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.release-tag{font-size:9px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-radius:999px;padding:2px 7px;}
-.release-tag.feature{background:rgba(31,173,90,.15);color:#1fad5a;}
-.release-tag.fix{background:rgba(200,152,42,.15);color:var(--gold);}
-.release-tag.important{background:rgba(192,57,43,.15);color:#e74c3c;}
-.release-tag.new-badge{background:var(--gold);color:var(--bg);}
-.release-tag.action{background:rgba(192,57,43,.18);color:#e74c3c;}
-.release-expand{background:none;border:none;color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;padding:4px 0;font-family:var(--fb);}
-.release-gotit{background:none;border:1px solid var(--border);border-radius:999px;color:var(--text2);font-size:10px;font-weight:700;padding:3px 10px;cursor:pointer;font-family:var(--fb);margin-top:6px;transition:background .15s,color .15s;}
-.release-gotit:hover{background:var(--card2);}
 .feedback-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
 .feedback-tag{font-size:10px;font-weight:700;color:var(--gold);background:rgba(200,152,42,0.12);border:1px solid var(--border2);border-radius:999px;padding:3px 8px;}
 .status-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
@@ -408,11 +385,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div><div class="topbar-title" id="topbarTitle">Admin Panel</div><div class="topbar-role" id="roleLabel">Owner</div></div>
     <button class="lock-btn" onclick="logout()">Lock</button>
   </div>
-  <div class="update-banner" id="updateBannerBar">
-    <span class="update-banner-text" id="updateBannerText">🔔 New updates available</span>
-    <button class="update-banner-cta" onclick="openReleasePanel()">See what's new →</button>
-    <button class="update-banner-dismiss" onclick="dismissUpdateBanner()" aria-label="Dismiss">✕</button>
-  </div>
   <div class="tab-nav">
     <div class="tab-btn active" onclick="showTab('store',this)">Store</div>
     <div class="tab-btn" onclick="showTab('menu',this)">Menu</div>
@@ -498,21 +470,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       </div>
       <button class="btn btn-primary" style="margin-top:14px" onclick="saveStoreInfo()">Save About Section</button>
     </div>
-    <div class="a-card">
-      <div class="a-card-title">SEO &amp; Social Sharing</div>
-      <div class="sec-sub" style="margin-bottom:12px">Controls the page title, description, and preview image when your menu link is shared on WhatsApp or social media.</div>
-      <div class="form-row"><label class="form-label">Page Title</label><input class="form-input" id="iMetaTitle" placeholder="Beelal Coffee — Order Online"></div>
-      <div class="form-row"><label class="form-label">Description</label><input class="form-input" id="iMetaDesc" placeholder="Browse our menu and send your order via WhatsApp."></div>
-      <div class="form-row">
-        <label class="form-label">Share Image (shown when link is shared on WhatsApp/social)</label>
-        <div class="photo-upload-area">
-          <img id="iMetaImgPreview" class="photo-preview" style="display:none">
-          <input type="hidden" id="iMetaImg">
-          <label class="photo-upload-btn">📷 Choose Image<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handlePhotoUpload(this,'iMetaImgPreview','iMetaImg')"></label>
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="saveMeta()">Save SEO Settings</button>
-    </div>
   </div>
 
   <!-- MENU TAB -->
@@ -541,10 +498,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         </div>
       </div>
       <div class="form-row">
-        <label class="form-label">Live Clip URL (optional — video for motion preview)</label>
-        <input class="form-input" id="nVideoUrl" placeholder="https://... (MP4/WebM URL)">
-      </div>
-      <div class="form-row">
         <div class="form-label" style="margin-bottom:8px">Drink Sizes (leave Price blank to hide that size)</div>
         <div class="size-config-row"><span class="size-config-label">🔥 Hot</span><input class="form-input" id="nHot" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nHotOz" placeholder="e.g. 8oz"></div>
         <div class="size-config-row"><span class="size-config-label">❄️ Cold</span><input class="form-input" id="nCold" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nColdOz" placeholder="e.g. 12oz"></div>
@@ -564,22 +517,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
           <div><label class="form-label">Emoji</label><input class="form-input" id="eCatEmoji" placeholder="☕" maxlength="2"></div>
           <div><label class="form-label">Label</label><input class="form-input" id="eCatLabel" placeholder="Category name"></div>
         </div>
-        <div style="margin-bottom:8px">
-          <label class="form-label">Type</label>
-          <select class="form-input" id="eCatType">
-            <option value="">Standard</option>
-            <option value="drinks">☕ Drinks — shows size legend</option>
-            <option value="food">🍽️ Food</option>
-          </select>
-        </div>
-        <div class="toggle-row" style="margin-bottom:6px">
-          <div><div class="toggle-label" style="font-size:12px">Featured Style</div><div class="toggle-sub">Dark spotlight look on public menu</div></div>
-          <label class="toggle"><input type="checkbox" id="eCatFeatured"><span class="toggle-slider"></span></label>
-        </div>
-        <div class="toggle-row" style="margin-bottom:10px">
-          <div><div class="toggle-label" style="font-size:12px">Show Add-ons Row</div><div class="toggle-sub">List store add-ons at bottom of this category</div></div>
-          <label class="toggle"><input type="checkbox" id="eCatShowAddons"><span class="toggle-slider"></span></label>
-        </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary btn-sm" onclick="saveCatEdit()">Save</button>
           <button class="btn btn-secondary btn-sm" onclick="closeEditCatForm()">Cancel</button>
@@ -594,22 +531,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
           <div><label class="form-label">Emoji</label><input class="form-input" id="newCatEmoji" placeholder="☕" maxlength="2"></div>
           <div><label class="form-label">Name</label><input class="form-input" id="newCatLabel" placeholder="Category name"></div>
         </div>
-        <div style="margin-bottom:8px">
-          <label class="form-label">Type</label>
-          <select class="form-input" id="newCatType">
-            <option value="">Standard</option>
-            <option value="drinks">☕ Drinks — shows size legend</option>
-            <option value="food">🍽️ Food</option>
-          </select>
-        </div>
-        <div class="toggle-row" style="margin-bottom:6px">
-          <div><div class="toggle-label" style="font-size:12px">Featured Style</div><div class="toggle-sub">Dark spotlight look on public menu</div></div>
-          <label class="toggle"><input type="checkbox" id="newCatFeatured"><span class="toggle-slider"></span></label>
-        </div>
-        <div class="toggle-row" style="margin-bottom:10px">
-          <div><div class="toggle-label" style="font-size:12px">Show Add-ons Row</div><div class="toggle-sub">List store add-ons at bottom of this category</div></div>
-          <label class="toggle"><input type="checkbox" id="newCatShowAddons"><span class="toggle-slider"></span></label>
-        </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-primary btn-sm" onclick="saveNewCat()">Add</button>
           <button class="btn btn-secondary btn-sm" onclick="closeAddCatForm()">Cancel</button>
@@ -618,16 +539,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
 
     <div id="menuList"></div>
-
-    <!-- ORDER INSIGHTS -->
-    <div class="a-card" style="margin-top:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div class="a-card-title" style="margin-bottom:0">Order Insights — Last 7 Days</div>
-        <button class="btn btn-secondary btn-sm" onclick="loadInsights()" id="insightsBtn">Load Stats</button>
-      </div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Auto-tags (🔥 Popular, ✨ New) are computed from real customer orders — not set manually.</div>
-      <div id="insightsBody"></div>
-    </div>
   </div>
 
   <!-- ORDERS TAB -->
@@ -836,27 +747,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
 
     <div class="dev-section">
-      <div class="dev-title">Video Upload Secret</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Required for uploading Live Clips from admin. Must match the <code style="background:var(--bg3);padding:1px 4px;border-radius:3px">UPLOAD_SECRET</code> Worker secret set via <code style="background:var(--bg3);padding:1px 4px;border-radius:3px">wrangler secret put UPLOAD_SECRET</code>. Keep private — do not share.</div>
-        <div class="api-key-row">
-          <input class="api-key-input" id="videoUploadSecretInput" type="password" placeholder="Paste secret here">
-        </div>
-        <div class="key-status" id="videoSecretStatus"></div>
-        <button class="btn btn-primary" onclick="saveVideoUploadSecret()" style="margin-top:10px">Save Secret</button>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">Media Storage Usage</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Tracked on upload. Hard cap: <strong style="color:var(--text)">150 MB per store</strong> · Per clip: 5 MB max · 5 sec · 720p.</div>
-        <div id="storageUsageBar" style="margin-bottom:8px"></div>
-        <button class="btn btn-secondary" onclick="loadStorageUsage()" style="margin-top:4px">↻ Refresh</button>
-      </div>
-    </div>
-
-    <div class="dev-section">
       <div class="dev-title">Master Snapshot</div>
       <div class="a-card">
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Take a master snapshot of current theme. This becomes the factory reset point. Cannot be overwritten except from this panel.</div>
@@ -979,7 +869,7 @@ const LOCAL_RELEASES = {
     audience: 'owner',
     severity: 'medium',
     requires_owner_action: false,
-    created_at: 1748793600000,
+    created_at: Date.now(),
     store_specific: false,
   },
 };
@@ -1405,12 +1295,6 @@ async function loadStoreTab() {
   document.getElementById('iSize2').value = legend[1] || '';
   document.getElementById('iSize3').value = legend[2] || '';
   document.getElementById('iSize4').value = legend[3] || '';
-  const meta = storeData.meta || {};
-  document.getElementById('iMetaTitle').value = meta.title || '';
-  document.getElementById('iMetaDesc').value  = meta.description || '';
-  document.getElementById('iMetaImg').value   = meta.og_image_url || '';
-  const mp = document.getElementById('iMetaImgPreview');
-  if (meta.og_image_url) { mp.src = meta.og_image_url; mp.style.display = 'block'; } else { mp.style.display = 'none'; }
 }
 async function saveStore() {
   await safe(async () => {
@@ -1459,19 +1343,6 @@ async function saveSizeLegend() {
     await fbSet('config/store', s);
     toast('Size legend saved ✓');
   }, 'saveSizeLegend');
-}
-async function saveMeta() {
-  await safe(async () => {
-    const s = await fbGet('config/store') || {};
-    s.meta = {
-      title:        document.getElementById('iMetaTitle').value.trim(),
-      description:  document.getElementById('iMetaDesc').value.trim(),
-      og_image_url: document.getElementById('iMetaImg').value.trim()
-    };
-    await fbSet('config/store', s);
-    storeData = s;
-    toast('SEO settings saved ✓');
-  }, 'saveMeta');
 }
 async function saveStoreField(field, val) {
   await safe(async () => {
@@ -1603,75 +1474,6 @@ async function loadMenuData() {
   }, 'loadMenu');
 }
 
-async function loadInsights() {
-  const btn = document.getElementById('insightsBtn');
-  const body = document.getElementById('insightsBody');
-  btn.textContent = 'Loading…'; btn.disabled = true;
-  try {
-    const now = Date.now();
-    const dates = Array.from({ length: 7 }, (_, d) =>
-      new Date(now - d * 86400000).toISOString().slice(0, 10)
-    );
-    const snaps = await Promise.all(
-      dates.map(date => fbGet(`telemetry/daily/${date}/orders`))
-    );
-
-    const counts = {};
-    snaps.forEach(snap => {
-      if (!snap) return;
-      Object.values(snap).forEach(order => {
-        Object.entries(order).forEach(([itemId, qty]) => {
-          counts[itemId] = (counts[itemId] || 0) + Number(qty);
-        });
-      });
-    });
-
-    const totalOrders7d = Object.values(counts).reduce((s, c) => s + c, 0);
-    const avgPerItem = menuItems.length > 0 ? totalOrders7d / menuItems.length : 0;
-    const hotThreshold = Math.max(0.70 * avgPerItem, 3);
-
-    if (!totalOrders7d) {
-      body.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:4px 0">No order data yet. Tags will appear automatically as customers order via WhatsApp.</div>`;
-    } else {
-      const sorted = [...menuItems].sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
-      body.innerHTML = `
-        <div style="font-size:11px;color:var(--text2);margin-bottom:10px">
-          <strong style="color:var(--text)">${totalOrders7d}</strong> items ordered ·
-          Hot threshold: <strong style="color:var(--text)">${hotThreshold.toFixed(1)}+</strong> orders
-        </div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:12px">
-            <thead><tr style="color:var(--text2)">
-              <th style="padding:5px 6px;text-align:left;font-weight:700">Item</th>
-              <th style="padding:5px 6px;text-align:right;font-weight:700">Orders</th>
-              <th style="padding:5px 6px;text-align:left;font-weight:700">Auto-tag</th>
-            </tr></thead>
-            <tbody>
-            ${sorted.map(item => {
-              const count = counts[item.id] || 0;
-              const isHot = count >= hotThreshold;
-              const isNew = item.created_at && (now - item.created_at) < 30 * 24 * 60 * 60 * 1000;
-              const bar = totalOrders7d ? Math.round((count / Math.max(...Object.values(counts))) * 100) : 0;
-              const tags = [isHot ? '🔥 Popular' : '', isNew ? '✨ New' : ''].filter(Boolean).join(' · ');
-              return `<tr style="border-top:1px solid var(--border2)">
-                <td style="padding:7px 6px">
-                  <div style="font-weight:600">${item.name}</div>
-                  ${count > 0 ? `<div style="margin-top:3px;height:3px;width:${bar}%;background:var(--gold);border-radius:2px;max-width:100px"></div>` : ''}
-                </td>
-                <td style="padding:7px 6px;text-align:right;font-weight:700;color:${count > 0 ? 'var(--text)' : 'var(--text3)'}">${count}</td>
-                <td style="padding:7px 6px;color:${isHot ? '#c08020' : 'var(--text3)'};font-weight:${tags ? 700 : 400}">${tags || '—'}</td>
-              </tr>`;
-            }).join('')}
-            </tbody>
-          </table>
-        </div>`;
-    }
-  } catch (e) {
-    body.innerHTML = `<div style="color:var(--red2);font-size:12px">Failed to load stats: ${e.message}</div>`;
-  }
-  btn.textContent = '↻ Refresh'; btn.disabled = false;
-}
-
 function renderMenuList() {
   const el = document.getElementById('menuList');
   el.innerHTML = '';
@@ -1744,10 +1546,8 @@ async function addItem() {
       cat:       document.getElementById('nCat').value,
       desc:      document.getElementById('nDesc').value.trim(),
       emoji:     document.getElementById('nEmoji').value.trim()||'🍽️',
-      img_url:    document.getElementById('nImg').value.trim(),
-      video_url:  document.getElementById('nVideoUrl')?.value.trim() || null,
-      created_at: Date.now(),
-      hot:        parseFloat(document.getElementById('nHot').value)||null,
+      img_url:   document.getElementById('nImg').value.trim(),
+      hot:       parseFloat(document.getElementById('nHot').value)||null,
       hot_oz:    document.getElementById('nHotOz').value.trim()||null,
       cold:      parseFloat(document.getElementById('nCold').value)||null,
       cold_oz:   document.getElementById('nColdOz').value.trim()||null,
@@ -1761,7 +1561,7 @@ async function addItem() {
     menuItems.push(item);
     renderMenuList();
     toggleAddForm();
-    ['nName','nDesc','nEmoji','nImg','nVideoUrl','nHot','nHotOz','nCold','nColdOz','nFrappe','nFrappeOz','nPrice'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+    ['nName','nDesc','nEmoji','nImg','nHot','nHotOz','nCold','nColdOz','nFrappe','nFrappeOz','nPrice'].forEach(i=>document.getElementById(i).value='');
     const np = document.getElementById('nImgPreview'); np.src=''; np.style.display='none';
     toast('Item added ✓');
   }, 'addItem');
@@ -1786,23 +1586,6 @@ function openEditModal(id) {
         ${item.img_url?`<button class="photo-remove-btn" onclick="removeItemPhoto('eImgPreview','eImg')">✕ Remove photo</button>`:''}
       </div>
     </div>
-    <div class="form-row">
-      <label class="form-label">Live Clip <span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0;color:var(--text2)">max 5 sec · 720p · 5 MB — MP4 or WebM</span></label>
-      <div class="photo-upload-area">
-        <input type="hidden" id="eVideoUrl" value="${escapeHtml(item.video_url||'')}">
-        ${item.video_url ? `<div style="font-size:11px;color:var(--green);margin-bottom:4px">▶ Clip set</div>` : ''}
-        <label class="photo-upload-btn">🎬 ${item.video_url?'Replace Clip':'Upload Clip'}
-          <input type="file" accept="video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleVideoUpload(this)">
-        </label>
-        ${item.video_url ? `<button class="photo-remove-btn" onclick="document.getElementById('eVideoUrl').value='';document.getElementById('eVideoUrlDirect').value='';document.getElementById('videoUploadStatus').textContent='Clip removed';this.previousElementSibling.textContent='🎬 Upload Clip';this.remove()">✕ Remove clip</button>` : ''}
-      </div>
-      <div id="videoUploadStatus" style="font-size:11px;margin-top:4px"></div>
-      <div style="margin-top:8px">
-        <label class="form-label" style="margin-bottom:4px">Or paste URL directly</label>
-        <input class="form-input" id="eVideoUrlDirect" value="${escapeHtml(item.video_url||'')}" placeholder="https://... (MP4/WebM)" oninput="document.getElementById('eVideoUrl').value=this.value">
-      </div>
-      ${item.video_url?`<div style="font-size:11px;color:var(--text2);margin-top:4px">▶ Live clip set — customers will see animated preview</div>`:''}
-    </div>
     ${isDrink?`
     <div class="form-row">
       <div class="form-label" style="margin-bottom:8px">Drink Sizes (leave Price blank to hide that size)</div>
@@ -1810,21 +1593,6 @@ function openEditModal(id) {
       <div class="size-config-row"><span class="size-config-label">❄️ Cold</span><input class="form-input" id="eCold" type="number" step="0.5" placeholder="Price" value="${item.cold??''}"><input class="form-input" id="eColdOz" placeholder="e.g. 12oz" value="${item.cold_oz||''}"></div>
       <div class="size-config-row"><span class="size-config-label">🧋 Frappé</span><input class="form-input" id="eFrappe" type="number" step="0.5" placeholder="Price" value="${item.frappe??''}"><input class="form-input" id="eFrappeOz" placeholder="e.g. 16oz" value="${item.frappe_oz||''}"></div>
     </div>`:`<div class="form-row"><label class="form-label">Price (${CUR})</label><input class="form-input" id="ePrice" type="number" step="0.5" value="${item.price??''}"></div>`}
-    <div class="form-row">
-      <label class="form-label">Subsection (optional)</label>
-      <input class="form-input" id="eSub" value="${escapeHtml(item.sub||'')}" placeholder="e.g. Signature, Cold Brew, Seasonal...">
-    </div>
-    <div class="form-row">
-      <label class="form-label">Badge</label>
-      <div class="badge-picker">
-        <div style="font-size:10px;color:var(--text2);margin-bottom:6px">🔥 Popular and ✨ New are set automatically from order data — not manually.</div>
-      ${['','👨‍🍳 Chef\'s Pick','⚡ Limited'].map(b=>`<label class="badge-opt"><input type="radio" name="eBadge" value="${b}" ${(item.badge||'')=== b?'checked':''}>${b||'None'}</label>`).join('')}
-      </div>
-    </div>
-    <div class="toggle-row" style="margin-bottom:10px">
-      <div><div class="toggle-label">Spotlight Item</div><div class="toggle-sub">Featured card — stands out in the menu</div></div>
-      <label class="toggle"><input type="checkbox" id="eFeatured" ${item.featured?'checked':''}><span class="toggle-slider"></span></label>
-    </div>
     <div class="form-row" style="margin-top:4px">
       <div class="a-card-title">Options / Add-ons</div>
       <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Choice = required selection (e.g. sauce type). Optional = checkbox with extra price.</div>
@@ -1937,38 +1705,6 @@ async function saveImgurClientId() {
     toast('Imgur Client-ID saved ✓');
   }, 'saveImgurClientId');
 }
-
-async function loadStorageUsage() {
-  const el = document.getElementById('storageUsageBar');
-  if (!el) return;
-  const used  = Number(await fbGet('config/dev/storage_bytes_used') || 0);
-  const cap   = 150 * 1024 * 1024;
-  const usedMb = (used / 1024 / 1024).toFixed(1);
-  const pct    = Math.min((used / cap) * 100, 100).toFixed(1);
-  const color  = used > cap * 0.9 ? 'var(--red2)' : used > cap * 0.7 ? '#c08020' : 'var(--green)';
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
-      <span style="color:${color};font-weight:700">${usedMb} MB used</span>
-      <span style="color:var(--text2)">150 MB cap · ${pct}%</span>
-    </div>
-    <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
-      <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width .4s"></div>
-    </div>`;
-}
-
-async function saveVideoUploadSecret() {
-  await safe(async () => {
-    const status = document.getElementById('videoSecretStatus');
-    const val = document.getElementById('videoUploadSecretInput').value.trim();
-    if (!val) { toast('Enter a secret value'); return; }
-    await fbSet('config/dev/video_upload_secret', val);
-    document.getElementById('videoUploadSecretInput').value = val;
-    status.textContent = 'Saved. Video uploads from admin will use this secret.';
-    status.className = 'key-status ok';
-    toast('Video upload secret saved ✓');
-  }, 'saveVideoUploadSecret');
-}
-
 // ════════════════════════════════════════════════════════════
 // PHOTO UPLOAD
 // ════════════════════════════════════════════════════════════
@@ -2020,102 +1756,6 @@ function removeItemPhoto(previewId, hiddenId) {
   toast('Photo removed — tap Save to apply');
 }
 
-// ── VIDEO UPLOAD ──────────────────────────────────────────────────────
-
-function getVideoMeta(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const vid = document.createElement('video');
-    vid.onloadedmetadata = () => {
-      URL.revokeObjectURL(url);
-      resolve({ duration: vid.duration, width: vid.videoWidth, height: vid.videoHeight });
-    };
-    vid.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Cannot read video metadata')); };
-    vid.src = url;
-  });
-}
-
-const STORE_MEDIA_CAP = 150 * 1024 * 1024; // 150 MB per store
-const MAX_VIDEO_SIZE  =   5 * 1024 * 1024; // 5 MB per clip
-const MAX_VIDEO_SECS  = 5;                  // 5 seconds
-const MAX_VIDEO_PX    = 1280;               // 720p width
-
-async function handleVideoUpload(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const statusEl = document.getElementById('videoUploadStatus');
-  const setStatus = (msg, color) => {
-    statusEl.textContent = msg;
-    statusEl.style.color = color || 'var(--text2)';
-  };
-
-  // Per-clip size gate (5 MB)
-  if (file.size > MAX_VIDEO_SIZE) {
-    setStatus(`Too large: ${(file.size/1024/1024).toFixed(1)} MB — max is 5 MB (≈ 5s 720p).`, 'var(--red2)');
-    return;
-  }
-
-  // Per-store 150 MB cap
-  const usedBytes = Number(await fbGet('config/dev/storage_bytes_used') || 0);
-  if (usedBytes + file.size > STORE_MEDIA_CAP) {
-    const usedMb  = (usedBytes / 1024 / 1024).toFixed(1);
-    const fileMb  = (file.size  / 1024 / 1024).toFixed(1);
-    setStatus(`Store cap reached: ${usedMb} MB used + ${fileMb} MB = over 150 MB limit.`, 'var(--red2)');
-    return;
-  }
-
-  // Duration gate (5 s) and resolution gate (720p = 1280px wide)
-  let dur, vidW, vidH;
-  try {
-    const meta = await getVideoMeta(file);
-    dur  = meta.duration;
-    vidW = meta.width;
-    vidH = meta.height;
-    if (dur > MAX_VIDEO_SECS) {
-      setStatus(`Too long: ${dur.toFixed(1)}s — max is 5 seconds.`, 'var(--red2)');
-      return;
-    }
-    if (vidW > MAX_VIDEO_PX) {
-      setStatus(`Resolution too high: ${vidW}px wide — max is 720p (1280px). Compress first.`, 'var(--red2)');
-      return;
-    }
-  } catch { /* non-fatal — server size gate still applies */ }
-
-  setStatus('Uploading…');
-
-  try {
-    const secret = await safe(() => fbGet('config/dev/video_upload_secret'), 'videoUploadSecret');
-    if (!secret) throw new Error('No upload secret set. Add it in Dev ⚙ → Video Upload Secret first.');
-
-    const form = new FormData();
-    form.append('video', file);
-    form.append('item_id', editingId || 'item');
-
-    const res = await fetch('/api/upload/video', {
-      method: 'POST',
-      headers: { 'X-Admin-Secret': secret },
-      body: form,
-    });
-    const payload = await res.json();
-    if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-
-    document.getElementById('eVideoUrl').value = payload.url;
-    document.getElementById('eVideoUrlDirect').value = payload.url;
-
-    // Increment store storage counter
-    const prev = Number(await fbGet('config/dev/storage_bytes_used') || 0);
-    await fbSet('config/dev/storage_bytes_used', prev + file.size).catch(() => {});
-
-    const sizeMb = (file.size / 1024 / 1024).toFixed(1);
-    const durStr = dur  != null ? ` · ${dur.toFixed(1)}s`  : '';
-    const resStr = vidW != null ? ` · ${vidW}×${vidH}px` : '';
-    setStatus(`✓ Uploaded — ${sizeMb} MB${durStr}${resStr}`, 'var(--green)');
-  } catch (err) {
-    setStatus(`Upload failed: ${err.message}`, 'var(--red2)');
-  }
-}
-
 async function saveEdit() {
   await safe(async () => {
     const item = menuItems.find(i=>i.id===editingId);
@@ -2135,11 +1775,7 @@ async function saveEdit() {
     } else {
       item.price  = parseFloat(document.getElementById('ePrice').value)||null;
     }
-    item.addons     = collectAddons();
-    item.sub        = document.getElementById('eSub')?.value.trim() || null;
-    item.badge      = document.querySelector('input[name="eBadge"]:checked')?.value || null;
-    item.featured   = document.getElementById('eFeatured')?.checked || false;
-    item.video_url  = document.getElementById('eVideoUrl')?.value.trim() || null;
+    item.addons = collectAddons();
     await fbSet('menu/items/'+item.id, item);
     renderMenuList();
     closeEditModal();
@@ -2178,9 +1814,6 @@ function openEditCatForm(id) {
   if (!cat) return;
   document.getElementById('eCatEmoji').value = cat.emoji || '';
   document.getElementById('eCatLabel').value = cat.label || '';
-  document.getElementById('eCatType').value = cat.type || '';
-  document.getElementById('eCatFeatured').checked = cat.style === 'featured';
-  document.getElementById('eCatShowAddons').checked = cat.showAddons || false;
   document.getElementById('editCatFormTitle').textContent = `Edit: ${cat.label}`;
   document.getElementById('editCatForm').style.display = 'block';
   document.getElementById('addCatForm').style.display = 'none';
@@ -2196,11 +1829,8 @@ async function saveCatEdit() {
   await safe(async () => {
     const cat = menuCats.find(c => c.id === editingCatId);
     if (!cat) return;
-    cat.emoji      = emoji || cat.emoji;
-    cat.label      = label;
-    cat.type       = document.getElementById('eCatType').value || null;
-    cat.style      = document.getElementById('eCatFeatured').checked ? 'featured' : null;
-    cat.showAddons = document.getElementById('eCatShowAddons').checked;
+    cat.emoji = emoji || cat.emoji;
+    cat.label = label;
     await fbSet('menu/categories/' + cat.id, cat);
     renderCatList();
     renderMenuList();
@@ -2223,12 +1853,7 @@ async function saveNewCat() {
   if (!label) { toast('Category name required'); return; }
   await safe(async () => {
     const id = 'cat_' + Date.now();
-    const cat = {
-      id, label, emoji,
-      type:       document.getElementById('newCatType').value || null,
-      style:      document.getElementById('newCatFeatured').checked ? 'featured' : null,
-      showAddons: document.getElementById('newCatShowAddons').checked
-    };
+    const cat = { id, label, emoji };
     await fbSet('menu/categories/' + id, cat);
     menuCats.push(cat);
     renderCatList();
@@ -2365,22 +1990,6 @@ function releaseVisibleToRole(rel) {
   return true;
 }
 
-function timeSince(ts) {
-  if (!ts) return '';
-  const secs = Math.floor((Date.now() - ts) / 1000);
-  if (secs < 60) return 'just now';
-  if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
-  if (secs < 86400) return Math.floor(secs / 3600) + 'h ago';
-  if (secs < 86400 * 7) return Math.floor(secs / 86400) + 'd ago';
-  return new Date(ts).toLocaleDateString();
-}
-
-function dismissUpdateBanner() {
-  const bar = document.getElementById('updateBannerBar');
-  if (bar) { bar.classList.remove('visible'); bar.style.display = 'none'; }
-  sessionStorage.setItem('update_banner_dismissed', '1');
-}
-
 async function checkWhatsNew() {
   await safe(async () => {
     const releases = await getReleases();
@@ -2388,8 +1997,6 @@ async function checkWhatsNew() {
     const unread = Object.entries(releases)
       .filter(([ver, rel]) => releaseVisibleToRole(rel) && !seen[ver])
       .sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
-
-    // Floating badge (always)
     const badge = document.getElementById('updateBadge');
     if (unread.length) {
       badge.textContent = `${unread.length} update${unread.length > 1 ? 's' : ''}`;
@@ -2397,25 +2004,6 @@ async function checkWhatsNew() {
     } else {
       badge.style.display = 'none';
     }
-
-    // Inline banner (shown if there are unread updates and not dismissed this session)
-    const bar = document.getElementById('updateBannerBar');
-    const bannerDismissed = sessionStorage.getItem('update_banner_dismissed');
-    if (unread.length && !bannerDismissed) {
-      document.getElementById('updateBannerText').textContent =
-        `🔔 ${unread.length} new update${unread.length > 1 ? 's' : ''} — ${unread[0][1].title || 'see what changed'}`;
-      bar.classList.add('visible');
-    } else {
-      bar.classList.remove('visible');
-    }
-
-    // Auto-open for important unread items (only once per session)
-    const hasUrgent = unread.some(([, rel]) => rel.severity === 'high' || rel.requires_owner_action);
-    if (hasUrgent && !sessionStorage.getItem('release_modal_auto_shown')) {
-      sessionStorage.setItem('release_modal_auto_shown', '1');
-      setTimeout(() => openReleasePanel(), 1400);
-    }
-
     renderReleaseList(releases, seen);
   }, 'checkWhatsNew');
 }
@@ -2427,12 +2015,6 @@ async function openReleasePanel() {
 
 function closeReleasePanel() {
   document.getElementById('releaseModal').classList.remove('open');
-}
-
-function releaseTypeTag(type) {
-  const map = { feature: ['feature','Feature'], fix: ['fix','Fix'], important: ['important','Important'] };
-  const [cls, label] = map[type] || ['fix', type || 'Update'];
-  return `<span class="release-tag ${cls}">${label}</span>`;
 }
 
 function renderReleaseList(releases, seen) {
@@ -2447,64 +2029,21 @@ function renderReleaseList(releases, seen) {
   targets.forEach(el => {
     el.innerHTML = '';
     rows.forEach(([ver, rel]) => {
-      const isUnread = !seen?.[ver];
-      const isActionRequired = !!rel.requires_owner_action;
-      const details = rel.details || rel.summary || '';
-      const isLong = details.length > 120;
       const row = document.createElement('div');
-      row.className = 'release-row' + (isUnread ? ' unread' : '') + (isActionRequired ? ' action-required' : '');
-
+      row.className = 'release-row';
       const meta = document.createElement('div');
       meta.className = 'release-meta';
-      meta.innerHTML = `
-        ${releaseTypeTag(rel.type)}
-        ${isUnread ? '<span class="release-tag new-badge">NEW</span>' : ''}
-        ${isActionRequired ? '<span class="release-tag action">Action required</span>' : ''}
-        <span style="margin-left:auto">${timeSince(rel.created_at)}</span>`;
-
+      meta.textContent = `${seen?.[ver] ? 'Read' : 'New'} · ${rel.type || 'update'} · ${rel.severity || 'low'} · ${ver}`;
       const title = document.createElement('div');
       title.className = 'release-title';
       title.textContent = rel.title || ver;
-
       const body = document.createElement('div');
-      body.className = 'release-body' + (isLong ? ' collapsed' : '');
-      body.id = 'rbody_' + ver.replace(/\W/g,'_');
-      body.textContent = details;
-
+      body.className = 'release-body';
+      body.textContent = rel.details || rel.summary || '';
       row.append(meta, title, body);
-
-      if (isLong) {
-        const expandBtn = document.createElement('button');
-        expandBtn.className = 'release-expand';
-        expandBtn.textContent = 'Show more ↓';
-        expandBtn.onclick = () => {
-          const isCollapsed = body.classList.contains('collapsed');
-          body.classList.toggle('collapsed', !isCollapsed);
-          expandBtn.textContent = isCollapsed ? 'Show less ↑' : 'Show more ↓';
-        };
-        row.appendChild(expandBtn);
-      }
-
-      if (isUnread) {
-        const gotit = document.createElement('button');
-        gotit.className = 'release-gotit';
-        gotit.textContent = 'Got it ✓';
-        gotit.onclick = () => markReleaseSeen(ver);
-        row.appendChild(gotit);
-      }
-
       el.appendChild(row);
     });
   });
-}
-
-async function markReleaseSeen(ver) {
-  await safe(async () => {
-    const seen = await fbGet('meta/seen_releases') || {};
-    seen[ver] = true;
-    await fbSet('meta/seen_releases', seen);
-    await checkWhatsNew();
-  }, 'markReleaseSeen');
 }
 
 async function markAllReleasesSeen() {
@@ -2513,8 +2052,7 @@ async function markAllReleasesSeen() {
     const seen = await fbGet('meta/seen_releases') || {};
     Object.keys(releases).forEach(ver => { seen[ver] = true; });
     await fbSet('meta/seen_releases', seen);
-    toast('All updates marked as read');
-    dismissUpdateBanner();
+    toast('Updates marked as read');
     closeReleasePanel();
     await checkWhatsNew();
   }, 'markAllReleasesSeen');
@@ -3361,17 +2899,6 @@ async function loadDevTab() {
     // Imgur Client-ID
     const imgurId = await fbGet('config/dev/imgur_client_id');
     if (imgurId) document.getElementById('imgurClientId').value = imgurId;
-
-    // Video upload secret
-    const vidSecret = await fbGet('config/dev/video_upload_secret');
-    if (vidSecret) {
-      document.getElementById('videoUploadSecretInput').value = vidSecret;
-      document.getElementById('videoSecretStatus').textContent = '✓ Secret set';
-      document.getElementById('videoSecretStatus').className = 'key-status ok';
-    }
-
-    // Storage usage bar
-    await loadStorageUsage();
 
     // System prompt
     const sp = await fbGet('config/dev/sys_prompt');
