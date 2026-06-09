@@ -470,6 +470,7 @@
       color: #fff;
       border-color: #2a1111;
     }
+    .add-btn:disabled, .choice-btn:disabled { opacity: .45; cursor: not-allowed; }
     .sold-pill {
       min-height: 36px;
       border-radius: 999px;
@@ -1025,12 +1026,13 @@
         ? `<div class="item-media"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`
         : `<div class="item-media">${esc(item.emoji || "R")}</div>`;
       const options = itemOptions(item);
+      const storeClosed = storeConfig.isOpen === false;
       const actions = item.avail === false
         ? `<span class="sold-pill">Sold out</span>`
         : options.map((option, idx) => {
             const label = option.label ? `${option.label} - ${money(option.price)}` : `Add - ${money(option.price)}`;
             const cls = options.length > 1 ? "choice-btn" : "add-btn";
-            return `<button class="${cls}" type="button" data-item="${esc(item.id)}" data-option="${idx}">${esc(label)}</button>`;
+            return `<button class="${cls}" type="button" data-item="${esc(item.id)}" data-option="${idx}"${storeClosed ? " disabled" : ""}>${esc(label)}</button>`;
           }).join("");
       card.innerHTML = `
         ${media}
@@ -1048,7 +1050,7 @@
 
     function addToCart(itemId, optionIndex) {
       const item = menuData.items.find(i => i.id === itemId);
-      if (!item || item.avail === false) return;
+      if (!item || item.avail === false || storeConfig.isOpen === false) return;
       const option = itemOptions(item)[optionIndex] || itemOptions(item)[0];
       if (!option) return;
       cart.push({
