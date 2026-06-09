@@ -1793,6 +1793,18 @@ function renderMenu() {
       list.className = 'menu-list';
       items.forEach(item => list.appendChild(makeCard(item)));
       container.appendChild(list);
+      if (cat.showAddons && APP_CONFIG.store.foodAddons?.length) {
+        const addonsTitle = document.createElement('div');
+        addonsTitle.className = 'subsection-title';
+        addonsTitle.textContent = 'Add-ons';
+        container.appendChild(addonsTitle);
+        APP_CONFIG.store.foodAddons.forEach(addon => {
+          const row = document.createElement('div');
+          row.className = 'addon-row';
+          row.innerHTML = `<span>${addon.name}</span><span class="addon-price">+${CUR}${addon.price}</span>`;
+          container.appendChild(row);
+        });
+      }
     }
 
     main.appendChild(sec);
