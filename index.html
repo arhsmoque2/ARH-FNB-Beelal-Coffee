@@ -1437,22 +1437,27 @@ async function init() {
   const configItemById = {};
   DEFAULT_MENU.items.forEach(i => configItemById[i.id] = i);
 
+  // Merge Firebase data with config defaults, filtering out null or corrupt entries
+  // (missing id or label/name) that can result from an incomplete earlier seeding.
+  const mergedCats = cats
+    ? Object.values(cats).filter(Boolean).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat })).filter(c => c.id && c.label)
+    : null;
+  const mergedItems = items
+    ? Object.values(items).filter(Boolean).map(item => ({ ...(configItemById[item.id] || {}), ...item })).filter(i => i.id && i.name)
+    : null;
+
   menuData = {
-    categories: cats
-      ? Object.values(cats).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat }))
-      : DEFAULT_MENU.categories,
-    items: items
-      ? Object.values(items).map(item => ({ ...(configItemById[item.id] || {}), ...item }))
-      : DEFAULT_MENU.items
+    categories: mergedCats?.length ? mergedCats : DEFAULT_MENU.categories,
+    items:      mergedItems?.length ? mergedItems : DEFAULT_MENU.items
   };
 
-  // Only seed Firebase when the fetch actually reached the server AND the path is empty.
+  // Seed Firebase when empty OR when all fetched entries were corrupt (length 0 after filtering).
   // If ok=false (network/timeout error), do NOT overwrite — data may exist on Firebase.
   if (cfgR.ok && !cfg)    fbSet('config/store', DEFAULT_CONFIG.store);
   if (themeR.ok && !theme) fbSet('config/theme', DEFAULT_CONFIG.theme);
   if (infoR.ok && !info)  fbSet('config/store_info', DEFAULT_CONFIG.storeInfo);
-  if (itemsR.ok && !items) { const obj = {}; DEFAULT_MENU.items.forEach(i => obj[i.id] = i); fbSet('menu/items', obj); }
-  if (catsR.ok && !cats)  { const obj = {}; DEFAULT_MENU.categories.forEach(c => obj[c.id] = c); fbSet('menu/categories', obj); }
+  if (itemsR.ok && (!items || !mergedItems?.length)) { const obj = {}; DEFAULT_MENU.items.forEach(i => obj[i.id] = i); fbSet('menu/items', obj); }
+  if (catsR.ok  && (!cats  || !mergedCats?.length))  { const obj = {}; DEFAULT_MENU.categories.forEach(c => obj[c.id] = c); fbSet('menu/categories', obj); }
 
   renderHeader();
   renderStoreInfo(storeInfo);

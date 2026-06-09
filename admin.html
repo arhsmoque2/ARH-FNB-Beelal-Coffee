@@ -1470,14 +1470,16 @@ async function loadMenuData() {
       fbGetSafe('menu/items'),
       fbGetSafe('menu/categories'),
     ]);
-    if (itemsR.ok && !itemsR.data) { const obj = {}; APP_CONFIG.defaultMenu.items.forEach(i => obj[i.id] = i); fbSet('menu/items', obj); }
-    if (catsR.ok && !catsR.data)  { const obj = {}; APP_CONFIG.defaultMenu.categories.forEach(c => obj[c.id] = c); fbSet('menu/categories', obj); }
-    menuItems = itemsR.data
-      ? Object.values(itemsR.data).map(item => ({ ...(configItemById[item.id] || {}), ...item }))
-      : APP_CONFIG.defaultMenu.items;
-    menuCats = catsR.data
-      ? Object.values(catsR.data).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat }))
-      : APP_CONFIG.defaultMenu.categories;
+    const mergedItems = itemsR.data
+      ? Object.values(itemsR.data).filter(Boolean).map(item => ({ ...(configItemById[item.id] || {}), ...item })).filter(i => i.id && i.name)
+      : null;
+    const mergedCats = catsR.data
+      ? Object.values(catsR.data).filter(Boolean).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat })).filter(c => c.id && c.label)
+      : null;
+    if (itemsR.ok && (!itemsR.data || !mergedItems?.length)) { const obj = {}; APP_CONFIG.defaultMenu.items.forEach(i => obj[i.id] = i); fbSet('menu/items', obj); }
+    if (catsR.ok  && (!catsR.data  || !mergedCats?.length))  { const obj = {}; APP_CONFIG.defaultMenu.categories.forEach(c => obj[c.id] = c); fbSet('menu/categories', obj); }
+    menuItems = mergedItems?.length ? mergedItems : APP_CONFIG.defaultMenu.items;
+    menuCats  = mergedCats?.length  ? mergedCats  : APP_CONFIG.defaultMenu.categories;
     renderCatList();
     updateCatDropdown();
     renderMenuList();
