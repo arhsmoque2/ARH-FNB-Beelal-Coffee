@@ -1011,6 +1011,12 @@ async function fbGet(path) {
     return await r.json();
   } catch { return null; }
 }
+async function fbGetSafe(path) {
+  try {
+    const r = await fetchWithTimeout(`${FB_URL}/${FB_ROOT}/${path}.json`);
+    return { ok: true, data: await r.json() };
+  } catch { return { ok: false, data: null }; }
+}
 async function fbSet(path, data) {
   await fetch(`${FB_URL}/${FB_ROOT}/${path}.json`, { method:'PUT', body:JSON.stringify(data) });
 }
@@ -1460,13 +1466,17 @@ async function loadMenuData() {
     const configItemById = {};
     APP_CONFIG.defaultMenu.items.forEach(i => configItemById[i.id] = i);
 
-    const snap = await fbGet('menu/items');
-    menuItems = snap
-      ? Object.values(snap).map(item => ({ ...(configItemById[item.id] || {}), ...item }))
-      : [];
-    const cats = await fbGet('menu/categories');
-    menuCats = cats
-      ? Object.values(cats).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat }))
+    const [itemsR, catsR] = await Promise.all([
+      fbGetSafe('menu/items'),
+      fbGetSafe('menu/categories'),
+    ]);
+    if (itemsR.ok && !itemsR.data) { const obj = {}; APP_CONFIG.defaultMenu.items.forEach(i => obj[i.id] = i); fbSet('menu/items', obj); }
+    if (catsR.ok && !catsR.data)  { const obj = {}; APP_CONFIG.defaultMenu.categories.forEach(c => obj[c.id] = c); fbSet('menu/categories', obj); }
+    menuItems = itemsR.data
+      ? Object.values(itemsR.data).map(item => ({ ...(configItemById[item.id] || {}), ...item }))
+      : APP_CONFIG.defaultMenu.items;
+    menuCats = catsR.data
+      ? Object.values(catsR.data).map(cat => ({ ...(configCatById[cat.id] || {}), ...cat }))
       : APP_CONFIG.defaultMenu.categories;
     renderCatList();
     updateCatDropdown();
@@ -2615,21 +2625,22 @@ async function buildContext() {
     });
   });
 
+  const t = { ...DEFAULT_THEME, ...theme };
   return `CURRENT STATE:
 store:
   name: ${store.name || APP_CONFIG.store.name}
   status: ${store.isOpen !== false ? 'open' : 'closed'}
-  hours: ${store.hours || '8AM - 10PM'}
-  slogan: ${store.slogan || ''}
+  hours: ${store.hours || APP_CONFIG.store.hours || '8AM - 10PM'}
+  slogan: ${store.slogan || APP_CONFIG.store.slogan || ''}
 
 theme:
-  background: "${theme.bg}"
-  card_background: "${theme.surface}"
-  primary_color: "${theme.primary}"
-  accent_color: "${theme.accent}"
-  text_color: "${theme.text}"
-  font_heading: ${theme.font_display}
-  font_body: ${theme.font_body}
+  background: "${t.bg}"
+  card_background: "${t.surface}"
+  primary_color: "${t.primary}"
+  accent_color: "${t.accent}"
+  text_color: "${t.text}"
+  font_heading: ${t.font_display}
+  font_body: ${t.font_body}
 
 menu:
 ${Object.entries(menuBycat).map(([cat,items]) =>
