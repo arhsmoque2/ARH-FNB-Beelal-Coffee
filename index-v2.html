@@ -860,6 +860,7 @@
     async function fbGetSafe(path) {
       try {
         const res = await fetchWithTimeout(`${FB_URL}/${FB_ROOT}/${path}.json`);
+        if (!res.ok) return { ok: false, data: null }; // 401 Permission denied etc. — body is {"error":...}, not data
         return { ok: true, data: await res.json() };
       } catch {
         return { ok: false, data: null };
