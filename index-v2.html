@@ -125,6 +125,17 @@
     .chip.status-open { color: var(--green); background: #eefaf2; border-color: rgba(19, 122, 69, .18); }
     .chip.status-closed { color: var(--brand2); background: #fff0f1; border-color: rgba(196, 30, 58, .18); }
     .chip.preview { color: #6f4700; background: #fff7df; border-color: rgba(217, 162, 58, .34); }
+    .closed-banner {
+      background: #fff0f1;
+      border-bottom: 1px solid rgba(196, 30, 58, .22);
+      padding: 14px 20px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand2);
+    }
+    .closed-banner .closed-banner-icon { font-size: 16px; margin-right: 6px; }
+    .closed-banner .closed-banner-msg { font-weight: 400; color: #5b1417; margin-left: 6px; }
     .icon-btn { width: 42px; padding: 0; }
     .cart-top {
       min-width: 104px;
@@ -697,6 +708,8 @@
     </div>
   </header>
 
+  <div id="closedBanner" class="closed-banner hidden" role="status" aria-live="polite"></div>
+
   <main id="top">
     <section class="shell hero">
       <div class="hero-copy">
@@ -920,6 +933,12 @@
       const status = document.getElementById("statusChip");
       status.textContent = storeConfig.isOpen === false ? "Closed" : "Open now";
       status.className = "chip " + (storeConfig.isOpen === false ? "status-closed" : "status-open");
+
+      const banner = document.getElementById("closedBanner");
+      if (storeConfig.isOpen === false) {
+        banner.innerHTML = `<span class="closed-banner-icon">🔒</span>Store is currently closed<span class="closed-banner-msg">${esc(storeConfig.closedMessage || "We are currently closed.")}</span>`;
+        banner.classList.remove("hidden");
+      }
 
       const bannerCfg = storeConfig.banner || {};
       const bannerUrl = bannerCfg.enabled && bannerCfg.image_url ? bannerCfg.image_url : storeConfig.banner_url;
