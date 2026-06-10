@@ -931,6 +931,11 @@
       renderMenu();
       updateCart();
       document.getElementById("loader").classList.add("hidden");
+
+      setInterval(() => pollStoreStatus().catch(() => {}), 30000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) pollStoreStatus().catch(() => {});
+      });
     }
 
     function showDebugOverlay(reads) {
@@ -991,15 +996,7 @@
         mark.textContent = (storeConfig.name || "R").trim().charAt(0).toUpperCase();
       }
 
-      const status = document.getElementById("statusChip");
-      status.textContent = storeConfig.isOpen === false ? "Closed" : "Open now";
-      status.className = "chip " + (storeConfig.isOpen === false ? "status-closed" : "status-open");
-
-      const banner = document.getElementById("closedBanner");
-      if (storeConfig.isOpen === false) {
-        banner.innerHTML = `<span class="closed-banner-icon">🔒</span>Store is currently closed<span class="closed-banner-msg">${esc(storeConfig.closedMessage || "We are currently closed.")}</span>`;
-        banner.classList.remove("hidden");
-      }
+      renderOpenState();
 
       const bannerCfg = storeConfig.banner || {};
       const bannerUrl = bannerCfg.enabled && bannerCfg.image_url ? bannerCfg.image_url : storeConfig.banner_url;
@@ -1034,6 +1031,33 @@
         const low = opts.length ? Math.min(...opts.map(o => o.price)) : 0;
         return `<div class="feature-row"><span>${esc(item.name)}</span><span>${money(low)}</span></div>`;
       }).join("");
+    }
+
+    function renderOpenState() {
+      const closed = storeConfig.isOpen === false;
+      const status = document.getElementById("statusChip");
+      status.textContent = closed ? "Closed" : "Open now";
+      status.className = "chip " + (closed ? "status-closed" : "status-open");
+
+      const banner = document.getElementById("closedBanner");
+      if (closed) {
+        banner.innerHTML = `<span class="closed-banner-icon">🔒</span>Store is currently closed<span class="closed-banner-msg">${esc(storeConfig.closedMessage || "We are currently closed.")}</span>`;
+        banner.classList.remove("hidden");
+      } else {
+        banner.classList.add("hidden");
+      }
+    }
+
+    async function pollStoreStatus() {
+      const r = await fbGetSafe("config/store");
+      if (!r.ok || !r.data) return;
+      const nowOpen = r.data.isOpen !== false;
+      const wasOpen = storeConfig.isOpen !== false;
+      if (nowOpen === wasOpen) return;
+      storeConfig = { ...DEFAULT_CONFIG.store, ...r.data };
+      renderOpenState();
+      renderMenu();
+      updateCart();
     }
 
     function renderNavigation() {
