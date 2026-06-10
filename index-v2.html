@@ -464,14 +464,39 @@
       line-height: 1.4;
       font-weight: 650;
     }
-    .item-actions {
+    .item-body { display: flex; flex-direction: column; }
+    .item-footer {
       display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      margin-top: 14px;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 10px;
     }
+    .item-prices { display: flex; flex-wrap: wrap; gap: 5px; align-items: flex-end; }
+    .item-price {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--brand);
+      line-height: 1;
+    }
+    .price-badge { display: flex; flex-direction: column; gap: 2px; }
+    .price-sz {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .price-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--brand);
+      line-height: 1;
+    }
+    .item-actions { display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
     .add-btn, .choice-btn {
-      min-height: 38px;
+      min-height: 34px;
       padding: 0 12px;
       font-size: 12px;
       background: #fff;
@@ -481,30 +506,11 @@
       color: #fff;
       border-color: #2a1111;
     }
-    .add-btn:disabled, .choice-btn:disabled { opacity: .45; cursor: not-allowed; }
     .sold-pill {
-      min-height: 36px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      padding: 0 12px;
+      font-size: 11px;
+      font-weight: 800;
       color: var(--brand2);
-      background: #fff0f1;
-      border: 1px solid rgba(196,30,58,.16);
-      font-size: 12px;
-      font-weight: 900;
-    }
-    .price-pill {
-      min-height: 36px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      padding: 0 12px;
-      color: #444;
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      font-size: 12px;
-      font-weight: 700;
+      opacity: .7;
     }
     .empty-state {
       border: 1px dashed rgba(91,20,23,.24);
@@ -1144,24 +1150,31 @@
         : `<div class="item-media">${esc(item.emoji || "R")}</div>`;
       const options = itemOptions(item);
       const storeClosed = storeConfig.isOpen === false;
-      const actions = item.avail === false
+      // Price section — always visible
+      const priceHtml = item.avail === false
         ? `<span class="sold-pill">Sold out</span>`
-        : storeClosed
-          ? options.map(option => {
-              const priceLabel = option.label ? `${option.label} - ${money(option.price)}` : money(option.price);
-              return `<span class="price-pill">${esc(priceLabel)}</span>`;
-            }).join("")
-          : options.map((option, idx) => {
-              const label = option.label ? `${option.label} - ${money(option.price)}` : `Add - ${money(option.price)}`;
-              const cls = options.length > 1 ? "choice-btn" : "add-btn";
-              return `<button class="${cls}" type="button" data-item="${esc(item.id)}" data-option="${idx}">${esc(label)}</button>`;
-            }).join("");
+        : options.length === 1
+          ? `<span class="item-price">${money(options[0].price)}</span>`
+          : options.map(o =>
+              `<span class="price-badge"><span class="price-sz">${esc(o.label)}</span><span class="price-val">${money(o.price)}</span></span>`
+            ).join("");
+      // Add section — only when store open and item available
+      const addHtml = (item.avail !== false && !storeClosed)
+        ? options.map((option, idx) => {
+            const label = options.length > 1 ? option.label : "Add";
+            const cls = options.length > 1 ? "choice-btn" : "add-btn";
+            return `<button class="${cls}" type="button" data-item="${esc(item.id)}" data-option="${idx}">${esc(label)}</button>`;
+          }).join("")
+        : "";
       card.innerHTML = `
         ${media}
-        <div>
+        <div class="item-body">
           <h3 class="item-name">${esc(item.name)}</h3>
           <p class="item-desc">${esc(item.desc || "")}</p>
-          <div class="item-actions">${actions}</div>
+          <div class="item-footer">
+            <div class="item-prices">${priceHtml}</div>
+            ${addHtml ? `<div class="item-actions">${addHtml}</div>` : ""}
+          </div>
         </div>
       `;
       card.querySelectorAll("button[data-item]").forEach(btn => {
