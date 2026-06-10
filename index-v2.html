@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#fff7f4">
-  <title>FnB Menu - V2 Preview</title>
+  <title>FnB Menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
@@ -124,7 +124,6 @@
     }
     .chip.status-open { color: var(--green); background: #eefaf2; border-color: rgba(19, 122, 69, .18); }
     .chip.status-closed { color: var(--brand2); background: #fff0f1; border-color: rgba(196, 30, 58, .18); }
-    .chip.preview { color: #6f4700; background: #fff7df; border-color: rgba(217, 162, 58, .34); }
     .closed-banner {
       background: #fff0f1;
       border-bottom: 1px solid rgba(196, 30, 58, .22);
@@ -683,17 +682,6 @@
       font-weight: 700;
     }
     .field-grid textarea { min-height: 86px; resize: vertical; }
-    .preview-note {
-      margin-top: 14px;
-      border: 1px solid rgba(217,162,58,.32);
-      border-radius: var(--radius);
-      background: #fff9e9;
-      color: #6f4700;
-      padding: 11px 12px;
-      font-size: 13px;
-      line-height: 1.4;
-      font-weight: 800;
-    }
     .send-btn {
       width: 100%;
       min-height: 54px;
@@ -746,7 +734,6 @@
     @media (max-width: 640px) {
       .shell { width: min(100% - 24px, 1180px); }
       .topbar-inner { min-height: 64px; }
-      .top-actions .chip.preview, .top-actions .ghost-btn { display: none; }
       .brand-sub { max-width: 44vw; }
       .hero { padding-top: 18px; gap: 18px; }
       h1 { font-size: clamp(44px, 17vw, 68px); }
@@ -771,21 +758,19 @@
   </style>
 </head>
 <body>
-  <div class="loader" id="loader">Loading menu preview...</div>
+  <div class="loader" id="loader">Loading menu...</div>
 
   <header class="topbar">
     <div class="shell topbar-inner">
       <a class="brand" href="#top" aria-label="Back to top">
         <div class="mark" id="brandMark">R</div>
         <div>
-          <div class="brand-title" id="brandTitle">Menu Preview</div>
+          <div class="brand-title" id="brandTitle">Menu</div>
           <div class="brand-sub" id="brandSub">Live store data</div>
         </div>
       </a>
       <div class="top-actions">
-        <span class="chip preview">V2 Preview</span>
         <span class="chip" id="statusChip">Checking hours</span>
-        <a class="ghost-btn" href="index.html">Current site</a>
         <button class="cart-top" type="button" onclick="openCart()">Cart <span id="topCartCount">0</span></button>
       </div>
     </div>
@@ -797,8 +782,8 @@
     <section class="shell hero">
       <div class="hero-copy">
         <div>
-          <h1 id="heroTitle">Menu Preview</h1>
-          <p class="lede" id="heroLede">Browse the live menu and build a WhatsApp order preview.</p>
+          <h1 id="heroTitle">Menu</h1>
+          <p class="lede" id="heroLede">Browse the live menu and place a WhatsApp order.</p>
           <div class="hero-actions">
             <a class="solid-btn" href="#menu">Browse menu</a>
             <button class="ghost-btn" type="button" onclick="openCart()">Review cart</button>
@@ -812,7 +797,7 @@
         <div class="media-inner">
           <div>
             <div class="media-title" id="mediaTitle">A faster menu for every store.</div>
-            <div class="media-note" id="mediaNote">A preview interface using the same live menu data as the current site.</div>
+            <div class="media-note" id="mediaNote">The live menu for every store.</div>
           </div>
           <div class="feature-list" id="featureList"></div>
         </div>
@@ -858,8 +843,7 @@
         <input id="custName" type="text" placeholder="Name for WhatsApp order">
         <textarea id="custNote" placeholder="Pickup time, table number, or extra note"></textarea>
       </div>
-      <div class="preview-note">Preview-safe: this opens WhatsApp with a V2 preview label and does not write to the live orders database.</div>
-      <button class="send-btn" id="sendBtn" type="button" onclick="sendPreviewOrder()">Open WhatsApp preview</button>
+      <button class="send-btn" id="sendBtn" type="button" onclick="sendOrder()">Send WhatsApp order</button>
     </div>
   </div>
 
@@ -1029,7 +1013,7 @@
         return row(r.path, `ok=${r.ok} → ${preview}`, cls);
       }).join("");
       panel.innerHTML = `
-        <h4>🔍 V2 Debug — ${ts}</h4>
+        <h4>Debug — ${ts}</h4>
         ${row("FB_URL", FB_URL)}
         ${row("FB_ROOT", FB_ROOT)}
         ${readRows}
@@ -1051,13 +1035,13 @@
     }
 
     function renderShell() {
-      document.title = `${storeConfig.name} - V2 Preview`;
+      document.title = storeConfig.name;
       document.getElementById("brandTitle").textContent = storeConfig.name;
       document.getElementById("brandSub").textContent = storeConfig.slogan || storeConfig.hours || "";
       document.getElementById("heroTitle").textContent = storeConfig.name;
       document.getElementById("heroLede").textContent = storeConfig.slogan || "Browse the live menu and build a WhatsApp order.";
       document.getElementById("mediaTitle").textContent = "A faster menu for " + storeConfig.name + ".";
-      document.getElementById("mediaNote").textContent = storeConfig.hours || "Previewing the refreshed customer experience.";
+      document.getElementById("mediaNote").textContent = storeConfig.hours || storeConfig.slogan || "";
 
       const mark = document.getElementById("brandMark");
       if (storeConfig.logo_url) {
@@ -1334,14 +1318,13 @@
       updateCart();
     }
 
-    function sendPreviewOrder() {
+    function sendOrder() {
       if (!cart.length || storeConfig.isOpen === false) return;
       const name = document.getElementById("custName").value.trim() || "Customer";
       const note = document.getElementById("custNote").value.trim();
       const total = cart.reduce((sum, item) => sum + item.price, 0);
       const phone = storeConfig.phone || APP_CONFIG.store.phone;
-      let msg = `[${storeConfig.name} V2 UI PREVIEW]\n`;
-      msg += `Order preview - ${storeConfig.name}\n`;
+      let msg = `Order from ${storeConfig.name}\n`;
       msg += `Name: ${name}\n\n`;
       msg += `Items:\n`;
       cart.forEach((item, index) => {
@@ -1349,7 +1332,6 @@
       });
       msg += `\nTotal: ${money(total)}`;
       if (note) msg += `\n\nNote: ${note}`;
-      msg += `\n\nThis is a UI preview order.`;
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
     }
 
@@ -1367,7 +1349,7 @@
     });
 
     init().catch(() => {
-      document.getElementById("loader").textContent = "Could not load preview. Please refresh.";
+      document.getElementById("loader").textContent = "Could not load menu. Please refresh.";
     });
   </script>
   <div id="debugPanel" class="debug-panel" style="display:none"></div>
