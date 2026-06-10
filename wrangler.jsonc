@@ -1,1 +1,12 @@
-{  // "name" is the shared Cloudflare Workers project — do not change per store.  // All stores share this project; each gets its own preview URL via branch builds.  "name": "fnb-pwa",  "compatibility_date": "2026-04-14",  "observability": {    "enabled": true  },  "assets": {    "directory": "."  }}
+{
+  // "name" is the shared Cloudflare Workers project — do not change per store.
+  // All stores share this project; each gets its own preview URL via branch builds.
+  "name": "fnb-pwa",
+  "compatibility_date": "2026-04-14",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "."
+  }
+}
