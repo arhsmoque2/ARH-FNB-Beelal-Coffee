@@ -637,6 +637,20 @@
       box-shadow: 0 14px 30px rgba(15, 143, 74, .22);
     }
     .send-btn:disabled { opacity: .48; cursor: not-allowed; }
+    .debug-panel {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+      background: rgba(10,10,10,.93); color: #e8e8e8;
+      font: 11px/1.5 monospace; padding: 10px 14px 14px;
+      max-height: 40vh; overflow-y: auto;
+      border-top: 2px solid #f59e0b;
+    }
+    .debug-panel h4 { color: #f59e0b; margin: 0 0 6px; font-size: 12px; }
+    .debug-row { display: flex; gap: 8px; margin: 2px 0; flex-wrap: wrap; }
+    .debug-key { color: #94a3b8; min-width: 120px; flex: 0 0 auto; }
+    .debug-val { color: #e8e8e8; word-break: break-all; }
+    .debug-val.ok { color: #4ade80; }
+    .debug-val.fail { color: #f87171; }
+    .debug-val.warn { color: #fbbf24; }
 
     .loader {
       position: fixed;
@@ -834,6 +848,15 @@
         new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))
       ]);
     }
+    async function fbPut(path, data) {
+      try {
+        await fetch(`${FB_URL}/${FB_ROOT}/${path}.json`, {
+          method: "PUT", body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch { /* fire-and-forget */ }
+    }
+
     async function fbGetSafe(path) {
       try {
         const res = await fetchWithTimeout(`${FB_URL}/${FB_ROOT}/${path}.json`);
@@ -882,6 +905,12 @@
 
       storeConfig = cfgR.data ? { ...DEFAULT_CONFIG.store, ...cfgR.data } : { ...DEFAULT_CONFIG.store };
       applyTheme(themeR.data || DEFAULT_CONFIG.theme);
+      showDebugOverlay([
+        { path: "config/store",      ok: cfgR.ok,   data: cfgR.data },
+        { path: "config/theme",      ok: themeR.ok, data: themeR.data },
+        { path: "menu/items",        ok: itemsR.ok, data: itemsR.data },
+        { path: "menu/categories",   ok: catsR.ok,  data: catsR.data },
+      ]);
 
       const configCats = byId(DEFAULT_MENU.categories);
       const configItems = byId(DEFAULT_MENU.items);
@@ -902,6 +931,38 @@
       renderMenu();
       updateCart();
       document.getElementById("loader").classList.add("hidden");
+    }
+
+    function showDebugOverlay(reads) {
+      const ts = new Date().toISOString();
+      // Always write to Firebase error_log so it appears in admin Dev→Error Log
+      fbPut(`error_log/dbg_${Date.now()}`, {
+        type: "debug_snapshot", ts,
+        fb_url: FB_URL, fb_root: FB_ROOT,
+        reads: reads.map(r => ({ path: r.path, ok: r.ok, isNull: r.data === null, preview: JSON.stringify(r.data)?.slice(0, 200) })),
+        storeConfig: { isOpen: storeConfig.isOpen, name: storeConfig.name, hours: storeConfig.hours }
+      });
+      // Show overlay if ?debug in URL
+      if (!window.location.search.includes("debug")) return;
+      const panel = document.getElementById("debugPanel");
+      if (!panel) return;
+      const row = (key, val, cls = "") =>
+        `<div class="debug-row"><span class="debug-key">${key}</span><span class="debug-val ${cls}">${val}</span></div>`;
+      const readRows = reads.map(r => {
+        const cls = !r.ok ? "fail" : r.data === null ? "warn" : "ok";
+        const preview = r.data === null ? "null (empty path)" : JSON.stringify(r.data)?.slice(0, 120);
+        return row(r.path, `ok=${r.ok} → ${preview}`, cls);
+      }).join("");
+      panel.innerHTML = `
+        <h4>🔍 V2 Debug — ${ts}</h4>
+        ${row("FB_URL", FB_URL)}
+        ${row("FB_ROOT", FB_ROOT)}
+        ${readRows}
+        ${row("storeConfig.isOpen", String(storeConfig.isOpen), storeConfig.isOpen === false ? "ok" : "warn")}
+        ${row("storeConfig.name", storeConfig.name || "(empty)")}
+        ${row("storeConfig.hours", storeConfig.hours || "(empty)")}
+      `;
+      panel.style.display = "block";
     }
 
     function applyTheme(theme) {
@@ -1167,5 +1228,6 @@
       document.getElementById("loader").textContent = "Could not load preview. Please refresh.";
     });
   </script>
+  <div id="debugPanel" class="debug-panel" style="display:none"></div>
 </body>
 </html>
