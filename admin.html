@@ -157,6 +157,20 @@ body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100
 .mir-btn.unavail{color:var(--green);border-color:rgba(31,173,90,0.3);}
 .mir-btn.edit{color:var(--gold);}
 .mir-btn.del{color:var(--red2);}
+.mir-btn.pick{color:var(--gold);border-color:rgba(200,152,42,0.5);background:rgba(200,152,42,0.12);}
+.mir-btn.unpick{color:var(--text3);}
+/* ── ITEM REVIEWS (feedback tab) ── */
+.review-block{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px 14px;margin-bottom:8px;}
+.review-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.review-block-name{font-size:13px;font-weight:700;color:var(--text);}
+.review-block-meta{font-size:12px;color:var(--gold);font-weight:700;}
+.review-entry{padding:8px 0;border-bottom:1px solid var(--border2);font-size:12px;}
+.review-entry:last-child{border-bottom:none;}
+.review-entry-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.review-entry-author{font-weight:700;color:var(--text);}
+.review-entry-stars{color:var(--gold);font-size:11px;}
+.review-entry-date{font-size:11px;color:var(--text3);}
+.review-entry-comment{color:var(--text2);line-height:1.45;}
 .add-form{background:var(--card2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-top:12px;display:none;}
 .add-form.open{display:block;}
 .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
@@ -587,6 +601,12 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
     <div class="a-card-title">Developer Support Requests</div>
     <div id="ownerDevFeedbackList" style="margin-bottom:20px"><div style="color:var(--text2);font-size:13px;padding:20px 0">Loading...</div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+      <div class="a-card-title" style="margin-bottom:0">Item Reviews</div>
+      <button class="btn btn-secondary btn-sm" onclick="loadItemReviews()">↻ Load</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;margin-top:4px;line-height:1.5">Per-item star ratings and comments left by customers after their orders.</div>
+    <div id="itemReviewsList"><div style="color:var(--text2);font-size:13px;padding:8px 0">Tap Load to fetch item reviews.</div></div>
     <div class="a-card-title">Customer Feedback to Store</div>
     <div id="ownerFeedbackList"><div style="color:var(--text2);font-size:13px;padding:20px 0">Loading...</div></div>
   </div>
@@ -1165,6 +1185,7 @@ let pins          = { owner:'1234', dev:'' };
 let currentRole   = null;
 let menuItems     = [];
 let menuCats      = [];
+let storePicks    = {};
 let storeData     = {};
 let chatHistory   = [];   // { role, content, ts }
 let orModel       = APP_CONFIG.ai.model; // active model, updated from Firebase
@@ -1543,10 +1564,12 @@ async function loadMenuData() {
     const configItemById = {};
     APP_CONFIG.defaultMenu.items.forEach(i => configItemById[i.id] = i);
 
-    const [itemsR, catsR] = await Promise.all([
+    const [itemsR, catsR, picksR] = await Promise.all([
       fbGetSafe('menu/items'),
       fbGetSafe('menu/categories'),
+      fbGetSafe('config/store_picks'),
     ]);
+    storePicks = picksR?.data ?? {};
     const mergedItems = itemsR.data
       ? Object.values(itemsR.data).filter(Boolean).map(item => ({ ...(configItemById[item.id] || {}), ...item })).filter(i => i.id && i.name)
       : null;
@@ -1596,6 +1619,7 @@ function makeMIR(item) {
       <button class="mir-btn ${item.avail===false?'unavail':'avail'}" onclick="toggleAvail('${item.id}')">
         ${item.avail===false?'Enable':'Sold Out'}
       </button>
+      <button class="mir-btn ${storePicks[item.id]?'pick':'unpick'}" onclick="toggleStorePick('${item.id}')" title="${storePicks[item.id]?'Remove pick':'Mark as pick'}">◆</button>
       <button class="mir-btn edit" onclick="openEditModal('${item.id}')">Edit</button>
       <button class="mir-btn del" onclick="deleteItem('${item.id}')">Del</button>
     </div>`;
@@ -1611,6 +1635,20 @@ async function toggleAvail(id) {
     renderMenuList();
     toast(item.avail ? `${item.name} — available ✓` : `${item.name} — sold out`);
   }, 'toggleAvail');
+}
+
+async function toggleStorePick(id) {
+  await safe(async () => {
+    if (storePicks[id]) {
+      delete storePicks[id];
+    } else {
+      storePicks[id] = true;
+    }
+    await fbSet('config/store_picks', storePicks);
+    renderMenuList();
+    const item = menuItems.find(i => i.id === id);
+    toast(storePicks[id] ? `◆ ${item?.name} marked as pick` : `${item?.name} removed from picks`);
+  }, 'toggleStorePick');
 }
 
 async function deleteItem(id) {
@@ -2344,6 +2382,57 @@ async function loadOwnerFeedback() {
     const devEntries = Object.entries(devSnap || {}).sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
     renderFeedbackRows(document.getElementById('ownerDevFeedbackList'), devEntries, 'owner_to_developer');
   }, 'loadOwnerFeedback');
+}
+
+async function loadItemReviews() {
+  const el = document.getElementById('itemReviewsList');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:8px 0">Loading…</div>';
+  await safe(async () => {
+    const [sumR, revR] = await Promise.all([
+      fbGetSafe('feedback/item_summaries'),
+      fbGetSafe('feedback/item_reviews'),
+    ]);
+    const summaries = sumR.data || {};
+    const allReviews = revR.data || {};
+    if (!Object.keys(allReviews).length) {
+      el.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:8px 0">No item reviews yet.</div>';
+      return;
+    }
+    el.innerHTML = '';
+    const sortedItems = Object.entries(allReviews)
+      .sort(([, a], [, b]) => Object.keys(b).length - Object.keys(a).length);
+    sortedItems.forEach(([itemId, reviewsObj]) => {
+      const item = menuItems.find(i => i.id === itemId);
+      const itemName = item?.name || itemId;
+      const reviews = Object.values(reviewsObj).sort((a, b) => b.created_at - a.created_at);
+      const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+      const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+      const sum = summaries[itemId];
+      const isTrending = sum?.recent_count >= 2 && sum.recent_avg >= 4.3
+        && sum.recent_last_ts && (Date.now() - sum.recent_last_ts) < TWO_WEEKS;
+      const block = document.createElement('div');
+      block.className = 'review-block';
+      block.innerHTML = `
+        <div class="review-block-header">
+          <span class="review-block-name">${escapeHtml(itemName)}${storePicks[itemId] ? ' <span style="color:var(--gold);font-size:11px;">◆</span>' : ''}</span>
+          <span class="review-block-meta">★ ${avg.toFixed(1)} · ${reviews.length} review${reviews.length === 1 ? '' : 's'}${isTrending ? ' 🔥' : ''}</span>
+        </div>
+        ${reviews.map(r => {
+          const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+          const dateStr = new Date(r.created_at).toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+          return `<div class="review-entry">
+            <div class="review-entry-top">
+              <div><span class="review-entry-author">${escapeHtml(r.customer_name)}</span> <span class="review-entry-stars">${stars}</span></div>
+              <span class="review-entry-date">${escapeHtml(dateStr)}</span>
+            </div>
+            ${r.comment ? `<div class="review-entry-comment">${escapeHtml(r.comment)}</div>` : ''}
+          </div>`;
+        }).join('')}
+      `;
+      el.appendChild(block);
+    });
+  }, 'loadItemReviews');
 }
 
 async function loadDeveloperFeedback(channel = 'customer_to_developer') {
