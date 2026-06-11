@@ -645,6 +645,33 @@
     }
     .cart-name { font-weight: 900; }
     .cart-option { color: var(--muted); font-size: 12px; font-weight: 800; margin-top: 3px; }
+    .cart-row-addons { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── ADDONS SHEET ── */
+    .addon-group { margin-bottom: 14px; }
+    .addon-group-label {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .addon-required {
+      font-size: 9px; background: var(--brand); color: #fff;
+      padding: 2px 7px; border-radius: 10px; font-weight: 700;
+      letter-spacing: 0; text-transform: uppercase;
+    }
+    .addon-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.6); border: 1px solid var(--line);
+      border-radius: var(--radius); margin-bottom: 6px;
+      cursor: pointer; font-size: 14px; color: var(--ink);
+    }
+    .addon-opt input[type=radio],
+    .addon-opt input[type=checkbox] { accent-color: var(--brand); width: 18px; height: 18px; flex-shrink: 0; }
+    .addon-toggle { justify-content: space-between; }
+    .addon-toggle-name { flex: 1; }
+    .addon-price { font-weight: 700; color: var(--brand2); font-size: 14px; }
+
     .remove-btn {
       width: 34px;
       height: 34px;
@@ -847,6 +874,20 @@
     </div>
   </div>
 
+  <!-- ADDONS SHEET -->
+  <div class="sheet" id="addonsSheet" onclick="handleAddonsSheetBackdrop(event)">
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="addonsSheetTitle">
+      <div class="sheet-head">
+        <h2 class="sheet-title" id="addonsSheetTitle">Options & Add-ons</h2>
+        <button class="icon-btn" type="button" onclick="closeAddonsSheet()" aria-label="Close options">&times;</button>
+      </div>
+      <div class="subsection-title" id="addonsSheetSub" style="margin-bottom: 12px; font-size: 13px; color: var(--muted);"></div>
+      <div id="addonsSheetOpts"></div>
+      <button class="solid-btn" type="button" onclick="confirmAddons()" style="width: 100%; margin-top: 14px; border-radius: var(--radius)">Confirm &amp; Add to Order</button>
+      <button class="ghost-btn" type="button" onclick="closeAddonsSheet()" style="width: 100%; margin-top: 8px; border-radius: var(--radius)">Cancel</button>
+    </div>
+  </div>
+
   <script>
     const FB_URL = APP_CONFIG.firebase.url;
     const FB_ROOT = APP_CONFIG.firebase.root;
@@ -867,7 +908,8 @@
         deliveryPlatforms: APP_CONFIG.store.deliveryPlatforms || [],
         closedMessage: APP_CONFIG.store.closedMessage || "We are currently closed.",
         banner: APP_CONFIG.store.banner || { enabled: false, image_url: "", link: "", alt: "Store promotion" },
-        sizeLegend: APP_CONFIG.store.sizeLegend || []
+        sizeLegend: APP_CONFIG.store.sizeLegend || [],
+        foodAddons: APP_CONFIG.store.foodAddons || []
       },
       theme: APP_CONFIG.defaultTheme || {}
     };
@@ -879,6 +921,7 @@
     let activeCategory = "all";
     let query = "";
     let availableOnly = false;
+    let addonsPending = null;
 
     function esc(value) {
       return String(value == null ? "" : value).replace(/[<>&"]/g, ch => ({
@@ -1173,6 +1216,40 @@
         `;
         const grid = section.querySelector(".items-grid");
         group.items.forEach(item => grid.appendChild(renderItemCard(item)));
+        
+        // Append category-level addons if configured to show them
+        if (group.cat.showAddons && storeConfig.foodAddons && storeConfig.foodAddons.length) {
+          const addonsWrap = document.createElement('div');
+          addonsWrap.style.marginTop = '16px';
+          const addonsTitle = document.createElement('div');
+          addonsTitle.className = 'subsection-title';
+          addonsTitle.textContent = 'Add-ons';
+          addonsTitle.style.fontSize = '12px';
+          addonsTitle.style.fontWeight = '800';
+          addonsTitle.style.color = 'var(--muted)';
+          addonsTitle.style.textTransform = 'uppercase';
+          addonsTitle.style.letterSpacing = '0.5px';
+          addonsTitle.style.marginBottom = '8px';
+          addonsWrap.appendChild(addonsTitle);
+          storeConfig.foodAddons.forEach(addon => {
+            const row = document.createElement('div');
+            row.className = 'addon-row';
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.padding = '10px 14px';
+            row.style.background = 'rgba(255, 255, 255, 0.4)';
+            row.style.border = '1px solid var(--line)';
+            row.style.borderRadius = 'var(--radius)';
+            row.style.marginBottom = '4px';
+            row.style.fontSize = '13px';
+            row.style.color = 'var(--muted)';
+            row.innerHTML = `<span>${esc(addon.name)}</span><span style="font-weight:700;color:var(--brand2)">+${money(addon.price)}</span>`;
+            addonsWrap.appendChild(row);
+          });
+          section.appendChild(addonsWrap);
+        }
+        
         space.appendChild(section);
       });
     }
@@ -1225,14 +1302,104 @@
       if (!item || item.avail === false || storeConfig.isOpen === false) return;
       const option = itemOptions(item)[optionIndex] || itemOptions(item)[0];
       if (!option) return;
+      
+      const hasAddons = item.addons && item.addons.length > 0;
+      if (hasAddons) {
+        openAddonsSheet(item, option);
+      } else {
+        cart.push({
+          uid: Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+          id: item.id,
+          name: item.name,
+          option: option.label,
+          price: option.price
+        });
+        updateCart();
+      }
+    }
+
+    function openAddonsSheet(item, option) {
+      addonsPending = { item, option };
+      document.getElementById('addonsSheetTitle').textContent = item.name;
+      
+      const sub = option.label ? `${option.label} · ${money(option.price)}` : money(option.price);
+      document.getElementById('addonsSheetSub').textContent = sub;
+      
+      const opts = document.getElementById('addonsSheetOpts');
+      opts.innerHTML = '';
+      
+      item.addons.forEach(addon => {
+        const group = document.createElement('div');
+        group.className = 'addon-group';
+        
+        if (addon.type === 'select') {
+          group.innerHTML = `<div class="addon-group-label">${esc(addon.name)} <span class="addon-required">Required</span></div>`;
+          (addon.options || []).forEach((opt, idx) => {
+            const lbl = document.createElement('label');
+            lbl.className = 'addon-opt';
+            lbl.innerHTML = `<input type="radio" name="addon_${addon.id}" value="${esc(opt)}" ${idx === 0 ? 'checked' : ''}><span>${esc(opt)}</span>`;
+            group.appendChild(lbl);
+          });
+        } else {
+          const lbl = document.createElement('label');
+          lbl.className = 'addon-opt addon-toggle';
+          lbl.innerHTML = `<input type="checkbox" id="addon_${addon.id}"><span class="addon-toggle-name">${esc(addon.name)}</span><span class="addon-price">+${money(addon.price)}</span>`;
+          group.appendChild(lbl);
+        }
+        
+        opts.appendChild(group);
+      });
+      
+      document.getElementById('addonsSheet').classList.add('open');
+      document.body.classList.add("sheet-open");
+    }
+
+    function confirmAddons() {
+      if (!addonsPending) return;
+      const { item, option } = addonsPending;
+      const selectedAddons = [];
+      let addonTotal = 0;
+      
+      (item.addons || []).forEach(addon => {
+        if (addon.type === 'select') {
+          const sel = document.querySelector(`input[name="addon_${addon.id}"]:checked`);
+          if (sel) {
+            selectedAddons.push({ name: addon.name, value: sel.value, price: 0 });
+          }
+        } else {
+          const cb = document.getElementById(`addon_${addon.id}`);
+          if (cb && cb.checked) {
+            const price = Number(addon.price) || 0;
+            selectedAddons.push({ name: addon.name, value: 'Yes', price: price });
+            addonTotal += price;
+          }
+        }
+      });
+      
+      closeAddonsSheet();
+      
       cart.push({
         uid: Date.now() + "_" + Math.random().toString(36).slice(2, 7),
         id: item.id,
         name: item.name,
         option: option.label,
-        price: option.price
+        price: option.price + addonTotal,
+        addons: selectedAddons
       });
+      
       updateCart();
+    }
+
+    function closeAddonsSheet() {
+      document.getElementById('addonsSheet').classList.remove('open');
+      document.body.classList.remove("sheet-open");
+      addonsPending = null;
+    }
+    
+    function handleAddonsSheetBackdrop(e) {
+      if (e.target === document.getElementById('addonsSheet')) {
+        closeAddonsSheet();
+      }
     }
 
     function removeCart(uid) {
@@ -1305,16 +1472,20 @@
         updateCart();
         return;
       }
-      list.innerHTML = cart.map(item => `
-        <div class="cart-row">
-          <div>
-            <div class="cart-name">${esc(item.name)}</div>
-            <div class="cart-option">${esc(item.option || "Regular")}</div>
+      list.innerHTML = cart.map(item => {
+        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}`).join(' · ');
+        return `
+          <div class="cart-row">
+            <div>
+              <div class="cart-name">${esc(item.name)}</div>
+              <div class="cart-option">${esc(item.option || "Regular")}</div>
+              ${addonsStr ? `<div class="cart-row-addons">${esc(addonsStr)}</div>` : ''}
+            </div>
+            <strong>${money(item.price)}</strong>
+            <button class="remove-btn" type="button" onclick="removeCart('${esc(item.uid)}')" aria-label="Remove ${esc(item.name)}">&times;</button>
           </div>
-          <strong>${money(item.price)}</strong>
-          <button class="remove-btn" type="button" onclick="removeCart('${esc(item.uid)}')" aria-label="Remove ${esc(item.name)}">&times;</button>
-        </div>
-      `).join("");
+        `;
+      }).join("");
       updateCart();
     }
 
@@ -1328,7 +1499,9 @@
       msg += `Name: ${name}\n\n`;
       msg += `Items:\n`;
       cart.forEach((item, index) => {
-        msg += `${index + 1}. ${item.name}${item.option ? ` (${item.option})` : ""} - ${money(item.price)}\n`;
+        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}`).join(', ');
+        const optionAndAddons = [item.option, addonsStr].filter(Boolean).join('; ');
+        msg += `${index + 1}. ${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} - ${money(item.price)}\n`;
       });
       msg += `\nTotal: ${money(total)}`;
       if (note) msg += `\n\nNote: ${note}`;
