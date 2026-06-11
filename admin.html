@@ -572,7 +572,9 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <textarea class="form-input" id="ownerDevComment" style="height:90px;margin-top:8px;resize:vertical" placeholder="Describe what needs attention"></textarea>
       <button class="btn btn-primary" onclick="submitOwnerToDeveloperFeedback()" style="margin-top:10px">Send Developer Feedback</button>
     </div>
-    <div class="a-card-title">Customer to Store</div>
+    <div class="a-card-title">Developer Support Requests</div>
+    <div id="ownerDevFeedbackList" style="margin-bottom:20px"><div style="color:var(--text2);font-size:13px;padding:20px 0">Loading...</div></div>
+    <div class="a-card-title">Customer Feedback to Store</div>
     <div id="ownerFeedbackList"><div style="color:var(--text2);font-size:13px;padding:20px 0">Loading...</div></div>
   </div>
 
@@ -2103,7 +2105,7 @@ async function loadSalesDashboard() {
       .slice(0, 10);
       
     if (topWeekly.length) {
-      topWeeklyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topWeekly.map(([name, count]) => `<li><strong>${esc(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
+      topWeeklyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topWeekly.map(([name, count]) => `<li><strong>${escapeHtml(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
     } else {
       topWeeklyEl.innerHTML = '<div style="color:var(--text3)">No orders this week.</div>';
     }
@@ -2114,7 +2116,7 @@ async function loadSalesDashboard() {
       .slice(0, 10);
       
     if (topMonthly.length) {
-      topMonthlyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topMonthly.map(([name, count]) => `<li><strong>${esc(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
+      topMonthlyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topMonthly.map(([name, count]) => `<li><strong>${escapeHtml(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
     } else {
       topMonthlyEl.innerHTML = '<div style="color:var(--text3)">No orders this month.</div>';
     }
@@ -2276,15 +2278,43 @@ function renderFeedbackRows(container, entries, channel) {
       status.appendChild(btn);
     });
     row.append(meta, title, body, tags, status);
+
+    // Render Developer Response if it exists
+    if (fb.developer_response) {
+      const devRespBox = document.createElement('div');
+      devRespBox.style.cssText = 'margin-top: 10px; background: rgba(99, 102, 241, 0.06); border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 4px; font-size: 11px;';
+      devRespBox.innerHTML = `<strong style="color: var(--accent); display: block; margin-bottom: 4px;">Developer Response:</strong>
+                              <div style="white-space: pre-wrap; line-height: 1.5; color: var(--text); font-family: monospace;">${escapeHtml(fb.developer_response)}</div>`;
+      row.appendChild(devRespBox);
+    }
+
+    // Render Response Editor if role is developer and it is a developer channel
+    if (currentRole === 'dev' && (channel === 'owner_to_developer' || channel === 'customer_to_developer')) {
+      const editorDiv = document.createElement('div');
+      editorDiv.style.cssText = 'margin-top: 10px; border-top: 1px dashed var(--border2); padding-top: 8px;';
+      editorDiv.innerHTML = `
+        <div style="font-size: 10px; font-weight: 800; color: var(--text2); margin-bottom: 4px;">Developer Response Editor:</div>
+        <textarea class="form-input" style="height: 60px; font-size: 11px; font-family: monospace; resize: vertical; width: 100%;" placeholder="Add developer response...">${fb.developer_response || ''}</textarea>
+        <button class="btn btn-primary btn-sm" style="margin-top: 4px; font-size: 10px; padding: 4px 8px;" onclick="saveDeveloperResponse('${channel}', '${key}', this)">Save Response</button>
+      `;
+      row.appendChild(editorDiv);
+    }
+
     container.appendChild(row);
   });
 }
 
 async function loadOwnerFeedback() {
   await safe(async () => {
-    const snap = await fbGet('feedback/customer_to_store');
-    const entries = Object.entries(snap || {}).sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
-    renderFeedbackRows(document.getElementById('ownerFeedbackList'), entries, 'customer_to_store');
+    // 1. Customer feedback to store
+    const storeSnap = await fbGet('feedback/customer_to_store');
+    const storeEntries = Object.entries(storeSnap || {}).sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
+    renderFeedbackRows(document.getElementById('ownerFeedbackList'), storeEntries, 'customer_to_store');
+
+    // 2. Owner support feedback to developer
+    const devSnap = await fbGet('feedback/owner_to_developer');
+    const devEntries = Object.entries(devSnap || {}).sort((a,b) => Number(b[1].created_at || 0) - Number(a[1].created_at || 0));
+    renderFeedbackRows(document.getElementById('ownerDevFeedbackList'), devEntries, 'owner_to_developer');
   }, 'loadOwnerFeedback');
 }
 
@@ -2303,6 +2333,23 @@ async function updateFeedbackStatus(channel, key, fb, status) {
     if (channel === 'customer_to_store') await loadOwnerFeedback();
     else await loadDeveloperFeedback(channel);
   }, 'updateFeedbackStatus');
+}
+
+async function saveDeveloperResponse(channel, key, btn) {
+  const textarea = btn.previousElementSibling;
+  const response = textarea.value.trim();
+  await safe(async () => {
+    const snap = await fbGet(`feedback/${channel}/${key}`);
+    if (!snap) { toast('Error loading feedback'); return; }
+    await fbSet(`feedback/${channel}/${key}`, { ...snap, developer_response: response, last_updated_at: Date.now() });
+    toast('Developer response saved ✓');
+    if (channel === 'customer_to_store') {
+      await loadOwnerFeedback();
+    } else {
+      if (currentRole === 'dev') await loadDeveloperFeedback(channel);
+      await loadOwnerFeedback();
+    }
+  }, 'saveDeveloperResponse');
 }
 
 async function submitOwnerToDeveloperFeedback() {

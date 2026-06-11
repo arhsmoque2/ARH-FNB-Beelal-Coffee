@@ -959,7 +959,7 @@
   </div>
 
   <!-- FEEDBACK SHEET -->
-  <div class="sheet" id="feedbackSheet">
+  <div class="sheet" id="feedbackSheet" onclick="handleFeedbackSheetBackdrop(event)">
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
       <div class="sheet-head">
         <h2 class="sheet-title" id="feedbackTitle">How was your order?</h2>
@@ -1518,6 +1518,12 @@
     function handleAddonsSheetBackdrop(e) {
       if (e.target === document.getElementById('addonsSheet')) {
         closeAddonsSheet();
+      }
+    }
+    
+    function handleFeedbackSheetBackdrop(e) {
+      if (e.target === document.getElementById('feedbackSheet')) {
+        closeFeedbackModal();
       }
     }
 
