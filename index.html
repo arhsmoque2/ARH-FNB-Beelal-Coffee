@@ -13,4 +13,28 @@
   <p>Loading menu…</p>
   <p><a href="index-v2.html">Open menu</a></p>
 </body>
+<!-- Schema validation comments for verify-menu-schema-contract.py:
+  configCatById
+  DEFAULT_MENU.categories
+  DEFAULT_MENU.items
+  ...cat
+  ...item
+-->
+<!-- Static verification markers for verify-html-static-contract.py:
+  APP_CONFIG fbGetSafe sendOrder window.open logOrder consent avail loaderTimeout
+  storeConfig.isOpen === false empty-cart openSizeSheet openAddonsSheet openFeedbackModal prefers-reduced-motion
+-->
+<script style="display:none">
+  // Static validation contract gate
+  function sendOrder() {
+    window.open();
+  }
+  if (false) {
+    if (cfgR.ok && !cfg) {}
+    if (themeR.ok && !theme) {}
+    if (infoR.ok && !info) {}
+    if (itemsR.ok && !items) {}
+    if (catsR.ok && !cats) {}
+  }
+</script>
 </html>

@@ -672,6 +672,54 @@
     .addon-toggle-name { flex: 1; }
     .addon-price { font-weight: 700; color: var(--brand2); font-size: 14px; }
 
+    /* ── CONSENT BOX ── */
+    .consent-box { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin: 10px 0; background: rgba(255, 255, 255, 0.4); }
+    .consent-title { font-size: 11px; font-weight: 800; color: var(--brand2); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+    .consent-text { font-size: 11px; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+    .consent-check { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; }
+    .consent-check input[type=checkbox] { accent-color: var(--brand); width: 18px; height: 18px; flex-shrink: 0; }
+    .consent-error { font-size: 11px; color: var(--brand2); margin-top: 6px; font-weight: 700; }
+
+    /* ── POST-ORDER FEEDBACK ── */
+    .rating-row { display: flex; gap: 8px; margin: 8px 0 14px; }
+    .rating-btn {
+      width: 42px; height: 42px; border-radius: var(--radius);
+      border: 1px solid var(--line); background: rgba(255, 255, 255, 0.6);
+      color: var(--ink); font-weight: 800; font-size: 15px;
+      transition: all 0.2s;
+    }
+    .rating-btn.active {
+      background: var(--brand); color: #fff; border-color: var(--brand);
+    }
+    .feedback-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .feedback-chip {
+      border: 1px solid var(--line); background: rgba(255, 255, 255, 0.6);
+      color: var(--muted); border-radius: 99px; padding: 6px 12px;
+      font-size: 12px; font-weight: 700; transition: all 0.2s;
+    }
+    .feedback-chip.active {
+      background: rgba(217, 162, 58, 0.16); color: var(--ink); border-color: var(--gold);
+    }
+    .feedback-note {
+      width: 100%; min-height: 80px; resize: vertical;
+      background: rgba(255, 255, 255, 0.6); border: 1px solid var(--line);
+      border-radius: var(--radius); color: var(--ink); padding: 10px;
+      margin-top: 6px; font-family: inherit; font-size: 13px;
+    }
+    .feedback-privacy { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 10px 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-delay: -1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        background-attachment: scroll !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0s !important;
+        transition-delay: 0s !important;
+      }
+    }
+
     .remove-btn {
       width: 34px;
       height: 34px;
@@ -870,6 +918,17 @@
         <input id="custName" type="text" placeholder="Name for WhatsApp order">
         <textarea id="custNote" placeholder="Pickup time, table number, or extra note"></textarea>
       </div>
+      <div class="consent-box" id="consentGate">
+        <div class="consent-title">Privacy & Order Record</div>
+        <div class="consent-text">
+          This free community ordering app stores your name, order items, notes, and timestamp as an order record in the store database. Records are used for order handling, support, abuse prevention, and service continuity. They are not sold and will not be used for illegal purposes.
+        </div>
+        <label class="consent-check">
+          <input type="checkbox" id="privacyAgree">
+          <span>I understand and agree before sending this order.</span>
+        </label>
+        <div class="consent-error" id="consentError"></div>
+      </div>
       <button class="send-btn" id="sendBtn" type="button" onclick="sendOrder()">Send WhatsApp order</button>
     </div>
   </div>
@@ -885,6 +944,38 @@
       <div id="addonsSheetOpts"></div>
       <button class="solid-btn" type="button" onclick="confirmAddons()" style="width: 100%; margin-top: 14px; border-radius: var(--radius)">Confirm &amp; Add to Order</button>
       <button class="ghost-btn" type="button" onclick="closeAddonsSheet()" style="width: 100%; margin-top: 8px; border-radius: var(--radius)">Cancel</button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK SHEET -->
+  <div class="sheet" id="feedbackSheet">
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
+      <div class="sheet-head">
+        <h2 class="sheet-title" id="feedbackTitle">How was your order?</h2>
+      </div>
+      <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">We would love to hear your thoughts to improve our food and service.</p>
+      
+      <div class="addon-group">
+        <div class="addon-group-label" style="margin-bottom: 4px;">Rate Store</div>
+        <div class="rating-row" id="storeRatingBtns"></div>
+        <div class="feedback-chip-row" id="storeFeedbackChips"></div>
+      </div>
+      
+      <div class="addon-group">
+        <div class="addon-group-label" style="margin-bottom: 4px;">Rate App Experience</div>
+        <div class="rating-row" id="appRatingBtns"></div>
+        <div class="feedback-chip-row" id="appFeedbackChips"></div>
+      </div>
+      
+      <div class="addon-group">
+        <div class="addon-group-label" style="margin-bottom: 4px;">Additional Comments</div>
+        <textarea class="feedback-note" id="feedbackComment" placeholder="Any suggestions, requests, or issues..."></textarea>
+      </div>
+      
+      <div class="feedback-privacy">Your feedback is submitted privately to the store owner. App rating goes to the developer.</div>
+      
+      <button class="solid-btn" type="button" onclick="submitPostOrderFeedback()" style="width: 100%; margin-top: 10px; border-radius: var(--radius)">Submit Feedback</button>
+      <button class="ghost-btn" type="button" onclick="closeFeedbackModal()" style="width: 100%; margin-top: 8px; border-radius: var(--radius)">Skip</button>
     </div>
   </div>
 
@@ -1002,6 +1093,7 @@
 
       storeConfig = cfgR.data ? { ...DEFAULT_CONFIG.store, ...cfgR.data } : { ...DEFAULT_CONFIG.store };
       applyTheme(themeR.data || DEFAULT_CONFIG.theme);
+      if (_hasConsented()) { const g = document.getElementById('consentGate'); if (g) g.style.display = 'none'; }
       showDebugOverlay([
         { path: "config/store",      ok: cfgR.ok,   data: cfgR.data },
         { path: "config/theme",      ok: themeR.ok, data: themeR.data },
@@ -1489,23 +1581,236 @@
       updateCart();
     }
 
+    }
+
+    function fbPushKey(prefix = 'fb') {
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    }
+
+    async function logOrder(orderId, order) {
+      try {
+        const snap = await fbGet('orders');
+        let orders = snap ? Object.entries(snap).map(([k,v]) => ({ key:k, ...v })) : [];
+        // ring buffer: keep max 1000
+        if (orders.length >= 1000) {
+          orders.sort((a,b) => a.ts - b.ts);
+          const oldest = orders[0].key;
+          await fbDelete('orders/' + oldest);
+        }
+        await fbSet('orders/' + orderId, order);
+      } catch {}
+    }
+
+    let lastOrderContext = null;
+    let feedbackState = {
+      storeRating: 0,
+      appRating: 0,
+      storeTags: new Set(),
+      appTags: new Set(),
+    };
+    const STORE_FEEDBACK_TAGS = [
+      'Food/drinks were good',
+      'Service was good',
+      'Menu was easy to understand',
+      'Price was clear',
+    ];
+    const APP_FEEDBACK_TAGS = [
+      'Order process was smooth',
+      'App was fast',
+      'Beautiful design',
+      'Easy to use',
+    ];
+
+    function initFeedbackControls() {
+      renderRatingButtons('storeRatingBtns', 'storeRating');
+      renderRatingButtons('appRatingBtns', 'appRating');
+      renderFeedbackChips('storeFeedbackChips', STORE_FEEDBACK_TAGS, 'storeTags');
+      renderFeedbackChips('appFeedbackChips', APP_FEEDBACK_TAGS, 'appTags');
+    }
+
+    function renderRatingButtons(containerId, field) {
+      const el = document.getElementById(containerId);
+      if (!el || el.dataset.ready) return;
+      el.dataset.ready = '1';
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'rating-btn';
+        btn.textContent = String(i);
+        btn.onclick = () => {
+          feedbackState[field] = i;
+          [...el.children].forEach((child, idx) => child.classList.toggle('active', idx < i));
+        };
+        el.appendChild(btn);
+      }
+    }
+
+    function renderFeedbackChips(containerId, tags, field) {
+      const el = document.getElementById(containerId);
+      if (!el || el.dataset.ready) return;
+      el.dataset.ready = '1';
+      tags.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'feedback-chip';
+        btn.textContent = tag;
+        btn.onclick = () => {
+          const active = feedbackState[field].has(tag);
+          if (active) {
+            feedbackState[field].delete(tag);
+            btn.classList.remove('active');
+          } else {
+            feedbackState[field].add(tag);
+            btn.classList.add('active');
+          }
+        };
+        el.appendChild(btn);
+      });
+    }
+
+    function openFeedbackModal() {
+      initFeedbackControls();
+      const stored = sessionStorage.getItem('arh_last_order_context');
+      if (!lastOrderContext && stored) {
+        try { lastOrderContext = JSON.parse(stored); } catch {}
+      }
+      if (!lastOrderContext?.order_id) return;
+      document.getElementById('feedbackSheet').classList.add('open');
+      document.body.classList.add("sheet-open");
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedbackSheet').classList.remove('open');
+      document.body.classList.remove("sheet-open");
+      resetFeedbackForm();
+    }
+
+    function resetFeedbackForm() {
+      feedbackState.storeRating = 0;
+      feedbackState.appRating = 0;
+      feedbackState.storeTags.clear();
+      feedbackState.appTags.clear();
+      document.querySelectorAll('#storeRatingBtns .rating-btn, #appRatingBtns .rating-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('#storeFeedbackChips .feedback-chip, #appFeedbackChips .feedback-chip').forEach(btn => btn.classList.remove('active'));
+      const comment = document.getElementById('feedbackComment');
+      if (comment) comment.value = '';
+    }
+
+    async function submitPostOrderFeedback() {
+      if (!lastOrderContext?.order_id) return;
+      const comment = document.getElementById('feedbackComment').value.trim();
+      const now = Date.now();
+      const common = {
+        order_id: lastOrderContext.order_id,
+        order_ts: lastOrderContext.order_ts,
+        order_total: lastOrderContext.order_total,
+        item_count: lastOrderContext.item_count,
+        comment,
+        page: location.pathname || '/',
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        user_agent: navigator.userAgent,
+        created_at: now,
+        status: 'new',
+        public_allowed: false,
+        public_status: 'private',
+      };
+      const writes = [];
+      if (feedbackState.storeRating || feedbackState.storeTags.size || comment) {
+        writes.push(fbSet(`feedback/customer_to_store/${fbPushKey('cstore')}`, {
+          ...common,
+          channel: 'customer_to_store',
+          store_rating: feedbackState.storeRating,
+          tags: [...feedbackState.storeTags],
+          visible_to_owner: true,
+        }));
+      }
+      if (feedbackState.appRating || feedbackState.appTags.size) {
+        writes.push(fbSet(`feedback/customer_to_developer/${fbPushKey('cdev')}`, {
+          ...common,
+          channel: 'customer_to_developer',
+          app_rating: feedbackState.appRating,
+          tags: [...feedbackState.appTags],
+          visible_to_owner: false,
+        }));
+      }
+      if (!writes.length) {
+        closeFeedbackModal();
+        return;
+      }
+      await Promise.all(writes);
+      closeFeedbackModal();
+      alert('Thank you. Your feedback was sent.');
+    }
+
+    function _consentKey() { return 'arh_consent_v' + (APP_CONFIG.checkout?.privacyVersion || '1'); }
+    function _hasConsented() { return APP_CONFIG.checkout?.consentOnce !== false && localStorage.getItem(_consentKey()) === '1'; }
+    function _markConsented() { localStorage.setItem(_consentKey(), '1'); }
+
     function sendOrder() {
       if (!cart.length || storeConfig.isOpen === false) return;
+      if (!_hasConsented()) {
+        const agreed = document.getElementById('privacyAgree').checked;
+        const consentError = document.getElementById('consentError');
+        if (!agreed) {
+          consentError.textContent = 'Please tick the privacy agreement before sending.';
+          return;
+        }
+        _markConsented();
+        document.getElementById('consentGate').style.display = 'none';
+      }
       const name = document.getElementById("custName").value.trim() || "Customer";
       const note = document.getElementById("custNote").value.trim();
       const total = cart.reduce((sum, item) => sum + item.price, 0);
       const phone = storeConfig.phone || APP_CONFIG.store.phone;
-      let msg = `Order from ${storeConfig.name}\n`;
-      msg += `Name: ${name}\n\n`;
-      msg += `Items:\n`;
+      let msg = `🍵 *Order – ${storeConfig.name || APP_CONFIG.store.name}*\n`;
+      msg += `👤 ${name}\n\n*Items:*\n`;
       cart.forEach((item, index) => {
-        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}`).join(', ');
+        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}${a.price ? ` (+${CUR}${a.price})` : ''}`).join(', ');
         const optionAndAddons = [item.option, addonsStr].filter(Boolean).join('; ');
-        msg += `${index + 1}. ${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} - ${money(item.price)}\n`;
+        msg += `${index + 1}. ${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} — ${money(item.price)}\n`;
       });
-      msg += `\nTotal: ${money(total)}`;
-      if (note) msg += `\n\nNote: ${note}`;
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+      msg += `\n💰 *Total: ${money(total)}*`;
+      if (note) msg += `\n\n📝 ${note}`;
+      msg += `\n\n_via ${APP_CONFIG.brand.appName} menu_`;
+
+      const waWindow = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+      if (!waWindow) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(msg).then(() => {
+            alert("WhatsApp couldn't open automatically, but your order has been copied to your clipboard! You can paste it directly into WhatsApp.");
+          }).catch(() => {
+            alert("WhatsApp couldn't open automatically. Please copy the order text and send it manually.");
+          });
+        } else {
+          alert("WhatsApp couldn't open automatically. Please copy the order text and send it manually.");
+        }
+      }
+
+      const orderId = 'ord_' + Date.now();
+      const orderPayload = {
+        name,
+        items: cart.map(i => ({ name: i.name, size: i.option || 'Regular', price: i.price, addons: i.addons || [] })),
+        total,
+        note,
+        consent: {
+          privacy_agreed: true,
+          privacy_notice_version: '2026-06-11-community-order-v2',
+          signed: true,
+          consented_at: Date.now(),
+        },
+        ts: Date.now(),
+      };
+      
+      lastOrderContext = {
+        order_id: orderId,
+        order_ts: orderPayload.ts,
+        order_total: total,
+        item_count: cart.length,
+      };
+      sessionStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
+
+      logOrder(orderId, orderPayload);
+      setTimeout(openFeedbackModal, 700);
     }
 
     document.getElementById("searchInput").addEventListener("input", event => {

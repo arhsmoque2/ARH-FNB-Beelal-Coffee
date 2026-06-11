@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -697,6 +697,50 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div class="sec-title">Developer</div>
     <div class="sec-sub">Visible to developer only</div>
 
+    <!-- SALES DASHBOARD -->
+    <div class="dev-section">
+      <div class="dev-title">Sales Dashboard</div>
+      <div class="a-card">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Monitor sales analytics from order history.</div>
+        
+        <!-- Sales Stats Grid -->
+        <div id="salesStatsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          <div style="background:var(--bg2);padding:10px;border-radius:var(--r2);text-align:center">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase">Today</div>
+            <strong id="salesToday" style="font-size:16px;color:var(--text)">RM 0.00</strong>
+          </div>
+          <div style="background:var(--bg2);padding:10px;border-radius:var(--r2);text-align:center">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase">This Week</div>
+            <strong id="salesWeekly" style="font-size:16px;color:var(--text)">RM 0.00</strong>
+          </div>
+          <div style="background:var(--bg2);padding:10px;border-radius:var(--r2);text-align:center">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase">This Month</div>
+            <strong id="salesMonthly" style="font-size:16px;color:var(--text)">RM 0.00</strong>
+          </div>
+        </div>
+        
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn btn-secondary btn-sm" onclick="loadSalesDashboard()">↻ Refresh Dashboard</button>
+        </div>
+        
+        <!-- Top 10 items section -->
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Top 10 Menu Items (This Week)</div>
+          <div id="topItemsWeekly" style="font-size:12px;color:var(--text2);line-height:1.6">Loading...</div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Top 10 Menu Items (This Month)</div>
+          <div id="topItemsMonthly" style="font-size:12px;color:var(--text2);line-height:1.6">Loading...</div>
+        </div>
+        
+        <!-- Order pattern section -->
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Peak Ordering Periods (Hour of Day)</div>
+          <div id="orderPatterns" style="font-size:12px;color:var(--text2);line-height:1.6">Loading...</div>
+        </div>
+      </div>
+    </div>
+
     <div class="dev-section">
       <div class="dev-title">OpenRouter API Key</div>
       <div class="a-card">
@@ -1266,6 +1310,9 @@ function showTab(id, el) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
+  if (id === 'dev') {
+    loadSalesDashboard();
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1982,6 +2029,113 @@ async function loadOrders() {
       el.appendChild(r);
     });
   }, 'loadOrders');
+}
+
+async function loadSalesDashboard() {
+  await safe(async () => {
+    const snap = await fbGet('orders');
+    const todayEl = document.getElementById('salesToday');
+    const weeklyEl = document.getElementById('salesWeekly');
+    const monthlyEl = document.getElementById('salesMonthly');
+    const topWeeklyEl = document.getElementById('topItemsWeekly');
+    const topMonthlyEl = document.getElementById('topItemsMonthly');
+    const patternsEl = document.getElementById('orderPatterns');
+    
+    if (!snap) {
+      todayEl.textContent = `${CUR} 0.00`;
+      weeklyEl.textContent = `${CUR} 0.00`;
+      monthlyEl.textContent = `${CUR} 0.00`;
+      topWeeklyEl.innerHTML = '<div style="color:var(--text3)">No data</div>';
+      topMonthlyEl.innerHTML = '<div style="color:var(--text3)">No data</div>';
+      patternsEl.innerHTML = '<div style="color:var(--text3)">No data</div>';
+      return;
+    }
+    
+    const orders = Object.values(snap);
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const oneWeek = 7 * oneDay;
+    const oneMonth = 30 * oneDay;
+    
+    // 1. Sales Calculations
+    let todaySales = 0;
+    let weeklySales = 0;
+    let monthlySales = 0;
+    
+    // Weekly & Monthly items frequency map
+    const weeklyItemMap = {};
+    const monthlyItemMap = {};
+    
+    // Hourly ordering pattern (0-23 hours)
+    const hourMap = Array(24).fill(0);
+    
+    orders.forEach(o => {
+      const ts = Number(o.ts) || 0;
+      const total = Number(o.total) || 0;
+      const age = now - ts;
+      
+      if (age < oneDay) todaySales += total;
+      if (age < oneWeek) {
+        weeklySales += total;
+        (o.items || []).forEach(item => {
+          weeklyItemMap[item.name] = (weeklyItemMap[item.name] || 0) + 1;
+        });
+      }
+      if (age < oneMonth) {
+        monthlySales += total;
+        (o.items || []).forEach(item => {
+          monthlyItemMap[item.name] = (monthlyItemMap[item.name] || 0) + 1;
+        });
+      }
+      
+      const date = new Date(ts);
+      const hour = date.getHours();
+      hourMap[hour] += 1;
+    });
+    
+    todayEl.textContent = `${CUR} ${todaySales.toFixed(2)}`;
+    weeklyEl.textContent = `${CUR} ${weeklySales.toFixed(2)}`;
+    monthlyEl.textContent = `${CUR} ${monthlySales.toFixed(2)}`;
+    
+    // 2. Top 10 items for the week
+    const topWeekly = Object.entries(weeklyItemMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+      
+    if (topWeekly.length) {
+      topWeeklyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topWeekly.map(([name, count]) => `<li><strong>${esc(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
+    } else {
+      topWeeklyEl.innerHTML = '<div style="color:var(--text3)">No orders this week.</div>';
+    }
+    
+    // 3. Top 10 items for the month
+    const topMonthly = Object.entries(monthlyItemMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+      
+    if (topMonthly.length) {
+      topMonthlyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topMonthly.map(([name, count]) => `<li><strong>${esc(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
+    } else {
+      topMonthlyEl.innerHTML = '<div style="color:var(--text3)">No orders this month.</div>';
+    }
+    
+    // 4. Hourly patterns rendering (show peak hours)
+    const peakHours = hourMap
+      .map((count, hour) => ({ hour, count }))
+      .filter(item => item.count > 0)
+      .sort((a, b) => b.count - a.count);
+      
+    if (peakHours.length) {
+      patternsEl.innerHTML = '<ul style="margin:0;padding-left:16px;list-style-type:none">' + peakHours.slice(0, 5).map(item => {
+        const h = item.hour;
+        const periodStr = `${h === 0 ? 12 : (h > 12 ? h - 12 : h)}:00 ${h >= 12 ? 'PM' : 'AM'}`;
+        return `<li>🕒 <strong>${periodStr}</strong>: ${item.count} order${item.count === 1 ? '' : 's'}</li>`;
+      }).join('') + '</ul>';
+    } else {
+      patternsEl.innerHTML = '<div style="color:var(--text3)">No pattern data yet.</div>';
+    }
+    
+  }, 'loadSalesDashboard');
 }
 
 // ════════════════════════════════════════════════════════════
