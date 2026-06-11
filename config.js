@@ -56,7 +56,7 @@ const APP_CONFIG = {
     quickChips: [
       { label: '🌙 Raya Theme',      prompt: 'Retheme for Hari Raya Aidilfitri — festive green and gold tones' },
       { label: '🎒 School Holidays', prompt: 'Retheme for school holidays — brighter, more cheerful and welcoming' },
-      { label: '↩ Reset to Default', prompt: 'Reset all theme colors and fonts back to original Beelal Coffee warm cream and espresso brown' },
+      { label: '↩ Reset to Default', prompt: 'Reset all theme colors and fonts back to original Beelal Coffee slate and indigo light theme' },
       { label: '✏️ Change Slogan',   prompt: 'Change the slogan to: ' },
       { label: '🍝 Pasta Off',       prompt: 'Mark all pasta items as sold out for today' },
       { label: '✅ All Available',   prompt: 'Mark all menu items as available' },
@@ -65,18 +65,18 @@ const APP_CONFIG = {
 
   // ── Default Theme ───────────────────────────────────────────────────────────
   defaultTheme: {
-    bg:           '#FEF7EE',
-    bg2:          '#F9F0E1',
-    bg3:          '#F2E6CE',
+    bg:           '#F8FAFC',
+    bg2:          '#F1F5F9',
+    bg3:          '#E2E8F0',
     surface:      '#FFFFFF',
-    primary:      '#2C1A0E',
-    accent:       '#C8962A',
-    accent2:      '#E8B84B',
-    text:         '#1C110A',
-    text2:        '#7A5C3E',
-    text3:        '#B89070',
-    font_display: "'Playfair Display', Georgia, serif",
-    font_body:    "'DM Sans', sans-serif",
+    primary:      '#4F46E5',
+    accent:       '#EC4899',
+    accent2:      '#F59E0B',
+    text:         '#0F172A',
+    text2:        '#475569',
+    text3:        '#94A3B8',
+    font_display: "'Outfit', system-ui, sans-serif",
+    font_body:    "'Outfit', system-ui, sans-serif",
   },
 
   // ── Default Menu ────────────────────────────────────────────────────────────
