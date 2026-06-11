@@ -3,28 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="theme-color" content="#fff7f4">
+  <meta name="theme-color" content="#f8fafc">
   <title>FnB Menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="config.js"></script>
   <style>
     :root {
-      --bg: #fff7f4;
+      --bg: #f8fafc;
       --paper: #ffffff;
-      --ink: #20100f;
-      --muted: #775858;
-      --faint: #a98989;
-      --line: rgba(91, 20, 23, .13);
-      --soft: rgba(255, 255, 255, .82);
-      --brand: #8b0000;
-      --brand2: #c41e3a;
-      --gold: #d9a23a;
-      --green: #137a45;
-      --shadow: 0 18px 44px rgba(86, 18, 22, .12);
-      --radius: 8px;
-      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ink: #0f172a;
+      --muted: #475569;
+      --faint: #94a3b8;
+      --line: rgba(15, 23, 42, 0.08);
+      --soft: rgba(255, 255, 255, 0.82);
+      --brand: #4f46e5;
+      --brand2: #ec4899;
+      --gold: #f59e0b;
+      --green: #10b981;
+      --shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+      --radius: 10px;
+      font-family: "Outfit", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color-scheme: light;
     }
 
@@ -34,8 +34,8 @@
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(circle at 8% 4%, rgba(196, 30, 58, .12), transparent 32%),
-        linear-gradient(135deg, #fff8f5 0%, #fff 42%, #fff2eb 100%);
+        radial-gradient(circle at 8% 4%, rgba(99, 102, 241, 0.08), transparent 32%),
+        linear-gradient(135deg, #f8fafc 0%, #ffffff 42%, #f1f5f9 100%);
       color: var(--ink);
       letter-spacing: 0;
       overflow-x: hidden;
@@ -160,12 +160,12 @@
     h1 {
       margin: 0;
       max-width: 760px;
-      font-family: "Playfair Display", Georgia, serif;
+      font-family: "Outfit", system-ui, sans-serif;
       font-size: clamp(52px, 8vw, 104px);
       font-weight: 900;
       line-height: .88;
-      letter-spacing: 0;
-      color: #2a1111;
+      letter-spacing: -1px;
+      color: var(--ink);
     }
     .lede {
       max-width: 630px;
@@ -681,15 +681,26 @@
     .consent-error { font-size: 11px; color: var(--brand2); margin-top: 6px; font-weight: 700; }
 
     /* ── POST-ORDER FEEDBACK ── */
-    .rating-row { display: flex; gap: 8px; margin: 8px 0 14px; }
+    .rating-row { display: flex; gap: 4px; margin: 8px 0 14px; }
     .rating-btn {
-      width: 42px; height: 42px; border-radius: var(--radius);
-      border: 1px solid var(--line); background: rgba(255, 255, 255, 0.6);
-      color: var(--ink); font-weight: 800; font-size: 15px;
-      transition: all 0.2s;
+      font-size: 28px;
+      line-height: 1;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      background: none;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: color 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rating-btn:hover {
+      transform: scale(1.15);
     }
     .rating-btn.active {
-      background: var(--brand); color: #fff; border-color: var(--brand);
+      color: #f59e0b;
     }
     .feedback-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
     .feedback-chip {
@@ -698,7 +709,7 @@
       font-size: 12px; font-weight: 700; transition: all 0.2s;
     }
     .feedback-chip.active {
-      background: rgba(217, 162, 58, 0.16); color: var(--ink); border-color: var(--gold);
+      background: rgba(99, 102, 241, 0.08); color: var(--brand); border-color: var(--brand);
     }
     .feedback-note {
       width: 100%; min-height: 80px; resize: vertical;
@@ -1627,12 +1638,17 @@
       'Service was good',
       'Menu was easy to understand',
       'Price was clear',
+      'Store info needs update',
     ];
     const APP_FEEDBACK_TAGS = [
       'Order process was smooth',
       'App was fast',
       'Beautiful design',
       'Easy to use',
+      'Font too small',
+      'Button hard to tap',
+      'Layout issue',
+      'Slow or stuck',
     ];
 
     function initFeedbackControls() {
@@ -1650,7 +1666,8 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'rating-btn';
-        btn.textContent = String(i);
+        btn.innerHTML = '★';
+        btn.title = `${i} Star${i === 1 ? '' : 's'}`;
         btn.onclick = () => {
           feedbackState[field] = i;
           [...el.children].forEach((child, idx) => child.classList.toggle('active', idx < i));
