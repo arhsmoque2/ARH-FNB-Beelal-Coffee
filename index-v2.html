@@ -1053,6 +1053,20 @@
         return { ok: false, data: null };
       }
     }
+    async function fbGet(path) {
+      const res = await fbGetSafe(path);
+      return res.ok ? res.data : null;
+    }
+    async function fbSet(path, data) {
+      await fbPut(path, data);
+    }
+    async function fbDelete(path) {
+      try {
+        await fetch(`${FB_URL}/${FB_ROOT}/${path}.json`, {
+          method: "DELETE"
+        });
+      } catch {}
+    }
     function toArrayRecords(value) {
       if (!value) return null;
       return Array.isArray(value) ? value.filter(Boolean) : Object.values(value).filter(Boolean);
