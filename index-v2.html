@@ -1212,6 +1212,8 @@
         media.prepend(img);
         media.classList.add("has-image");
         document.getElementById("fallbackPlate").style.display = "none";
+      } else {
+        document.getElementById("mediaCard").style.display = "none";
       }
 
       const available = menuData.items.filter(i => i.avail !== false).length;
