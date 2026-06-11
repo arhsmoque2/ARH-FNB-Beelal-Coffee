@@ -475,7 +475,10 @@
     .photo-ov.open { background: rgba(14,5,5,.93); backdrop-filter: blur(16px) saturate(1.7); }
     .photo-frame {
       position: relative;
-      max-width: min(92vw, 540px); width: 100%;
+      display: flex;
+      flex-direction: row;
+      max-width: min(92vw, 920px); width: 100%;
+      height: 80vh; max-height: 640px;
       border-radius: 18px; overflow: hidden;
       box-shadow: 0 48px 110px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07);
       transform: scale(.84) translateY(18px); opacity: 0;
@@ -483,12 +486,29 @@
       cursor: default;
     }
     .photo-ov.open .photo-frame { transform: scale(1) translateY(0); opacity: 1; }
-    .photo-frame img { width: 100%; height: auto; max-height: 72vh; object-fit: contain; display: block; animation: none; }
+    .photo-container {
+      position: relative;
+      flex: 1;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      height: 100%;
+    }
+    .photo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
     .photo-cap {
       position: absolute; bottom: 0; left: 0; right: 0;
       padding: 40px 18px 18px;
       background: linear-gradient(transparent, rgba(14,5,5,.86));
       color: #fff; font-size: 17px; font-weight: 900; letter-spacing: -.01em;
+      z-index: 10;
+      pointer-events: none;
     }
     .photo-x {
       position: absolute; top: 12px; right: 12px;
@@ -497,8 +517,71 @@
       color: #fff; font-size: 22px; line-height: 1;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: background .18s; padding: 0;
+      z-index: 210;
     }
     .photo-x:hover { background: rgba(14,5,5,.78); }
+    .photo-reviews-panel {
+      width: 360px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface, #ffffff);
+      border-left: 1px solid var(--bg3, #e2e8f0);
+      height: 100%;
+      color: var(--text, #0f172a);
+    }
+    .photo-reviews-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--bg3, #e2e8f0);
+      font-weight: 700;
+    }
+    .photo-reviews-title { font-size: 15px; color: var(--text, #0f172a); }
+    .photo-reviews-summary { font-size: 13px; color: var(--accent2, #f59e0b); }
+    .photo-reviews-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .photo-review-item {
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--bg2, #f1f5f9);
+      font-size: 13px;
+    }
+    .photo-review-item:last-child { border-bottom: none; }
+    .photo-review-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .photo-review-author { font-weight: 700; color: var(--text, #0f172a); }
+    .photo-review-stars { color: #f59e0b; font-size: 11px; }
+    .photo-review-date { font-size: 11px; color: var(--text3, #94a3b8); }
+    .photo-review-comment { line-height: 1.4; color: var(--text2, #475569); }
+    @media (max-width: 767px) {
+      .photo-frame {
+        flex-direction: column;
+        max-width: min(92vw, 420px);
+        height: 80vh;
+        max-height: 600px;
+      }
+      .photo-reviews-panel {
+        width: 100%;
+        height: 220px;
+        flex-shrink: 0;
+        border-left: none;
+        border-top: 1px solid var(--bg3, #e2e8f0);
+        background: color-mix(in srgb, var(--surface, #ffffff) 88%, transparent);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+    }
     .item-name {
       margin: 0;
       font-size: 18px;
@@ -506,6 +589,65 @@
       font-weight: 950;
       color: #2a1111;
     }
+    .item-rating-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #f59e0b;
+      margin-top: 4px;
+    }
+    /* Item ratings sizing adjustments in sheets */
+    #orderedItemsRatingList .rating-btn { width: 36px; height: 36px; font-size: 24px; }
+    #orderedItemsRatingList .rating-row { margin: 4px 0 8px; }
+    /* ── FLOATING REVIEW BANNER ── */
+    .review-prompt-banner {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 150;
+      transition: bottom 0.22s ease;
+      background: color-mix(in srgb, var(--surface, #ffffff) 92%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--bg3, #e2e8f0);
+      border-radius: 12px;
+      padding: 12px 18px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+      width: min(calc(100% - 32px), 480px);
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideUp {
+      from { transform: translate(-50%, 30px); opacity: 0; }
+      to   { transform: translate(-50%, 0);    opacity: 1; }
+    }
+    .review-prompt-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .review-prompt-text { font-size: 13.5px; font-weight: 700; color: var(--text, #0f172a); }
+    .review-prompt-actions { display: flex; align-items: center; gap: 8px; }
+    .review-prompt-btn { border: none; cursor: pointer; font-weight: 700; transition: all 0.2s; }
+    .review-prompt-btn.rate-btn {
+      background: var(--brand, #4f46e5);
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .review-prompt-btn.rate-btn:hover { opacity: 0.9; transform: scale(1.03); }
+    .review-prompt-btn.close-btn {
+      background: none;
+      color: var(--text3, #94a3b8);
+      font-size: 14px;
+      padding: 4px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .review-prompt-btn.close-btn:hover { color: var(--text, #0f172a); }
     .item-desc {
       min-height: 18px;
       margin: 7px 0 0;
@@ -958,6 +1100,17 @@
     </div>
   </div>
 
+  <!-- DELAYED REVIEW PROMPT BANNER -->
+  <div id="reviewPromptBanner" class="review-prompt-banner" style="display: none;">
+    <div class="review-prompt-content">
+      <span class="review-prompt-text">Enjoyed your food? Rate your last order!</span>
+      <div class="review-prompt-actions">
+        <button class="review-prompt-btn rate-btn" onclick="openDelayedReview()">Rate</button>
+        <button class="review-prompt-btn close-btn" onclick="dismissReviewPrompt()" aria-label="Dismiss">✕</button>
+      </div>
+    </div>
+  </div>
+
   <!-- FEEDBACK SHEET -->
   <div class="sheet" id="feedbackSheet" onclick="handleFeedbackSheetBackdrop(event)">
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
@@ -965,28 +1118,35 @@
         <h2 class="sheet-title" id="feedbackTitle">How was your order?</h2>
       </div>
       <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">We would love to hear your thoughts to improve our food and service.</p>
-      
-      <div class="addon-group">
-        <div class="addon-group-label" style="margin-bottom: 4px;">Rate Store</div>
-        <div class="rating-row" id="storeRatingBtns"></div>
-        <div class="feedback-chip-row" id="storeFeedbackChips"></div>
+
+      <!-- SERVICE FEEDBACK CONTENT -->
+      <div id="feedbackServiceBlock">
+        <div class="addon-group">
+          <div class="addon-group-label" style="margin-bottom: 4px;">Rate Store</div>
+          <div class="rating-row" id="storeRatingBtns"></div>
+          <div class="feedback-chip-row" id="storeFeedbackChips"></div>
+        </div>
+        <div class="addon-group">
+          <div class="addon-group-label" style="margin-bottom: 4px;">Rate App Experience</div>
+          <div class="rating-row" id="appRatingBtns"></div>
+          <div class="feedback-chip-row" id="appFeedbackChips"></div>
+        </div>
+        <div class="addon-group">
+          <div class="addon-group-label" style="margin-bottom: 4px;">Additional Comments</div>
+          <textarea class="feedback-note" id="feedbackComment" placeholder="Any suggestions, requests, or issues..."></textarea>
+        </div>
+        <div class="feedback-privacy">Your feedback is submitted privately to the store owner. App rating goes to the developer.</div>
+        <button class="solid-btn" type="button" onclick="submitPostOrderFeedback()" style="width: 100%; margin-top: 10px; border-radius: var(--radius)">Submit Feedback</button>
+        <button class="ghost-btn" type="button" onclick="closeFeedbackModal()" style="width: 100%; margin-top: 8px; border-radius: var(--radius)">Skip</button>
       </div>
-      
-      <div class="addon-group">
-        <div class="addon-group-label" style="margin-bottom: 4px;">Rate App Experience</div>
-        <div class="rating-row" id="appRatingBtns"></div>
-        <div class="feedback-chip-row" id="appFeedbackChips"></div>
+
+      <!-- ITEM REVIEWS CONTENT -->
+      <div id="feedbackItemsBlock" style="display: none;">
+        <p style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">Please rate the items you tried from your last order:</p>
+        <div id="orderedItemsRatingList" style="max-height: 40vh; overflow-y: auto; margin-bottom: 16px; padding-right: 4px; display: flex; flex-direction: column; gap: 16px;"></div>
+        <button class="solid-btn" type="button" onclick="submitItemFeedback()" style="width: 100%; margin-top: 10px; border-radius: var(--radius)">Submit Reviews</button>
+        <button class="ghost-btn" type="button" onclick="closeFeedbackModal()" style="width: 100%; margin-top: 8px; border-radius: var(--radius)">Skip</button>
       </div>
-      
-      <div class="addon-group">
-        <div class="addon-group-label" style="margin-bottom: 4px;">Additional Comments</div>
-        <textarea class="feedback-note" id="feedbackComment" placeholder="Any suggestions, requests, or issues..."></textarea>
-      </div>
-      
-      <div class="feedback-privacy">Your feedback is submitted privately to the store owner. App rating goes to the developer.</div>
-      
-      <button class="solid-btn" type="button" onclick="submitPostOrderFeedback()" style="width: 100%; margin-top: 10px; border-radius: var(--radius)">Submit Feedback</button>
-      <button class="ghost-btn" type="button" onclick="closeFeedbackModal()" style="width: 100%; margin-top: 8px; border-radius: var(--radius)">Skip</button>
     </div>
   </div>
 
@@ -1024,6 +1184,7 @@
     let query = "";
     let availableOnly = false;
     let addonsPending = null;
+    let itemSummaries = {};
 
     function esc(value) {
       return String(value == null ? "" : value).replace(/[<>&"]/g, ch => ({
@@ -1109,14 +1270,16 @@
     }
 
     async function init() {
-      const [cfgR, themeR, itemsR, catsR] = await Promise.all([
+      const [cfgR, themeR, itemsR, catsR, sumR] = await Promise.all([
         fbGetSafe("config/store"),
         fbGetSafe("config/theme"),
         fbGetSafe("menu/items"),
-        fbGetSafe("menu/categories")
+        fbGetSafe("menu/categories"),
+        fbGetSafe("feedback/item_summaries")
       ]);
 
       storeConfig = cfgR.data ? { ...DEFAULT_CONFIG.store, ...cfgR.data } : { ...DEFAULT_CONFIG.store };
+      itemSummaries = sumR && sumR.data ? sumR.data : {};
       applyTheme(themeR.data || DEFAULT_CONFIG.theme);
       if (_hasConsented()) { const g = document.getElementById('consentGate'); if (g) g.style.display = 'none'; }
       showDebugOverlay([
@@ -1144,6 +1307,7 @@
       renderNavigation();
       renderMenu();
       updateCart();
+      checkPendingItemReviews();
       document.getElementById("loader").classList.add("hidden");
 
       setInterval(() => pollStoreStatus().catch(() => {}), 30000);
@@ -1378,8 +1542,9 @@
       card.className = "item-card" + (item.avail === false ? " sold-out" : "");
       const safeImg = item.img_url ? item.img_url.replace(/'/g, "\\'") : "";
       const safeName = item.name.replace(/'/g, "\\'");
+      const safeId = item.id.replace(/'/g, "\\'");
       const media = item.img_url
-        ? `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openPhoto('${safeImg}','${safeName}')" onkeydown="if(event.key==='Enter'||event.key===' ')openPhoto('${safeImg}','${safeName}')"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`
+        ? `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openPhoto('${safeImg}','${safeName}','${safeId}')" onkeydown="if(event.key==='Enter'||event.key===' ')openPhoto('${safeImg}','${safeName}','${safeId}')"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`
         : `<div class="item-media">${esc(item.emoji || "R")}</div>`;
       const options = itemOptions(item);
       const storeClosed = storeConfig.isOpen === false;
@@ -1399,10 +1564,15 @@
             return `<button class="${cls}" type="button" data-item="${esc(item.id)}" data-option="${idx}">${esc(label)}</button>`;
           }).join("")
         : "";
+      const summary = itemSummaries[item.id];
+      const ratingHtml = (summary && summary.review_count > 10)
+        ? `<div class="item-rating-row">★ ${summary.rating_avg.toFixed(1)} (${summary.review_count})</div>`
+        : "";
       card.innerHTML = `
         ${media}
         <div class="item-body">
           <h3 class="item-name">${esc(item.name)}</h3>
+          ${ratingHtml}
           <p class="item-desc">${esc(item.desc || "")}</p>
           <div class="item-footer">
             <div class="item-prices">${priceHtml}</div>
@@ -1533,7 +1703,7 @@
       renderCart();
     }
 
-    function openPhoto(src, name) {
+    function openPhoto(src, name, itemId) {
       let ov = document.getElementById("photoOv");
       if (!ov) {
         ov = document.createElement("div");
@@ -1541,8 +1711,17 @@
         ov.className = "photo-ov";
         ov.innerHTML = `
           <div class="photo-frame" id="photoFrame" onclick="event.stopPropagation()">
-            <img id="photoImg" src="" alt="">
-            <div class="photo-cap" id="photoCap"></div>
+            <div class="photo-container">
+              <img id="photoImg" src="" alt="">
+              <div class="photo-cap" id="photoCap"></div>
+            </div>
+            <div class="photo-reviews-panel">
+              <div class="photo-reviews-header">
+                <span class="photo-reviews-title">Reviews</span>
+                <span class="photo-reviews-summary" id="photoReviewsSummary"></span>
+              </div>
+              <div class="photo-reviews-list" id="photoReviewsList"></div>
+            </div>
             <button class="photo-x" onclick="closePhoto()" aria-label="Close photo">×</button>
           </div>`;
         ov.addEventListener("click", closePhoto);
@@ -1555,6 +1734,43 @@
       ov.style.display = "flex";
       requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("open")));
       document.body.classList.add("sheet-open");
+      loadItemReviewsForPhoto(itemId);
+    }
+
+    async function loadItemReviewsForPhoto(itemId) {
+      const summaryEl = document.getElementById('photoReviewsSummary');
+      const listEl = document.getElementById('photoReviewsList');
+      if (!summaryEl || !listEl) return;
+      summaryEl.textContent = '';
+      if (!itemId) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">No item reviews available.</div>';
+        return;
+      }
+      listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">Loading reviews...</div>';
+      try {
+        const data = await fbGet(`feedback/item_reviews/${itemId}`);
+        if (!data) {
+          listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">No reviews yet.</div>';
+          return;
+        }
+        const reviews = Object.values(data).sort((a,b) => b.created_at - a.created_at);
+        const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+        if (reviews.length) summaryEl.textContent = `★ ${avg.toFixed(1)} (${reviews.length})`;
+        listEl.innerHTML = reviews.map(r => {
+          const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+          const dateStr = new Date(r.created_at).toLocaleDateString('en-MY', { day:'numeric', month:'short', year:'numeric' });
+          return `
+            <div class="photo-review-item">
+              <div class="photo-review-meta">
+                <div><span class="photo-review-author">${esc(r.customer_name)}</span> <span class="photo-review-stars">${stars}</span></div>
+                <span class="photo-review-date">${esc(dateStr)}</span>
+              </div>
+              <div class="photo-review-comment">${esc(r.comment || "Rated only")}</div>
+            </div>`;
+        }).join('');
+      } catch {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">Failed to load reviews.</div>';
+      }
     }
 
     function closePhoto() {
@@ -1576,6 +1792,8 @@
       document.getElementById("cartTotal").textContent = money(total);
       document.getElementById("floatingCart").classList.toggle("visible", cart.length > 0);
       document.getElementById("sendBtn").disabled = !cart.length || storeConfig.isOpen === false;
+      const banner = document.getElementById('reviewPromptBanner');
+      if (banner) banner.style.bottom = cart.length > 0 ? '90px' : '20px';
     }
 
     function openCart() {
@@ -1707,7 +1925,7 @@
 
     function openFeedbackModal() {
       initFeedbackControls();
-      const stored = sessionStorage.getItem('arh_last_order_context');
+      const stored = localStorage.getItem('arh_last_order_context');
       if (!lastOrderContext && stored) {
         try { lastOrderContext = JSON.parse(stored); } catch {}
       }
@@ -1731,6 +1949,133 @@
       document.querySelectorAll('#storeFeedbackChips .feedback-chip, #appFeedbackChips .feedback-chip').forEach(btn => btn.classList.remove('active'));
       const comment = document.getElementById('feedbackComment');
       if (comment) comment.value = '';
+      document.getElementById('feedbackServiceBlock').style.display = '';
+      document.getElementById('feedbackItemsBlock').style.display = 'none';
+      const list = document.getElementById('orderedItemsRatingList');
+      if (list) { list.innerHTML = ''; list._ratings = {}; list._comments = {}; }
+    }
+
+    function checkPendingItemReviews() {
+      try {
+        const stored = localStorage.getItem('arh_last_order_context');
+        if (!stored) return;
+        const order = JSON.parse(stored);
+        if (!order || order.reviewed || !order.order_id || !Array.isArray(order.items) || !order.items.length) return;
+        if (Date.now() - (order.order_ts || 0) < 20 * 60 * 1000) return;
+        const banner = document.getElementById('reviewPromptBanner');
+        if (banner) banner.style.display = 'flex';
+      } catch {}
+    }
+
+    function dismissReviewPrompt() {
+      const banner = document.getElementById('reviewPromptBanner');
+      if (banner) banner.style.display = 'none';
+      try {
+        const stored = localStorage.getItem('arh_last_order_context');
+        if (!stored) return;
+        const order = JSON.parse(stored);
+        order.reviewed = true;
+        localStorage.setItem('arh_last_order_context', JSON.stringify(order));
+      } catch {}
+    }
+
+    function openDelayedReview() {
+      const banner = document.getElementById('reviewPromptBanner');
+      if (banner) banner.style.display = 'none';
+      try {
+        const stored = localStorage.getItem('arh_last_order_context');
+        if (!stored) return;
+        const order = JSON.parse(stored);
+        if (!order?.order_id || !Array.isArray(order.items) || !order.items.length) return;
+        lastOrderContext = order;
+        document.getElementById('feedbackServiceBlock').style.display = 'none';
+        document.getElementById('feedbackItemsBlock').style.display = 'block';
+        renderItemRatingList(order.items);
+        document.getElementById('feedbackSheet').classList.add('open');
+        document.body.classList.add('sheet-open');
+      } catch {}
+    }
+
+    function renderItemRatingList(items) {
+      const list = document.getElementById('orderedItemsRatingList');
+      if (!list) return;
+      list.innerHTML = '';
+      const ratings = {};
+      const comments = {};
+      items.forEach(item => {
+        ratings[item.id] = 0;
+        comments[item.id] = '';
+        const row = document.createElement('div');
+        row.style.cssText = 'border:1px solid var(--line);border-radius:var(--radius);padding:12px;background:rgba(255,255,255,.7)';
+        const label = document.createElement('div');
+        label.style.cssText = 'font-weight:800;font-size:14px;color:var(--ink);margin-bottom:2px';
+        label.textContent = item.name;
+        const stars = document.createElement('div');
+        stars.className = 'rating-row';
+        for (let i = 1; i <= 5; i++) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'rating-btn';
+          btn.innerHTML = '★';
+          btn.onclick = () => {
+            ratings[item.id] = i;
+            [...stars.children].forEach((b, idx) => b.classList.toggle('active', idx < i));
+          };
+          stars.appendChild(btn);
+        }
+        const textarea = document.createElement('textarea');
+        textarea.className = 'feedback-note';
+        textarea.style.cssText = 'min-height:54px;font-size:12px;margin-top:6px';
+        textarea.placeholder = 'Optional comment…';
+        textarea.oninput = () => { comments[item.id] = textarea.value; };
+        row.appendChild(label);
+        row.appendChild(stars);
+        row.appendChild(textarea);
+        list.appendChild(row);
+        list._ratings = ratings;
+        list._comments = comments;
+      });
+    }
+
+    async function submitItemFeedback() {
+      const list = document.getElementById('orderedItemsRatingList');
+      const ratings = list?._ratings || {};
+      const comments = list?._comments || {};
+      const stored = localStorage.getItem('arh_last_order_context');
+      let order = null;
+      try { order = stored ? JSON.parse(stored) : null; } catch {}
+      if (!order?.order_id) { closeFeedbackModal(); return; }
+      const ratedItems = (order.items || []).filter(item => ratings[item.id] > 0);
+      if (!ratedItems.length) { closeFeedbackModal(); return; }
+      const now = Date.now();
+      await Promise.all(ratedItems.map(item => {
+        const reviewId = `rev_${now}_${Math.random().toString(36).slice(2, 6)}`;
+        return fbSet(`feedback/item_reviews/${item.id}/${reviewId}`, {
+          rating: ratings[item.id],
+          comment: (comments[item.id] || '').trim(),
+          customer_name: order.customer_name || 'Anonymous',
+          order_id: order.order_id,
+          created_at: now,
+        });
+      })).catch(() => {});
+      // Recalculate summaries from live data to avoid drift
+      await Promise.all(ratedItems.map(async item => {
+        try {
+          const allReviews = await fbGet(`feedback/item_reviews/${item.id}`);
+          if (!allReviews) return;
+          const vals = Object.values(allReviews).map(r => Number(r.rating)).filter(n => n > 0 && n <= 5);
+          if (!vals.length) return;
+          const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+          const summary = { rating_avg: Math.round(avg * 10) / 10, review_count: vals.length };
+          await fbSet(`feedback/item_summaries/${item.id}`, summary);
+          itemSummaries[item.id] = summary;
+        } catch {}
+      }));
+      order.reviewed = true;
+      localStorage.setItem('arh_last_order_context', JSON.stringify(order));
+      closeFeedbackModal();
+      renderMenu();
+      alert('Thank you for your reviews!');
     }
 
     async function submitPostOrderFeedback() {
@@ -1843,8 +2188,11 @@
         order_ts: orderPayload.ts,
         order_total: total,
         item_count: cart.length,
+        customer_name: name,
+        items: [...new Map(cart.map(i => [i.id, { id: i.id, name: i.name }])).values()],
+        reviewed: false,
       };
-      sessionStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
+      localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
 
       logOrder(orderId, orderPayload);
       setTimeout(openFeedbackModal, 700);
