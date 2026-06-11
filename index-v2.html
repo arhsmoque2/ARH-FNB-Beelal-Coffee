@@ -1596,6 +1596,20 @@
         return card;
       }
       
+      // Special rendering for amenities
+      if (item.cat === 'amenities') {
+        card.innerHTML = `
+          <div class="item-body" style="display:flex; align-items:center; gap:16px; padding:16px;">
+            <div style="font-size:32px; flex:0 0 auto;">${esc(item.emoji || "✨")}</div>
+            <div style="flex:1; min-width:0;">
+              <h3 class="item-name" style="margin:0 0 4px 0; font-size:15px; font-weight:800; color:var(--ink);">${esc(item.name)}</h3>
+              <p class="item-desc" style="margin:0; font-size:12px; color:var(--muted); line-height:1.4;">${esc(item.desc || "")}</p>
+            </div>
+          </div>
+        `;
+        return card;
+      }
+      
       const safeImg = item.img_url ? item.img_url.replace(/'/g, "\\'") : "";
       const safeName = item.name.replace(/'/g, "\\'");
       const safeId = item.id.replace(/'/g, "\\'");
