@@ -473,84 +473,156 @@
       padding: 20px; cursor: zoom-out;
     }
     .photo-ov.open { background: rgba(14,5,5,.93); backdrop-filter: blur(16px) saturate(1.7); }
+    /* ── Photo lightbox — Ken Burns + translucent reviews overlay ── */
+    @keyframes kenburns {
+      0%   { transform: scale(1.00) translate( 0%,    0%); }
+      25%  { transform: scale(1.07) translate(-1.5%, -1%); }
+      50%  { transform: scale(1.12) translate( 1%,  -2%); }
+      75%  { transform: scale(1.09) translate(-0.5%, 1.5%); }
+      100% { transform: scale(1.04) translate( 1%,   0.5%); }
+    }
     .photo-frame {
       position: relative;
-      display: flex;
-      flex-direction: row;
-      max-width: min(92vw, 920px); width: 100%;
-      height: 80vh; max-height: 640px;
-      border-radius: 18px; overflow: hidden;
-      box-shadow: 0 48px 110px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07);
+      width: min(92vw, 480px);
+      height: min(86vh, 700px);
+      border-radius: 22px; overflow: hidden;
+      box-shadow: 0 48px 110px rgba(0,0,0,.72), 0 0 0 1px rgba(255,255,255,.07);
       transform: scale(.84) translateY(18px); opacity: 0;
       transition: transform .38s cubic-bezier(.16,1,.3,1), opacity .3s ease;
       cursor: default;
     }
     .photo-ov.open .photo-frame { transform: scale(1) translateY(0); opacity: 1; }
     .photo-container {
-      position: relative;
-      flex: 1;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: absolute;
+      inset: 0;
+      background: #1a0e0e;
       overflow: hidden;
-      height: 100%;
     }
     .photo-container img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
+      animation: kenburns 22s ease-in-out infinite alternate;
+      transform-origin: center center;
+      will-change: transform;
     }
     .photo-cap {
       position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 40px 18px 18px;
-      background: linear-gradient(transparent, rgba(14,5,5,.86));
-      color: #fff; font-size: 17px; font-weight: 900; letter-spacing: -.01em;
-      z-index: 10;
+      padding: 48px 18px 18px;
+      background: linear-gradient(transparent, rgba(8,3,14,.9));
+      color: #fff; font-size: 18px; font-weight: 900; letter-spacing: -.01em;
+      z-index: 20;
       pointer-events: none;
     }
     .photo-x {
-      position: absolute; top: 12px; right: 12px;
+      position: absolute; top: 14px; right: 14px;
       width: 38px; height: 38px; border-radius: 50%;
-      background: rgba(14,5,5,.52); border: 1px solid rgba(255,255,255,.26);
+      background: rgba(8,3,14,.55); border: 1px solid rgba(255,255,255,.28);
       color: #fff; font-size: 22px; line-height: 1;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: background .18s; padding: 0;
       z-index: 210;
     }
-    .photo-x:hover { background: rgba(14,5,5,.78); }
-    .photo-reviews-panel {
-      width: 360px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      background: var(--surface, #ffffff);
-      border-left: 1px solid var(--bg3, #e2e8f0);
-      height: 100%;
-      color: var(--text, #0f172a);
-    }
-    .photo-reviews-header {
+    .photo-x:hover { background: rgba(8,3,14,.8); }
+    /* ── Cart strip — always pinned at bottom ── */
+    .photo-cart-strip {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      min-height: 70px; height: auto;
+      z-index: 35;
+      background: rgba(8, 3, 22, 0.78);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-top: 1px solid rgba(255,255,255,.14);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--bg3, #e2e8f0);
-      font-weight: 700;
-    }
-    .photo-reviews-title { font-size: 15px; color: var(--text, #0f172a); }
-    .photo-reviews-summary { font-size: 13px; color: var(--accent2, #f59e0b); }
-    .photo-reviews-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
+      padding: 10px 16px;
       gap: 12px;
     }
+    .photo-cart-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .photo-cart-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .photo-cart-price { font-size: 12px; color: rgba(255,255,255,.6); }
+    .photo-cart-opts { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+    .photo-cart-opt {
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      border: 1.5px solid rgba(255,255,255,.28); background: transparent;
+      color: rgba(255,255,255,.65); cursor: pointer; transition: all .15s; line-height: 1.4;
+    }
+    .photo-cart-opt.active {
+      background: rgba(255,255,255,.18); color: #fff; border-color: rgba(255,255,255,.7);
+    }
+    .photo-cart-controls { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
+    .photo-cart-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.28);
+      background: rgba(255,255,255,.1); color: #fff; font-size: 20px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .15s;
+    }
+    .photo-cart-btn:active { background: rgba(255,255,255,.25); }
+    .photo-cart-btn.add { background: var(--primary, #4f46e5); border-color: var(--primary, #4f46e5); }
+    .photo-cart-btn.add:active { background: #4338ca; }
+    .photo-cart-qty-wrap { min-width: 40px; text-align: center; }
+    .photo-cart-qty { font-size: 18px; font-weight: 800; color: #fff; }
+    .photo-cart-qty.has-items { color: #f59e0b; }
+    /* ── Reviews panel — collapsed by default, tap toggle to expand ── */
+    .photo-reviews-panel {
+      position: absolute;
+      bottom: 70px;
+      left: 0; right: 0;
+      max-height: 48px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: rgba(8, 3, 22, 0.62);
+      backdrop-filter: blur(22px) saturate(1.5);
+      -webkit-backdrop-filter: blur(22px) saturate(1.5);
+      border-top: 1px solid rgba(255,255,255,.13);
+      z-index: 30;
+      transition: max-height 0.38s cubic-bezier(.16,1,.3,1);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 20px);
+      mask-image: linear-gradient(to bottom, transparent 0px, black 20px);
+    }
+    .photo-reviews-panel.expanded { max-height: 56%; }
+    .photo-reviews-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      height: 48px;
+      flex-shrink: 0;
+      cursor: pointer;
+      position: relative;
+      user-select: none;
+    }
+    .photo-reviews-toggle::before {
+      content: '';
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      width: 32px; height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.3);
+    }
+    .photo-reviews-toggle-left { display: flex; align-items: center; gap: 8px; }
+    .photo-reviews-title  { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.9); }
+    .photo-reviews-summary { font-size: 12px; color: #f59e0b; font-weight: 600; }
+    .photo-reviews-chevron { font-size: 16px; color: rgba(255,255,255,.5); transition: transform .3s; line-height: 1; }
+    .photo-reviews-panel.expanded .photo-reviews-chevron { transform: rotate(90deg); }
+    .photo-reviews-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.2) transparent;
+    }
+    .photo-reviews-body::-webkit-scrollbar { width: 4px; }
+    .photo-reviews-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 2px; }
     .photo-review-item {
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--bg2, #f1f5f9);
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.09);
       font-size: 13px;
     }
     .photo-review-item:last-child { border-bottom: none; }
@@ -558,30 +630,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
-    .photo-review-author { font-weight: 700; color: var(--text, #0f172a); }
-    .photo-review-stars { color: #f59e0b; font-size: 11px; }
-    .photo-review-date { font-size: 11px; color: var(--text3, #94a3b8); }
-    .photo-review-comment { line-height: 1.4; color: var(--text2, #475569); }
-    @media (max-width: 767px) {
-      .photo-frame {
-        flex-direction: column;
-        max-width: min(92vw, 420px);
-        height: 80vh;
-        max-height: 600px;
-      }
-      .photo-reviews-panel {
-        width: 100%;
-        height: 220px;
-        flex-shrink: 0;
-        border-left: none;
-        border-top: 1px solid var(--bg3, #e2e8f0);
-        background: color-mix(in srgb, var(--surface, #ffffff) 88%, transparent);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-      }
-    }
+    .photo-review-author { font-weight: 700; color: #fff; }
+    .photo-review-stars  { color: #f59e0b; font-size: 11px; }
+    .photo-review-date   { font-size: 11px; color: rgba(255,255,255,.45); }
+    .photo-review-comment { line-height: 1.45; color: rgba(255,255,255,.78); }
     .item-name {
       margin: 0;
       font-size: 18px;
@@ -597,6 +651,15 @@
       font-weight: 700;
       color: #f59e0b;
       margin-top: 4px;
+    }
+    .item-rating-row .rating-count { font-weight: 400; font-size: 11px; color: var(--text3, #94a3b8); }
+    .item-rating-row.new-gem { color: #a78bfa; font-size: 11px; font-weight: 700; }
+    .item-rating-row.trend-only { color: #f97316; font-size: 11px; font-weight: 700; }
+    .trend-fire { font-size: 11px; margin-left: 2px; }
+    .item-pick-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 11px; font-weight: 700; margin-top: 3px;
+      color: #059669;
     }
     /* Item ratings sizing adjustments in sheets */
     #orderedItemsRatingList .rating-btn { width: 36px; height: 36px; font-size: 24px; }
@@ -1185,14 +1248,7 @@
     let availableOnly = false;
     let addonsPending = null;
     let itemSummaries = {};
-
-    // Homestay Booking State variables
-    let selectedBookingRoom = "";
-    let bookingCheckIn = "";
-    let bookingCheckOut = "";
-    let calendarMonth = new Date().getMonth();
-    let calendarYear = new Date().getFullYear();
-    let firebaseOrders = {};
+    let storePicks = {};
 
     function esc(value) {
       return String(value == null ? "" : value).replace(/[<>&"]/g, ch => ({
@@ -1278,18 +1334,18 @@
     }
 
     async function init() {
-      const [cfgR, themeR, itemsR, catsR, sumR, ordersR] = await Promise.all([
+      const [cfgR, themeR, itemsR, catsR, sumR, picksR] = await Promise.all([
         fbGetSafe("config/store"),
         fbGetSafe("config/theme"),
         fbGetSafe("menu/items"),
         fbGetSafe("menu/categories"),
         fbGetSafe("feedback/item_summaries"),
-        fbGetSafe("orders")
+        fbGetSafe("config/store_picks")
       ]);
 
       storeConfig = cfgR.data ? { ...DEFAULT_CONFIG.store, ...cfgR.data } : { ...DEFAULT_CONFIG.store };
       itemSummaries = sumR && sumR.data ? sumR.data : {};
-      firebaseOrders = ordersR && ordersR.data ? ordersR.data : {};
+      storePicks    = picksR?.data ?? {};
       applyTheme(themeR.data || DEFAULT_CONFIG.theme);
       if (_hasConsented()) { const g = document.getElementById('consentGate'); if (g) g.style.display = 'none'; }
       showDebugOverlay([
@@ -1311,7 +1367,7 @@
           ? firebaseItems.map(item => ({ ...(configItems[item.id] || {}), ...item }))
           : [...DEFAULT_MENU.items]
       };
-      menuData.categories = menuData.categories.filter(cat => cat.id === 'booking' || menuData.items.some(item => item.cat === cat.id));
+      menuData.categories = menuData.categories.filter(cat => menuData.items.some(item => item.cat === cat.id));
 
       renderShell();
       renderNavigation();
@@ -1486,14 +1542,9 @@
 
     function renderMenu() {
       const space = document.getElementById("menuSpace");
-      if (activeCategory === "booking") {
-        renderBookingForm(space);
-        return;
-      }
-
       const items = currentItems();
       if (!items.length) {
-        space.innerHTML = `<div class="empty-state">No matching rooms or facilities found.</div>`;
+        space.innerHTML = `<div class="empty-state">No matching menu items found.</div>`;
         return;
       }
 
@@ -1503,8 +1554,6 @@
 
       space.innerHTML = "";
       groups.forEach(group => {
-        if (group.cat.id === "booking") return; // skip booking in normal items loop
-
         const section = document.createElement("section");
         section.className = "menu-section";
         section.innerHTML = `
@@ -1554,135 +1603,70 @@
       });
     }
 
-    function selectRoomAndBook(roomId) {
-      selectedBookingRoom = roomId;
-      activeCategory = 'booking';
-      renderNavigation();
-      renderMenu();
-      document.getElementById("menu").scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-
     function renderItemCard(item) {
       const card = document.createElement("article");
       card.className = "item-card" + (item.avail === false ? " sold-out" : "");
-      
-      // Special rendering for walkthrough/layout category ("tour")
-      if (item.cat === 'tour') {
-        const safeImg = item.img_url ? item.img_url.replace(/'/g, "\\'") : "";
-        const safeName = item.name.replace(/'/g, "\\'");
-        const safeId = item.id.replace(/'/g, "\\'");
-        
-        let mediaHtml = '';
-        if (item.img_url) {
-          mediaHtml = `<div class="item-media has-image" style="height:240px;" role="button" onclick="openPhoto('${safeImg}','${safeName}','${safeId}')"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" style="object-fit:contain; background:#f1f5f9;"></div>`;
-        } else {
-          mediaHtml = `<div class="item-media" style="height:80px; font-size:28px;">🗺️</div>`;
-        }
-        
-        // Check if description has an iframe (Matterport/3D/video)
-        let embedHtml = '';
-        if (item.desc && (item.desc.includes('<iframe') || item.desc.includes('</iframe>'))) {
-          embedHtml = `<div class="tour-embed" style="margin-top:12px; border-radius:var(--radius); overflow:hidden; border:1px solid var(--line); position:relative; padding-bottom:56.25%; height:0;">${item.desc.replace(/style="[^"]*"/g, '').replace(/<iframe/g, '<iframe style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"')}</div>`;
-        }
-        
-        card.innerHTML = `
-          ${mediaHtml}
-          <div class="item-body" style="padding:16px;">
-            <h3 class="item-name" style="margin:0 0 8px 0; font-size:16px; font-weight:800;">${esc(item.name)}</h3>
-            ${embedHtml ? '' : `<p class="item-desc" style="margin:0; font-size:13px; color:var(--muted); line-height:1.5;">${esc(item.desc || "")}</p>`}
-            ${embedHtml}
-          </div>
-        `;
-        return card;
-      }
-      
-      // Special rendering for amenities
-      if (item.cat === 'amenities') {
-        card.innerHTML = `
-          <div class="item-body" style="display:flex; align-items:center; gap:16px; padding:16px;">
-            <div style="font-size:32px; flex:0 0 auto;">${esc(item.emoji || "✨")}</div>
-            <div style="flex:1; min-width:0;">
-              <h3 class="item-name" style="margin:0 0 4px 0; font-size:15px; font-weight:800; color:var(--ink);">${esc(item.name)}</h3>
-              <p class="item-desc" style="margin:0; font-size:12px; color:var(--muted); line-height:1.4;">${esc(item.desc || "")}</p>
-            </div>
-          </div>
-        `;
-        return card;
-      }
-      
       const safeImg = item.img_url ? item.img_url.replace(/'/g, "\\'") : "";
       const safeName = item.name.replace(/'/g, "\\'");
       const safeId = item.id.replace(/'/g, "\\'");
       const media = item.img_url
         ? `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openPhoto('${safeImg}','${safeName}','${safeId}')" onkeydown="if(event.key==='Enter'||event.key===' ')openPhoto('${safeImg}','${safeName}','${safeId}')"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`
         : `<div class="item-media">${esc(item.emoji || "R")}</div>`;
-      
-      // Price section
-      let priceHtml = '';
-      if (item.cat === 'rooms') {
-        const rateW = item.hot ? money(item.hot) : '';
-        const rateWe = item.cold ? money(item.cold) : '';
-        const rateH = item.frappe ? money(item.frappe) : '';
-        
-        priceHtml = `
-          <div class="room-rates-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; font-size: 11px; margin-top: 8px; width:100%;">
-            ${rateW ? `<div style="background:var(--bg2); padding: 4px; border-radius:4px; text-align:center;"><div style="color:var(--text3); font-size:9px;">Weekday</div><div style="font-weight:700; color:var(--primary);">${rateW}</div></div>` : ''}
-            ${rateWe ? `<div style="background:var(--bg2); padding: 4px; border-radius:4px; text-align:center;"><div style="color:var(--text3); font-size:9px;">Weekend</div><div style="font-weight:700; color:var(--brand2);">${rateWe}</div></div>` : ''}
-            ${rateH ? `<div style="background:var(--bg2); padding: 4px; border-radius:4px; text-align:center;"><div style="color:var(--text3); font-size:9px;">Holiday</div><div style="font-weight:700; color:var(--gold);">${rateH}</div></div>` : ''}
-          </div>
-        `;
-      } else {
-        const options = itemOptions(item);
-        priceHtml = item.avail === false
-          ? `<span class="sold-pill">Unavailable</span>`
-          : options.length === 1
-            ? `<span class="item-price">${money(options[0].price)}</span>`
-            : options.map(o =>
-                `<span class="price-badge"><span class="price-sz">${esc(o.label)}</span><span class="price-val">${money(o.price)}</span></span>`
-              ).join("");
-      }
-      
-      // Action button
-      let addHtml = '';
-      if (item.cat === 'rooms') {
-        addHtml = `<button class="add-btn" type="button" onclick="selectRoomAndBook('${esc(item.id)}')">Book Room</button>`;
-      } else if (item.avail !== false && storeConfig.isOpen !== false) {
-        const options = itemOptions(item);
-        addHtml = options.map((option, idx) => {
-          const label = options.length > 1 ? option.label : "Add";
-          const cls = options.length > 1 ? "choice-btn" : "add-btn";
-          return `<button class="${cls}" type="button" data-item="${esc(item.id)}" data-option="${idx}">${esc(label)}</button>`;
-        }).join("");
-      }
-      
-      const summary = itemSummaries[item.id];
-      const ratingHtml = (summary && summary.review_count > 10)
-        ? `<div class="item-rating-row">★ ${summary.rating_avg.toFixed(1)} (${summary.review_count})</div>`
+      const options = itemOptions(item);
+      const storeClosed = storeConfig.isOpen === false;
+      // Price section — always visible
+      const priceHtml = item.avail === false
+        ? `<span class="sold-pill">Sold out</span>`
+        : options.length === 1
+          ? `<span class="item-price">${money(options[0].price)}</span>`
+          : options.map(o =>
+              `<span class="price-badge"><span class="price-sz">${esc(o.label)}</span><span class="price-val">${money(o.price)}</span></span>`
+            ).join("");
+      // Add section — only when store open and item available
+      const addHtml = (item.avail !== false && !storeClosed)
+        ? options.map((option, idx) => {
+            const label = options.length > 1 ? option.label : "Add";
+            const cls = options.length > 1 ? "choice-btn" : "add-btn";
+            return `<button class="${cls}" type="button" data-item="${esc(item.id)}" data-option="${idx}">${esc(label)}</button>`;
+          }).join("")
         : "";
-      
-      // Display room spec tags if available
-      let specTagsHtml = '';
-      if (item.cat === 'rooms') {
-        const specs = [item.hot_oz, item.cold_oz, item.frappe_oz].filter(Boolean);
-        if (specs.length) {
-          specTagsHtml = `
-            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; margin-bottom:8px;">
-              ${specs.map(s => `<span style="font-size:10px; font-weight:600; padding:2px 6px; background:rgba(0,0,0,0.05); border-radius:10px; color:var(--text2);">${esc(s)}</span>`).join('')}
-            </div>
-          `;
-        }
+      // ── Store pick badge ──────────────────────────────────────────────────────
+      const isStorePick = !!storePicks[item.id];
+      let pickHtml = '';
+      if (isStorePick) {
+        const cat = menuData.categories.find(c => c.id === item.cat);
+        const isDrink = cat?.type === 'drinks';
+        const labels = storeConfig.picksLabel || DEFAULT_CONFIG.store.picksLabel || {};
+        const label = isDrink ? (labels.drinks || "Barista's Pick") : (labels.food || "Chef's Pick");
+        pickHtml = `<div class="item-pick-badge">◆ ${esc(label)}</div>`;
       }
-      
+
+      // ── Customer signal badges ────────────────────────────────────────────────
+      const summary = itemSummaries[item.id];
+      const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+      const trending = summary?.recent_count >= 2
+        && summary.recent_avg >= 4.3
+        && summary.recent_last_ts
+        && (Date.now() - summary.recent_last_ts) < TWO_WEEKS;
+      const fire = trending ? `<span class="trend-fire">🔥</span>` : '';
+      let ratingHtml = '';
+      if (summary && summary.review_count >= 10) {
+        const score = ((summary.review_count * summary.rating_avg) + (10 * 4.0)) / (summary.review_count + 10);
+        ratingHtml = `<div class="item-rating-row">★ ${score.toFixed(1)} <span class="rating-count">(${summary.review_count})</span>${fire}</div>`;
+      } else if (summary && summary.review_count >= 1 && summary.rating_avg >= 4.5) {
+        ratingHtml = `<div class="item-rating-row new-gem">✨ ${summary.rating_avg.toFixed(1)} · New${fire}</div>`;
+      } else if (trending) {
+        ratingHtml = `<div class="item-rating-row trend-only">🔥 Popular now</div>`;
+      }
       card.innerHTML = `
         ${media}
         <div class="item-body">
           <h3 class="item-name">${esc(item.name)}</h3>
-          ${ratingHtml}
-          ${specTagsHtml}
+          ${pickHtml}${ratingHtml}
           <p class="item-desc">${esc(item.desc || "")}</p>
-          <div class="item-footer" style="flex-direction:column; align-items:flex-start; gap:10px;">
-            <div class="item-prices" style="width:100%;">${priceHtml}</div>
-            ${addHtml ? `<div class="item-actions" style="width:100%; margin-top:4px;">${addHtml}</div>` : ""}
+          <div class="item-footer">
+            <div class="item-prices">${priceHtml}</div>
+            ${addHtml ? `<div class="item-actions">${addHtml}</div>` : ""}
           </div>
         </div>
       `;
@@ -1690,449 +1674,6 @@
         btn.addEventListener("click", () => addToCart(btn.dataset.item, Number(btn.dataset.option)));
       });
       return card;
-    }
-
-    // Homestay Calendar & Booking Functions
-    function getDaysInMonth(year, month) {
-      return new Date(year, month + 1, 0).getDate();
-    }
-    function getFirstDayOfMonth(year, month) {
-      return new Date(year, month, 1).getDay();
-    }
-
-    function getBlockedDatesForRoom(roomId) {
-      const blocked = new Set();
-      if (storeConfig.blocked_dates) {
-        const arr = Array.isArray(storeConfig.blocked_dates)
-          ? storeConfig.blocked_dates
-          : String(storeConfig.blocked_dates).split(',').map(s => s.trim());
-        arr.forEach(d => { if (d) blocked.add(d); });
-      }
-      if (firebaseOrders) {
-        Object.values(firebaseOrders).forEach(ord => {
-          const matchesRoom = ord.room_id === roomId || 
-            (ord.items && ord.items.some(item => item.id === roomId || item.name === roomId));
-          if (matchesRoom && ord.check_in && ord.check_out && ord.status !== 'cancelled') {
-            let curr = new Date(ord.check_in);
-            const end = new Date(ord.check_out);
-            while (curr < end) {
-              blocked.add(curr.toISOString().split('T')[0]);
-              curr.setDate(curr.getDate() + 1);
-            }
-          }
-        });
-      }
-      return blocked;
-    }
-
-    function calculateStayCost(room, checkInStr, checkOutStr) {
-      if (!checkInStr || !checkOutStr) return { total: 0, nights: [] };
-      const checkIn = new Date(checkInStr);
-      const checkOut = new Date(checkOutStr);
-      const nights = [];
-      let total = 0;
-      let curr = new Date(checkIn);
-      while (curr < checkOut) {
-        const dateStr = curr.toISOString().split('T')[0];
-        const day = curr.getDay();
-        const isHighDemand = (storeConfig.high_demand_dates || APP_CONFIG.rates?.highDemandDates || []).includes(dateStr);
-        const isWeekday = (day >= 1 && day <= 3);
-        let rate = room.price || 0;
-        let rateLabel = "Normal Season (Thu-Sun)";
-        if (isHighDemand) {
-          rate = room.frappe || room.priceHighDemand || (room.price * 1.3);
-          rateLabel = "High Demand / Holiday";
-        } else if (isWeekday) {
-          rate = room.hot || (room.price * 0.85);
-          rateLabel = "Low Season (Mon-Wed)";
-        }
-        nights.push({ date: dateStr, rate: Number(rate), label: rateLabel });
-        total += Number(rate);
-        curr.setDate(curr.getDate() + 1);
-      }
-      return { total, nights };
-    }
-
-    function renderBookingForm(container) {
-      container.innerHTML = "";
-      const formDiv = document.createElement("div");
-      formDiv.className = "booking-panel";
-      formDiv.style.cssText = "background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow); width:100%; max-width:800px; margin:0 auto;";
-      
-      const title = document.createElement("h2");
-      title.style.cssText = "font-size:22px; font-weight:800; margin-top:0; margin-bottom:8px; color:var(--ink);";
-      title.textContent = "📅 Book Your Stay";
-      formDiv.appendChild(title);
-      
-      const subtitle = document.createElement("p");
-      subtitle.style.cssText = "font-size:14px; color:var(--muted); margin-bottom:24px;";
-      subtitle.textContent = "Select a room, choose check-in and check-out dates, check availability, and send your request via WhatsApp.";
-      formDiv.appendChild(subtitle);
-      
-      const rooms = menuData.items.filter(i => i.cat === 'rooms');
-      if (!selectedBookingRoom && rooms.length) {
-        selectedBookingRoom = rooms[0].id;
-      }
-      
-      const rowRoom = document.createElement("div");
-      rowRoom.style.marginBottom = "16px";
-      rowRoom.innerHTML = `
-        <label class="form-label" style="display:block; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:8px;">Select Room / Space</label>
-        <select id="bookingRoomSelect" class="form-input" style="width:100%; padding:12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg2); font-size:15px; font-weight:600; color:var(--ink);">
-          ${rooms.map(r => `<option value="${esc(r.id)}" ${selectedBookingRoom === r.id ? 'selected' : ''}>${esc(r.name)} — Weekday ${money(r.hot || r.price)} / Weekend ${money(r.cold || r.price)}</option>`).join('')}
-        </select>
-      `;
-      formDiv.appendChild(rowRoom);
-      
-      const dateGrid = document.createElement("div");
-      dateGrid.style.cssText = "display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;";
-      dateGrid.innerHTML = `
-        <div>
-          <label class="form-label" style="display:block; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:8px;">Check-In Date</label>
-          <input type="date" id="checkInDate" class="form-input" style="width:100%; padding:12px; border:1px solid var(--line); border-radius:var(--radius); font-size:14px;" value="${bookingCheckIn}">
-        </div>
-        <div>
-          <label class="form-label" style="display:block; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); margin-bottom:8px;">Check-Out Date</label>
-          <input type="date" id="checkOutDate" class="form-input" style="width:100%; padding:12px; border:1px solid var(--line); border-radius:var(--radius); font-size:14px;" value="${bookingCheckOut}">
-        </div>
-      `;
-      formDiv.appendChild(dateGrid);
-      
-      const calendarContainer = document.createElement("div");
-      calendarContainer.id = "bookingCalendarContainer";
-      calendarContainer.style.marginBottom = "24px";
-      formDiv.appendChild(calendarContainer);
-      
-      const receiptContainer = document.createElement("div");
-      receiptContainer.id = "bookingReceiptContainer";
-      receiptContainer.style.marginBottom = "24px";
-      formDiv.appendChild(receiptContainer);
-      
-      const detailsTitle = document.createElement("h3");
-      detailsTitle.style.cssText = "font-size:16px; font-weight:700; margin-top:0; margin-bottom:12px; color:var(--ink); border-top:1px solid var(--line); padding-top:20px;";
-      detailsTitle.textContent = "👤 Guest Information";
-      formDiv.appendChild(detailsTitle);
-      
-      const guestFields = document.createElement("div");
-      guestFields.style.cssText = "display:flex; flex-direction:column; gap:16px; margin-bottom:24px;";
-      guestFields.innerHTML = `
-        <div>
-          <label class="form-label" style="display:block; font-weight:700; font-size:11px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">Your Name</label>
-          <input type="text" id="bookingGuestName" placeholder="e.g. John Doe" class="form-input" style="width:100%; padding:12px; border:1px solid var(--line); border-radius:var(--radius);" value="${esc(document.getElementById('custName')?.value || '')}">
-        </div>
-        <div>
-          <label class="form-label" style="display:block; font-weight:700; font-size:11px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">Your WhatsApp Contact Number</label>
-          <input type="text" id="bookingGuestPhone" placeholder="e.g. 60123456789" class="form-input" style="width:100%; padding:12px; border:1px solid var(--line); border-radius:var(--radius);" value="${esc(localStorage.getItem('arh_guest_phone') || '')}">
-        </div>
-        <div>
-          <label class="form-label" style="display:block; font-weight:700; font-size:11px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">Special Requests / Note (optional)</label>
-          <textarea id="bookingGuestNote" placeholder="e.g. Estimated arrival time, bedding preferences..." class="form-input" style="width:100%; padding:12px; border:1px solid var(--line); border-radius:var(--radius); resize:vertical; min-height:80px;"></textarea>
-        </div>
-      `;
-      formDiv.appendChild(guestFields);
-      
-      const submitBtn = document.createElement("button");
-      submitBtn.type = "button";
-      submitBtn.id = "bookingSubmitBtn";
-      submitBtn.className = "solid-btn";
-      submitBtn.style.cssText = "width:100%; padding:16px; font-size:16px; font-weight:700; border-radius:var(--radius); text-align:center; background:var(--brand); color:#fff; border:none; box-shadow:0 8px 20px rgba(79,70,229,0.25); cursor:pointer;";
-      submitBtn.textContent = "Confirm Booking via WhatsApp";
-      submitBtn.onclick = handleBookingSubmit;
-      formDiv.appendChild(submitBtn);
-      
-      container.appendChild(formDiv);
-      
-      document.getElementById("bookingRoomSelect").onchange = (e) => {
-        selectedBookingRoom = e.target.value;
-        updateCalendar();
-        calculateAndRenderReceipt();
-      };
-      
-      document.getElementById("checkInDate").onchange = (e) => {
-        bookingCheckIn = e.target.value;
-        validateSelectedDates();
-        updateCalendar();
-        calculateAndRenderReceipt();
-      };
-      
-      document.getElementById("checkOutDate").onchange = (e) => {
-        bookingCheckOut = e.target.value;
-        validateSelectedDates();
-        updateCalendar();
-        calculateAndRenderReceipt();
-      };
-      
-      updateCalendar();
-      calculateAndRenderReceipt();
-    }
-
-    function validateSelectedDates() {
-      if (!bookingCheckIn || !bookingCheckOut) return;
-      const inD = new Date(bookingCheckIn);
-      const outD = new Date(bookingCheckOut);
-      if (outD <= inD) {
-        alert("Check-out date must be after check-in date!");
-        bookingCheckOut = "";
-        document.getElementById("checkOutDate").value = "";
-        return;
-      }
-      const blocked = getBlockedDatesForRoom(selectedBookingRoom);
-      let curr = new Date(inD);
-      let hasBlocked = false;
-      while (curr < outD) {
-        const dStr = curr.toISOString().split('T')[0];
-        if (blocked.has(dStr)) { hasBlocked = true; break; }
-        curr.setDate(curr.getDate() + 1);
-      }
-      if (hasBlocked) {
-        alert("The selected dates overlap with an existing booking. Please select available dates.");
-        bookingCheckIn = "";
-        bookingCheckOut = "";
-        document.getElementById("checkInDate").value = "";
-        document.getElementById("checkOutDate").value = "";
-      }
-    }
-
-    function updateCalendar() {
-      const container = document.getElementById("bookingCalendarContainer");
-      if (!container) return;
-      
-      const blocked = getBlockedDatesForRoom(selectedBookingRoom);
-      const daysInMonth = getDaysInMonth(calendarYear, calendarMonth);
-      const firstDay = getFirstDayOfMonth(calendarYear, calendarMonth);
-      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-      
-      let html = `
-        <div style="border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:var(--bg2);">
-          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--bg3); border-bottom:1px solid var(--line);">
-            <button type="button" onclick="navigateCalendar(-1)" style="border:none; background:none; font-weight:700; cursor:pointer; font-size:16px; color:var(--text);">&larr;</button>
-            <span style="font-weight:700; font-size:15px; color:var(--ink);">${monthNames[calendarMonth]} ${calendarYear}</span>
-            <button type="button" onclick="navigateCalendar(1)" style="border:none; background:none; font-weight:700; cursor:pointer; font-size:16px; color:var(--text);">&rarr;</button>
-          </div>
-          <table style="width:100%; border-collapse:collapse; text-align:center; font-size:13px; table-layout:fixed;">
-            <thead>
-              <tr style="background:rgba(0,0,0,0.02); border-bottom:1px solid var(--line);">
-                ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<th style="padding:10px 0; font-weight:600; color:var(--muted);">${d}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-      `;
-      
-      let date = 1;
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      
-      for (let i = 0; i < 6; i++) {
-        html += '<tr>';
-        for (let j = 0; j < 7; j++) {
-          if (i === 0 && j < firstDay) {
-            html += '<td style="padding:8px 0; border:1px solid rgba(0,0,0,0.02);"></td>';
-          } else if (date > daysInMonth) {
-            html += '<td style="padding:8px 0; border:1px solid rgba(0,0,0,0.02);"></td>';
-          } else {
-            const dObj = new Date(calendarYear, calendarMonth, date);
-            const dStr = dObj.toISOString().split('T')[0];
-            const isPast = dObj < today;
-            const isBlocked = blocked.has(dStr);
-            
-            let cellStyle = 'padding:12px 0; border:1px solid rgba(0,0,0,0.04); cursor:pointer; font-weight:500; transition:all 0.1s;';
-            const inStr = bookingCheckIn;
-            const outStr = bookingCheckOut;
-            
-            if (inStr && dStr === inStr) {
-              cellStyle += ' background:var(--brand); color:#fff; font-weight:700; border-radius:4px;';
-            } else if (outStr && dStr === outStr) {
-              cellStyle += ' background:var(--brand2); color:#fff; font-weight:700; border-radius:4px;';
-            } else if (inStr && outStr && dStr > inStr && dStr < outStr) {
-              cellStyle += ' background:rgba(79,70,229,0.15); color:var(--brand); font-weight:700;';
-            } else if (isBlocked) {
-              cellStyle += ' background:rgba(239,68,68,0.1); color:rgba(239,68,68,0.4); text-decoration:line-through; cursor:not-allowed;';
-            } else if (isPast) {
-              cellStyle += ' color:var(--text3); cursor:not-allowed; opacity:0.5;';
-            } else {
-              cellStyle += ' background:#fff; color:var(--ink);';
-            }
-            
-            const clickAttr = (isPast || isBlocked) ? '' : `onclick="handleCalendarDayClick('${dStr}')"`;
-            html += `<td ${clickAttr} style="${cellStyle}">${date}</td>`;
-            date++;
-          }
-        }
-        html += '</tr>';
-        if (date > daysInMonth) break;
-      }
-      
-      html += `</tbody></table></div>`;
-      container.innerHTML = html;
-    }
-
-    window.navigateCalendar = function(dir) {
-      calendarMonth += dir;
-      if (calendarMonth < 0) {
-        calendarMonth = 11;
-        calendarYear -= 1;
-      } else if (calendarMonth > 11) {
-        calendarMonth = 0;
-        calendarYear += 1;
-      }
-      updateCalendar();
-    };
-
-    window.handleCalendarDayClick = function(dateStr) {
-      if (!bookingCheckIn || (bookingCheckIn && bookingCheckOut)) {
-        bookingCheckIn = dateStr;
-        bookingCheckOut = '';
-        document.getElementById("checkInDate").value = dateStr;
-        document.getElementById("checkOutDate").value = '';
-      } else if (bookingCheckIn && !bookingCheckOut) {
-        if (dateStr <= bookingCheckIn) {
-          bookingCheckIn = dateStr;
-          document.getElementById("checkInDate").value = dateStr;
-        } else {
-          const inD = new Date(bookingCheckIn);
-          const outD = new Date(dateStr);
-          const blocked = getBlockedDatesForRoom(selectedBookingRoom);
-          let curr = new Date(inD);
-          let hasBlocked = false;
-          while (curr < outD) {
-            const dStr = curr.toISOString().split('T')[0];
-            if (blocked.has(dStr)) { hasBlocked = true; break; }
-            curr.setDate(curr.getDate() + 1);
-          }
-          if (hasBlocked) {
-            alert("The selected range contains booked dates. Check-in reset.");
-            bookingCheckIn = dateStr;
-            document.getElementById("checkInDate").value = dateStr;
-          } else {
-            bookingCheckOut = dateStr;
-            document.getElementById("checkOutDate").value = dateStr;
-          }
-        }
-      }
-      updateCalendar();
-      calculateAndRenderReceipt();
-    };
-
-    function calculateAndRenderReceipt() {
-      const container = document.getElementById("bookingReceiptContainer");
-      if (!container) return;
-      if (!bookingCheckIn || !bookingCheckOut) {
-        container.innerHTML = `<div style="padding:12px; background:var(--bg2); border-radius:var(--radius); border:1px dashed var(--line); font-size:13px; color:var(--muted); text-align:center;">Select your dates above to see pricing.</div>`;
-        return;
-      }
-      const room = menuData.items.find(i => i.id === selectedBookingRoom);
-      if (!room) return;
-      const calculation = calculateStayCost(room, bookingCheckIn, bookingCheckOut);
-      let html = `
-        <div style="background:var(--bg2); border:1px solid var(--line); border-radius:var(--radius); padding:16px;">
-          <h4 style="margin:0 0 12px 0; font-size:14px; font-weight:700; color:var(--ink);">Receipt Breakdown</h4>
-          <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--text2); margin-bottom:12px; border-bottom:1px solid var(--line); padding-bottom:12px;">
-      `;
-      calculation.nights.forEach(n => {
-        html += `
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>📅 ${n.date} <small style="color:var(--muted); font-size:10px; margin-left:4px;">(${n.label})</small></span>
-            <span style="font-weight:600;">${money(n.rate)}</span>
-          </div>
-        `;
-      });
-      html += `
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:800; color:var(--ink);">
-            <span>Total (${calculation.nights.length} Nights)</span>
-            <span style="color:var(--brand);">${money(calculation.total)}</span>
-          </div>
-        </div>
-      `;
-      container.innerHTML = html;
-    }
-
-    function handleBookingSubmit() {
-      if (!bookingCheckIn || !bookingCheckOut || !selectedBookingRoom) {
-        alert("Please select room and booking dates!");
-        return;
-      }
-      const guestName = document.getElementById("bookingGuestName").value.trim();
-      const guestPhone = document.getElementById("bookingGuestPhone").value.trim();
-      const guestNote = document.getElementById("bookingGuestNote").value.trim();
-      
-      if (!guestName) { alert("Please enter your name!"); return; }
-      if (!guestPhone) { alert("Please enter your WhatsApp contact number!"); return; }
-      
-      localStorage.setItem('arh_guest_phone', guestPhone);
-      const room = menuData.items.find(i => i.id === selectedBookingRoom);
-      if (!room) return;
-      const calculation = calculateStayCost(room, bookingCheckIn, bookingCheckOut);
-      const total = calculation.total;
-      const phone = storeConfig.phone || APP_CONFIG.store.phone;
-      const formatDate = (dStr) => {
-        const d = new Date(dStr);
-        return d.toLocaleDateString('en-MY', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-      };
-      
-      let msg = `🏡 *Booking Request – ${storeConfig.name || APP_CONFIG.store.name}*\n\n`;
-      msg += `👤 Guest: ${guestName}\n`;
-      msg += `📞 Contact: ${guestPhone}\n`;
-      msg += `🛏️ Space: ${room.name}\n`;
-      msg += `📅 Check-in: ${formatDate(bookingCheckIn)}\n`;
-      msg += `📅 Check-out: ${formatDate(bookingCheckOut)}\n`;
-      msg += `⏳ Duration: ${calculation.nights.length} Night${calculation.nights.length === 1 ? '' : 's'}\n\n`;
-      
-      msg += `💰 *Pricing Breakdown:*\n`;
-      calculation.nights.forEach(n => {
-        msg += `- ${n.date}: ${money(n.rate)} (${n.label.split(' ')[0]})\n`;
-      });
-      msg += `\n💵 *Total Price: ${money(total)}*\n`;
-      if (guestNote) msg += `\n📝 Note: ${guestNote}\n`;
-      msg += `\n_via ${APP_CONFIG.brand.appName} booking_`;
-      
-      const waWindow = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-      if (!waWindow) {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(msg).then(() => {
-            alert("WhatsApp couldn't open automatically, but your booking has been copied to your clipboard! You can paste it directly into WhatsApp.");
-          }).catch(() => {
-            alert("WhatsApp couldn't open automatically. Please copy the booking text and send it manually.");
-          });
-        } else {
-          alert("WhatsApp couldn't open automatically. Please copy the booking text and send it manually.");
-        }
-      }
-      
-      const orderId = 'ord_' + Date.now();
-      const orderPayload = {
-        name: guestName,
-        phone: guestPhone,
-        check_in: bookingCheckIn,
-        check_out: bookingCheckOut,
-        room_id: room.id,
-        room_name: room.name,
-        items: [{ id: room.id, name: room.name, size: `${calculation.nights.length} Nights`, price: total }],
-        total,
-        note: guestNote,
-        consent: {
-          privacy_agreed: true,
-          privacy_notice_version: '2026-06-11-community-booking-v1',
-          signed: true,
-          consented_at: Date.now(),
-        },
-        ts: Date.now(),
-      };
-      
-      logOrder(orderId, orderPayload);
-      lastOrderContext = {
-        order_id: orderId,
-        order_ts: orderPayload.ts,
-        order_total: total,
-        item_count: 1,
-        customer_name: guestName,
-        items: [{ id: room.id, name: room.name }],
-        reviewed: false,
-      };
-      localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
-      firebaseOrders[orderId] = orderPayload;
-      updateCalendar();
-      setTimeout(openFeedbackModal, 1500);
     }
 
     function addToCart(itemId, optionIndex) {
@@ -2252,7 +1793,15 @@
       renderCart();
     }
 
+    let _photoItem = null;
+    let _photoReviewsLoaded = false;
+    let _photoSelectedOptIdx = 0;
+
     function openPhoto(src, name, itemId) {
+      _photoItem = menuData.items.find(i => i.id === itemId) || null;
+      _photoReviewsLoaded = false;
+      _photoSelectedOptIdx = 0;
+
       let ov = document.getElementById("photoOv");
       if (!ov) {
         ov = document.createElement("div");
@@ -2264,12 +1813,26 @@
               <img id="photoImg" src="" alt="">
               <div class="photo-cap" id="photoCap"></div>
             </div>
-            <div class="photo-reviews-panel">
-              <div class="photo-reviews-header">
-                <span class="photo-reviews-title">Reviews</span>
-                <span class="photo-reviews-summary" id="photoReviewsSummary"></span>
+            <div class="photo-reviews-panel" id="photoReviewsPanel">
+              <div class="photo-reviews-toggle" onclick="togglePhotoReviews()">
+                <div class="photo-reviews-toggle-left">
+                  <span class="photo-reviews-title">Reviews</span>
+                  <span class="photo-reviews-summary" id="photoReviewsSummary"></span>
+                </div>
+                <span class="photo-reviews-chevron" id="photoReviewsChevron">›</span>
               </div>
-              <div class="photo-reviews-list" id="photoReviewsList"></div>
+              <div class="photo-reviews-body" id="photoReviewsList"></div>
+            </div>
+            <div class="photo-cart-strip" id="photoCartStrip">
+              <div class="photo-cart-info" id="photoCartInfo">
+                <span class="photo-cart-name" id="photoCartName"></span>
+                <span class="photo-cart-price" id="photoCartPrice"></span>
+              </div>
+              <div class="photo-cart-controls">
+                <button class="photo-cart-btn" onclick="photoChangeQty(-1)" aria-label="Remove one">−</button>
+                <div class="photo-cart-qty-wrap"><span class="photo-cart-qty" id="photoCartQty">0</span></div>
+                <button class="photo-cart-btn add" onclick="photoChangeQty(1)" aria-label="Add to cart">+</button>
+              </div>
             </div>
             <button class="photo-x" onclick="closePhoto()" aria-label="Close photo">×</button>
           </div>`;
@@ -2277,48 +1840,127 @@
         document.addEventListener("keydown", e => { if (e.key === "Escape") closePhoto(); });
         document.body.appendChild(ov);
       }
+
+      // Reset reviews to collapsed
+      const panel = document.getElementById('photoReviewsPanel');
+      if (panel) panel.classList.remove('expanded');
+      const chevron = document.getElementById('photoReviewsChevron');
+      if (chevron) chevron.textContent = '›';
+      const listEl = document.getElementById('photoReviewsList');
+      if (listEl) listEl.innerHTML = '';
+      document.getElementById('photoReviewsSummary').textContent = '';
+
       document.getElementById("photoImg").src = src;
       document.getElementById("photoImg").alt = name;
       document.getElementById("photoCap").textContent = name;
+      _updatePhotoCartStrip();
       ov.style.display = "flex";
       requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("open")));
       document.body.classList.add("sheet-open");
-      loadItemReviewsForPhoto(itemId);
     }
 
-    async function loadItemReviewsForPhoto(itemId) {
-      const summaryEl = document.getElementById('photoReviewsSummary');
-      const listEl = document.getElementById('photoReviewsList');
-      if (!summaryEl || !listEl) return;
-      summaryEl.textContent = '';
-      if (!itemId) {
-        listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">No item reviews available.</div>';
-        return;
+    function togglePhotoReviews() {
+      const panel = document.getElementById('photoReviewsPanel');
+      const chevron = document.getElementById('photoReviewsChevron');
+      if (!panel) return;
+      const opening = !panel.classList.contains('expanded');
+      panel.classList.toggle('expanded', opening);
+      chevron.textContent = opening ? '×' : '›';
+      if (opening && !_photoReviewsLoaded) {
+        _photoReviewsLoaded = true;
+        _loadPhotoReviews(_photoItem?.id);
       }
-      listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">Loading reviews...</div>';
+    }
+
+    async function _loadPhotoReviews(itemId) {
+      const summaryEl = document.getElementById('photoReviewsSummary');
+      const listEl    = document.getElementById('photoReviewsList');
+      if (!listEl) return;
+      const noStyle = 'text-align:center;color:rgba(255,255,255,.4);padding:20px 16px;font-size:13px;';
+      if (!itemId) { listEl.innerHTML = `<div style="${noStyle}">No reviews yet.</div>`; return; }
+      listEl.innerHTML = `<div style="${noStyle}">Loading…</div>`;
       try {
         const data = await fbGet(`feedback/item_reviews/${itemId}`);
-        if (!data) {
-          listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">No reviews yet.</div>';
-          return;
-        }
+        if (!data) { listEl.innerHTML = `<div style="${noStyle}">Be the first to review this item.</div>`; return; }
         const reviews = Object.values(data).sort((a,b) => b.created_at - a.created_at);
-        const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-        if (reviews.length) summaryEl.textContent = `★ ${avg.toFixed(1)} (${reviews.length})`;
-        listEl.innerHTML = reviews.map(r => {
+        const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+        const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+        const sum = itemSummaries[itemId];
+        const isTrending = sum?.recent_count >= 2 && sum.recent_avg >= 4.3
+          && sum.recent_last_ts && (Date.now() - sum.recent_last_ts) < TWO_WEEKS;
+        const trendNote = isTrending
+          ? `<div style="font-size:11px;color:#f97316;font-weight:600;padding:6px 0 2px;">🔥 ${sum.recent_count} high ratings in the last 2 weeks</div>`
+          : '';
+        if (summaryEl && reviews.length) summaryEl.textContent = `★ ${avg.toFixed(1)} · ${reviews.length}`;
+        listEl.innerHTML = trendNote + reviews.map(r => {
           const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
           const dateStr = new Date(r.created_at).toLocaleDateString('en-MY', { day:'numeric', month:'short', year:'numeric' });
-          return `
-            <div class="photo-review-item">
-              <div class="photo-review-meta">
-                <div><span class="photo-review-author">${esc(r.customer_name)}</span> <span class="photo-review-stars">${stars}</span></div>
-                <span class="photo-review-date">${esc(dateStr)}</span>
-              </div>
-              <div class="photo-review-comment">${esc(r.comment || "Rated only")}</div>
-            </div>`;
+          return `<div class="photo-review-item">
+            <div class="photo-review-meta">
+              <div><span class="photo-review-author">${esc(r.customer_name)}</span> <span class="photo-review-stars">${stars}</span></div>
+              <span class="photo-review-date">${esc(dateStr)}</span>
+            </div>
+            <div class="photo-review-comment">${esc(r.comment || 'Rated only')}</div>
+          </div>`;
         }).join('');
       } catch {
-        listEl.innerHTML = '<div style="text-align:center;color:var(--text3,#94a3b8);padding:20px;font-size:13px;">Failed to load reviews.</div>';
+        listEl.innerHTML = `<div style="${noStyle}">Could not load reviews.</div>`;
+      }
+    }
+
+    function _updatePhotoCartStrip() {
+      if (!_photoItem) return;
+      const opts = itemOptions(_photoItem);
+      const sel  = opts[_photoSelectedOptIdx] || opts[0];
+
+      const nameEl = document.getElementById('photoCartName');
+      if (nameEl) nameEl.textContent = _photoItem.name;
+
+      const priceEl = document.getElementById('photoCartPrice');
+      if (priceEl) priceEl.textContent = sel ? `RM ${sel.price.toFixed(2)}` : '';
+
+      const infoEl = document.getElementById('photoCartInfo');
+      if (infoEl) {
+        let optsEl = infoEl.querySelector('.photo-cart-opts');
+        if (opts.length > 1) {
+          if (!optsEl) {
+            optsEl = document.createElement('div');
+            optsEl.className = 'photo-cart-opts';
+            infoEl.appendChild(optsEl);
+          }
+          optsEl.innerHTML = opts.map((o, i) =>
+            `<button class="photo-cart-opt${i === _photoSelectedOptIdx ? ' active' : ''}" onclick="photoSelectOpt(${i})">${esc(o.label)} RM${o.price}</button>`
+          ).join('');
+        } else if (optsEl) {
+          optsEl.remove();
+        }
+      }
+
+      const qty = sel ? cart.filter(i => i.id === _photoItem.id && i.option === sel.label).length : 0;
+      const qtyEl = document.getElementById('photoCartQty');
+      if (qtyEl) { qtyEl.textContent = qty; qtyEl.className = 'photo-cart-qty' + (qty > 0 ? ' has-items' : ''); }
+    }
+
+    function photoSelectOpt(idx) {
+      _photoSelectedOptIdx = idx;
+      _updatePhotoCartStrip();
+    }
+
+    function photoChangeQty(delta) {
+      if (!_photoItem) return;
+      const opts = itemOptions(_photoItem);
+      const sel  = opts[_photoSelectedOptIdx] || opts[0];
+      if (!sel) return;
+      if (delta > 0) {
+        cart.push({ ..._photoItem, option: sel.label, price: sel.price, uid: Date.now() + Math.random() });
+        updateCart(); renderCart(); _updatePhotoCartStrip();
+      } else {
+        const idx = [...cart].map((c, i) => ({ c, i })).reverse()
+          .find(({ c }) => c.id === _photoItem.id && c.option === sel.label);
+        if (idx) {
+          cart.splice(idx.i, 1);
+          updateCart(); renderCart(); _updatePhotoCartStrip();
+        }
       }
     }
 
@@ -2597,25 +2239,41 @@
       const ratedItems = (order.items || []).filter(item => ratings[item.id] > 0);
       if (!ratedItems.length) { closeFeedbackModal(); return; }
       const now = Date.now();
-      await Promise.all(ratedItems.map(item => {
-        const reviewId = `rev_${now}_${Math.random().toString(36).slice(2, 6)}`;
-        return fbSet(`feedback/item_reviews/${item.id}/${reviewId}`, {
-          rating: ratings[item.id],
-          comment: (comments[item.id] || '').trim(),
-          customer_name: order.customer_name || 'Anonymous',
-          order_id: order.order_id,
-          created_at: now,
-        });
-      })).catch(() => {});
-      // Recalculate summaries from live data to avoid drift
+      // Use order_id as the review key — natural write-once uniqueness per order per item.
+      // Firebase validate rule also enforces order_id must exist in the orders ring buffer.
+      await Promise.all(ratedItems.map(item =>
+        fbSet(`feedback/item_reviews/${item.id}/${order.order_id}`, {
+          rating:         ratings[item.id],
+          comment:        (comments[item.id] || '').trim(),
+          customer_name:  order.customer_name || 'Anonymous',
+          order_id:       order.order_id,
+          created_at:     now,
+        })
+      )).catch(() => {});
+      // Recalculate summaries from full live read — avoids incremental drift.
+      // Also updates recent_* window for the trending signal.
+      const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
       await Promise.all(ratedItems.map(async item => {
         try {
           const allReviews = await fbGet(`feedback/item_reviews/${item.id}`);
           if (!allReviews) return;
-          const vals = Object.values(allReviews).map(r => Number(r.rating)).filter(n => n > 0 && n <= 5);
-          if (!vals.length) return;
-          const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
-          const summary = { rating_avg: Math.round(avg * 10) / 10, review_count: vals.length };
+          const all = Object.values(allReviews).filter(r => Number(r.rating) > 0 && Number(r.rating) <= 5);
+          if (!all.length) return;
+          const avg = all.reduce((s, r) => s + Number(r.rating), 0) / all.length;
+          const recent = all.filter(r => (now - (r.created_at || 0)) < FOURTEEN_DAYS);
+          const recentAvg = recent.length
+            ? recent.reduce((s, r) => s + Number(r.rating), 0) / recent.length : 0;
+          const lastRecentTs = recent.length
+            ? Math.max(...recent.map(r => r.created_at || 0)) : 0;
+          const summary = {
+            rating_avg:       Math.round(avg * 10) / 10,
+            review_count:     all.length,
+            ...(recent.length >= 2 && recentAvg >= 4.3 ? {
+              recent_avg:      Math.round(recentAvg * 10) / 10,
+              recent_count:    recent.length,
+              recent_last_ts:  lastRecentTs,
+            } : {}),
+          };
           await fbSet(`feedback/item_summaries/${item.id}`, summary);
           itemSummaries[item.id] = summary;
         } catch {}
