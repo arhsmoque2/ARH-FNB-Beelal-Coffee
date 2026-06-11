@@ -455,6 +455,19 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <button class="btn btn-primary" onclick="saveSizeLegend()">Save Size Legend</button>
     </div>
     <div class="a-card">
+      <div class="a-card-title">Booking Calendar & Pricing Settings</div>
+      <div class="sec-sub" style="margin-bottom:12px">Configure holidays, high-demand dates, and manual date blocks.</div>
+      <div class="form-row">
+        <label class="form-label">High-Demand / Holiday Dates</label>
+        <textarea class="form-input" id="iHighDemandDates" rows="3" style="resize:vertical" placeholder="Comma-separated dates (YYYY-MM-DD), e.g. 2026-06-15, 2026-06-16, 2026-08-31"></textarea>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Manually Blocked Dates</label>
+        <textarea class="form-input" id="iBlockedDates" rows="3" style="resize:vertical" placeholder="Comma-separated dates (YYYY-MM-DD) to block out manually, e.g. 2026-07-01, 2026-07-02"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveBookingSettings()">Save Booking Settings</button>
+    </div>
+    <div class="a-card">
       <div class="a-card-title">About / Store Info</div>
       <div class="sec-sub" style="margin-bottom:12px">Story section shown on the public menu page, below the banner.</div>
       <div class="toggle-row" style="margin-bottom:12px">
@@ -498,12 +511,12 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         </div>
       </div>
       <div class="form-row">
-        <div class="form-label" style="margin-bottom:8px">Drink Sizes (leave Price blank to hide that size)</div>
-        <div class="size-config-row"><span class="size-config-label">🔥 Hot</span><input class="form-input" id="nHot" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nHotOz" placeholder="e.g. 8oz"></div>
-        <div class="size-config-row"><span class="size-config-label">❄️ Cold</span><input class="form-input" id="nCold" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nColdOz" placeholder="e.g. 12oz"></div>
-        <div class="size-config-row"><span class="size-config-label">🧋 Frappé</span><input class="form-input" id="nFrappe" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nFrappeOz" placeholder="e.g. 16oz"></div>
+        <div class="form-label" style="margin-bottom:8px">Room Rate Tiers (leave empty if not applicable)</div>
+        <div class="size-config-row"><span class="size-config-label">Weekday Rate</span><input class="form-input" id="nHot" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nHotOz" placeholder="Badge (e.g. 2 Guests)"></div>
+        <div class="size-config-row"><span class="size-config-label">Weekend Rate</span><input class="form-input" id="nCold" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nColdOz" placeholder="Badge (e.g. King Bed)"></div>
+        <div class="size-config-row"><span class="size-config-label">Holiday Rate</span><input class="form-input" id="nFrappe" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nFrappeOz" placeholder="Badge (e.g. Pool View)"></div>
       </div>
-      <div class="form-row"><label class="form-label" data-cur-label="Fixed Price — Food (CUR)">Fixed Price — Food (RM)</label><input class="form-input" id="nPrice" type="number" step="0.5" placeholder="Leave blank for drinks"></div>
+      <div class="form-row"><label class="form-label" data-cur-label="Flat Price (CUR)">Flat Price (RM)</label><input class="form-input" id="nPrice" type="number" step="0.5" placeholder="Leave blank if using tiers"></div>
       <button class="btn btn-primary" onclick="addItem()">Add Item</button>
       <button class="btn btn-secondary" onclick="toggleAddForm()" style="margin-top:8px">Cancel</button>
     </div>
@@ -1350,6 +1363,10 @@ async function loadStoreTab() {
   document.getElementById('iSize2').value = legend[1] || '';
   document.getElementById('iSize3').value = legend[2] || '';
   document.getElementById('iSize4').value = legend[3] || '';
+  
+  // Load homestay dates
+  document.getElementById('iHighDemandDates').value = (storeData.high_demand_dates || []).join(', ');
+  document.getElementById('iBlockedDates').value = (storeData.blocked_dates || []).join(', ');
 }
 async function saveStore() {
   await safe(async () => {
@@ -1384,6 +1401,17 @@ async function saveStore() {
     storeData = d;
     toast('Store info saved ✓');
   }, 'saveStore');
+}
+
+async function saveBookingSettings() {
+  await safe(async () => {
+    const s = await fbGet('config/store') || {};
+    s.high_demand_dates = document.getElementById('iHighDemandDates').value.split(',').map(d => d.trim()).filter(Boolean);
+    s.blocked_dates = document.getElementById('iBlockedDates').value.split(',').map(d => d.trim()).filter(Boolean);
+    await fbSet('config/store', s);
+    storeData = { ...storeData, ...s };
+    toast('Booking settings saved ✓');
+  }, 'saveBookingSettings');
 }
 async function saveSizeLegend() {
   await safe(async () => {
@@ -1649,10 +1677,10 @@ function openEditModal(id) {
     </div>
     ${isDrink?`
     <div class="form-row">
-      <div class="form-label" style="margin-bottom:8px">Drink Sizes (leave Price blank to hide that size)</div>
-      <div class="size-config-row"><span class="size-config-label">🔥 Hot</span><input class="form-input" id="eHot" type="number" step="0.5" placeholder="Price" value="${item.hot??''}"><input class="form-input" id="eHotOz" placeholder="e.g. 8oz" value="${item.hot_oz||''}"></div>
-      <div class="size-config-row"><span class="size-config-label">❄️ Cold</span><input class="form-input" id="eCold" type="number" step="0.5" placeholder="Price" value="${item.cold??''}"><input class="form-input" id="eColdOz" placeholder="e.g. 12oz" value="${item.cold_oz||''}"></div>
-      <div class="size-config-row"><span class="size-config-label">🧋 Frappé</span><input class="form-input" id="eFrappe" type="number" step="0.5" placeholder="Price" value="${item.frappe??''}"><input class="form-input" id="eFrappeOz" placeholder="e.g. 16oz" value="${item.frappe_oz||''}"></div>
+      <div class="form-label" style="margin-bottom:8px">Room Rate Tiers (leave empty if not applicable)</div>
+      <div class="size-config-row"><span class="size-config-label">Weekday Rate</span><input class="form-input" id="eHot" type="number" step="0.5" placeholder="Price" value="${item.hot??''}"><input class="form-input" id="eHotOz" placeholder="Badge (e.g. 2 Guests)" value="${item.hot_oz||''}"></div>
+      <div class="size-config-row"><span class="size-config-label">Weekend Rate</span><input class="form-input" id="eCold" type="number" step="0.5" placeholder="Price" value="${item.cold??''}"><input class="form-input" id="eColdOz" placeholder="Badge (e.g. King Bed)" value="${item.cold_oz||''}"></div>
+      <div class="size-config-row"><span class="size-config-label">Holiday Rate</span><input class="form-input" id="eFrappe" type="number" step="0.5" placeholder="Price" value="${item.frappe??''}"><input class="form-input" id="eFrappeOz" placeholder="Badge (e.g. Pool View)" value="${item.frappe_oz||''}"></div>
     </div>`:`<div class="form-row"><label class="form-label">Price (${CUR})</label><input class="form-input" id="ePrice" type="number" step="0.5" value="${item.price??''}"></div>`}
     <div class="form-row" style="margin-top:4px">
       <div class="a-card-title">Options / Add-ons</div>
