@@ -358,19 +358,22 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 
 <!-- PIN SCREEN -->
 <div class="pin-screen" id="pinScreen">
-  <div class="pin-logo" id="pinLogo">Admin Panel</div>
+  <div style="position:absolute;top:16px;right:16px;">
+    <button id="pinLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="background:none;border:1px solid rgba(200,152,42,0.3);border-radius:20px;padding:5px 12px;color:var(--text2);font-size:11px;font-weight:700;font-family:var(--fb);cursor:pointer;">EN</button>
+  </div>
+  <div class="pin-logo" id="pinLogo">Panel Admin</div>
   <!-- First run: dev PIN setup -->
   <div class="pin-first-run" id="firstRunSetup" style="display:none">
-    <div class="pin-first-run-title">⚙ First Time Setup — Developer</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6">Set your developer PIN. Keep this private — it unlocks Theme Studio and system settings.</div>
+    <div class="pin-first-run-title" id="firstRunTitle">⚙ Persediaan Pertama — Pembangun</div>
+    <div id="firstRunDesc" style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6">Tetapkan PIN pembangun anda. Rahsiakan — ia membuka kunci Studio Tema dan tetapan sistem.</div>
     <input class="pin-setup-input" id="devPinA" type="password" maxlength="4" placeholder="••••" inputmode="numeric">
-    <input class="pin-setup-input" id="devPinB" type="password" maxlength="4" placeholder="Confirm ••••" inputmode="numeric" style="margin-top:6px">
+    <input class="pin-setup-input" id="devPinB" type="password" maxlength="4" placeholder="Sahkan ••••" inputmode="numeric" style="margin-top:6px">
     <div class="pin-error" id="firstRunError"></div>
-    <button class="pin-setup-btn" onclick="submitFirstRun()" style="margin-top:8px">Set Dev PIN & Continue</button>
+    <button class="pin-setup-btn" id="firstRunBtn" onclick="submitFirstRun()" style="margin-top:8px">Tetapkan PIN Pembangun & Teruskan</button>
   </div>
   <!-- Normal PIN entry -->
   <div id="normalPin">
-    <div class="pin-subtitle" id="pinSubtitle">Enter your PIN to continue</div>
+    <div class="pin-subtitle" id="pinSubtitle">Masukkan PIN anda untuk teruskan</div>
     <div class="pin-display" id="pinDisplay">
       <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
       <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
@@ -396,17 +399,20 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 <!-- MAIN APP -->
 <div class="app" id="mainApp">
   <div class="topbar">
-    <div><div class="topbar-title" id="topbarTitle">Admin Panel</div><div class="topbar-role" id="roleLabel">Owner</div></div>
-    <button class="lock-btn" onclick="logout()">Lock</button>
+    <div><div class="topbar-title" id="topbarTitle">Panel Admin</div><div class="topbar-role" id="roleLabel">Pemilik</div></div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="lock-btn" id="adminLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')">EN</button>
+      <button class="lock-btn" id="lockBtn" onclick="logout()">Kunci</button>
+    </div>
   </div>
   <div class="tab-nav">
-    <div class="tab-btn active" onclick="showTab('store',this)">Store</div>
-    <div class="tab-btn" onclick="showTab('menu',this)">Menu</div>
-    <div class="tab-btn" onclick="showTab('orders',this)">Orders</div>
-    <div class="tab-btn" onclick="showTab('feedback',this)">Feedback</div>
-    <div class="tab-btn" onclick="showTab('security',this)">Security</div>
-    <div class="tab-btn" onclick="showTab('studio',this)">Theme Studio</div>
-    <div class="tab-btn hidden" id="devTabBtn" onclick="showTab('dev',this)">Dev ⚙</div>
+    <div class="tab-btn active" id="tab-btn-store" onclick="showTab('store',this)">Kedai</div>
+    <div class="tab-btn" id="tab-btn-menu" onclick="showTab('menu',this)">Menu</div>
+    <div class="tab-btn" id="tab-btn-orders" onclick="showTab('orders',this)">Pesanan</div>
+    <div class="tab-btn" id="tab-btn-feedback" onclick="showTab('feedback',this)">Maklum Balas</div>
+    <div class="tab-btn" id="tab-btn-security" onclick="showTab('security',this)">Keselamatan</div>
+    <div class="tab-btn" id="tab-btn-studio" onclick="showTab('studio',this)">Studio Tema</div>
+    <div class="tab-btn hidden" id="devTabBtn" onclick="showTab('dev',this)">Pembangun ⚙</div>
   </div>
 
   <!-- STORE TAB -->
@@ -1308,7 +1314,8 @@ function checkPin() {
 async function unlockApp() {
   document.getElementById('pinScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.add('visible');
-  document.getElementById('roleLabel').textContent = currentRole === 'dev' ? 'Developer' : 'Owner';
+  const _rl = document.getElementById('roleLabel');
+  if (_rl) { _rl.dataset.role = currentRole; _rl.textContent = currentRole === 'dev' ? (ADMIN_STRINGS[_aLang]||ADMIN_STRINGS.bm).roleDev : (ADMIN_STRINGS[_aLang]||ADMIN_STRINGS.bm).roleOwner; }
   if (currentRole === 'dev') {
     document.getElementById('devTabBtn').classList.remove('hidden');
     document.getElementById('devPinCard').style.display = 'block';
@@ -3686,9 +3693,61 @@ zipDrop.addEventListener('drop', e => {
 });
 
 // ════════════════════════════════════════════════════════════
+// LANGUAGE i18n
+// ════════════════════════════════════════════════════════════
+const ADMIN_STRINGS = {
+  bm: {
+    pinLogo: 'Panel Admin', pinSubtitle: 'Masukkan PIN anda untuk teruskan',
+    firstRunTitle: '⚙ Persediaan Pertama — Pembangun',
+    firstRunDesc: 'Tetapkan PIN pembangun anda. Rahsiakan — ia membuka kunci Studio Tema dan tetapan sistem.',
+    firstRunBtn: 'Tetapkan PIN Pembangun & Teruskan',
+    topbarTitle: 'Panel Admin', roleOwner: 'Pemilik', roleDev: 'Pembangun',
+    lock: 'Kunci',
+    tabs: { store:'Kedai', menu:'Menu', orders:'Pesanan', feedback:'Maklum Balas', security:'Keselamatan', studio:'Studio Tema', dev:'Pembangun ⚙' },
+  },
+  en: {
+    pinLogo: 'Admin Panel', pinSubtitle: 'Enter your PIN to continue',
+    firstRunTitle: '⚙ First Time Setup — Developer',
+    firstRunDesc: 'Set your developer PIN. Keep this private — it unlocks Theme Studio and system settings.',
+    firstRunBtn: 'Set Dev PIN & Continue',
+    topbarTitle: 'Admin Panel', roleOwner: 'Owner', roleDev: 'Developer',
+    lock: 'Lock',
+    tabs: { store:'Store', menu:'Menu', orders:'Orders', feedback:'Feedback', security:'Security', studio:'Theme Studio', dev:'Dev ⚙' },
+  }
+};
+let _aLang = localStorage.getItem('arh_lang') || 'bm';
+function ta(key) { return (ADMIN_STRINGS[_aLang] || ADMIN_STRINGS.bm)[key] ?? ADMIN_STRINGS.en[key] ?? key; }
+function setAdminLang(lang) {
+  _aLang = lang;
+  localStorage.setItem('arh_lang', lang);
+  applyAdminLang();
+}
+function applyAdminLang() {
+  const $ = id => document.getElementById(id);
+  const s = ADMIN_STRINGS[_aLang] || ADMIN_STRINGS.bm;
+  const toggleLabel = _aLang === 'bm' ? 'EN' : 'BM';
+  ['pinLangToggle','adminLangToggle'].forEach(id => { const el=$(id); if(el) el.textContent=toggleLabel; });
+  if($('pinLogo')) $('pinLogo').textContent = s.pinLogo;
+  if($('pinSubtitle')) $('pinSubtitle').textContent = s.pinSubtitle;
+  if($('firstRunTitle')) $('firstRunTitle').textContent = s.firstRunTitle;
+  if($('firstRunDesc')) $('firstRunDesc').textContent = s.firstRunDesc;
+  if($('firstRunBtn')) $('firstRunBtn').textContent = s.firstRunBtn;
+  if($('topbarTitle')) $('topbarTitle').textContent = s.topbarTitle;
+  if($('lockBtn')) $('lockBtn').textContent = s.lock;
+  Object.entries(s.tabs).forEach(([key, label]) => {
+    const btn = $(`tab-btn-${key}`); if(btn) btn.textContent = label;
+  });
+  const role = $('roleLabel');
+  if(role) role.textContent = role.dataset.role === 'dev' ? s.roleDev : s.roleOwner;
+  document.documentElement.lang = _aLang === 'bm' ? 'ms' : 'en';
+}
+applyAdminLang();
+
+// ════════════════════════════════════════════════════════════
 // START
 // ════════════════════════════════════════════════════════════
 init();
 </script>
 </body>
 </html>
+
