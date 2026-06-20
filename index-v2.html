@@ -1707,12 +1707,19 @@
       .sheet { padding: 10px; }
       .sheet-panel { padding: 14px; border-radius: 10px; }
     }
+    .lang-toggle {
+      min-width: 52px !important;
+      padding: 0 6px !important;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
     @media (max-width: 430px) {
       .top-actions #statusChip { display: none; }
       .brand-sub { display: none; }
-      .brand-title { max-width: calc(100vw - 220px); }
-      .ambience-toggle { min-width: 70px; padding: 0 10px; }
-      .cart-top { min-width: 92px; }
+      .brand-title { max-width: calc(100vw - 262px); }
+      .ambience-toggle { min-width: 60px; padding: 0 8px; }
+      .lang-toggle { min-width: 48px !important; font-size: 11px; }
+      .cart-top { min-width: 82px; font-size: 13px; }
     }
   </style>
 </head>
@@ -1729,6 +1736,7 @@
         </div>
       </a>
       <div class="top-actions">
+        <button class="ambience-toggle lang-toggle" id="langToggle" type="button" aria-label="Switch language" onclick="setLang(_lang==='bm'?'en':'bm')">EN</button>
         <button class="ambience-toggle" id="ambienceToggle" type="button" aria-label="Switch light and night mode" aria-pressed="false">Light</button>
         <span class="chip" id="statusChip">Checking hours</span>
         <button class="cart-top" type="button" onclick="openCart()">Cart <span id="topCartCount">0</span></button>
@@ -1745,15 +1753,14 @@
           <h1 id="heroTitle">Menu</h1>
           <p class="lede" id="heroLede">Browse the live menu and place a WhatsApp order.</p>
           <div class="hero-actions">
-            <a class="solid-btn" href="#menu">Browse menu</a>
-            <button class="ghost-btn" type="button" onclick="openCart()">Review cart</button>
+            <a class="solid-btn" href="#menu" id="browseMenuBtn">Browse menu</a>
+            <button class="ghost-btn" type="button" onclick="openCart()" id="reviewCartBtn">Review cart</button>
           </div>
         </div>
         <div class="quick-row" id="quickStats"></div>
       </div>
 
-      <!-- TEMP: media-card hidden until store provides logo/banner content -->
-      <div class="media-card" id="mediaCard" style="display:none">
+      <div class="media-card" id="mediaCard">
         <div class="plate" id="fallbackPlate" aria-hidden="true"></div>
         <div class="media-inner">
           <div>
@@ -1765,43 +1772,16 @@
       </div>
     </section>
 
-    <section class="about-band">
+    <section class="about-band hidden" id="aboutBand">
       <div class="shell about-story">
-        <article>
-          <p class="about-kicker">Order Tanpa Suara</p>
-          <h2 class="about-title">Built by a Deaf couple with quiet confidence.</h2>
-          <p class="about-copy">
-            O.T.s Coffee is more than a coffee and croffle menu. The heart of the store is a couple from the Deaf community creating a smoother way to order without pressure, shouting, or awkward back-and-forth.
-          </p>
-          <p class="about-copy">
-            This page should make that hospitality visible: clear choices, calm ordering, and a direct WhatsApp flow that respects how they serve.
-          </p>
-          <div class="about-tags" aria-label="Store identity">
-            <span class="about-tag">OKU Pendengaran</span>
-            <span class="about-tag">Couple-run</span>
-            <span class="about-tag">Coffee & croffles</span>
-            <span class="about-tag">Silent ordering</span>
-          </div>
-          <a class="instagram-link" href="https://www.instagram.com/otscoffee_/" target="_blank" rel="noopener noreferrer">View photos and videos on Instagram</a>
+        <article id="aboutArticle">
+          <p class="about-kicker" id="aboutKicker"></p>
+          <h2 class="about-title" id="aboutTitle"></h2>
+          <div id="aboutCopy"></div>
+          <div class="about-tags" id="aboutTags" aria-label="Store identity"></div>
+          <a class="instagram-link hidden" id="igLink" target="_blank" rel="noopener noreferrer"></a>
         </article>
-
-        <!-- TEMP: story-media-grid hidden until store provides own content -->
-        <div class="story-media-grid" aria-label="About O.T.s Coffee media" style="display:none">
-          <article class="story-card photo">
-            <div class="story-card-body">
-              <div class="story-card-label">Photo story</div>
-              <div class="story-card-title">Faces behind the coffee.</div>
-              <div class="story-card-text">Use owner-approved photos here: the couple, the counter, croffles, coffee pours, and real customer moments.</div>
-            </div>
-          </article>
-          <article class="story-card video">
-            <div class="story-card-body">
-              <div class="story-card-label">Video moments</div>
-              <div class="story-card-title">How silent ordering works.</div>
-              <div class="story-card-text">Short reels can show the ordering flow, hand signs, waffle prep, late-night service, and why O.T.s exists.</div>
-            </div>
-          </article>
-        </div>
+        <div class="story-media-grid hidden" id="storyGrid" aria-label="Store media"></div>
       </div>
     </section>
 
@@ -1969,6 +1949,82 @@
     let calendarYear = new Date().getFullYear();
     let firebaseOrders = {};
 
+    // ── i18n ─────────────────────────────────────────────────────────────────
+    const STRINGS = {
+      bm: {
+        light: 'Cerah', night: 'Malam',
+        checking: 'Menyemak...', openNow: 'Buka sekarang', closed: 'Ditutup',
+        closedBannerText: 'Kedai sedang tutup',
+        heroLede: 'Lihat menu terkini dan buat pesanan WhatsApp.',
+        browseMenu: 'Lihat Menu', reviewCart: 'Semak Troli',
+        cats: 'Kategori', menuItems: 'Item Menu', avail: 'Tersedia', from: 'Dari',
+        searchPlaceholder: 'Cari item menu...', availOnly: 'Yang tersedia',
+        cartTitle: 'Troli Anda', total: 'Jumlah',
+        namePlaceholder: 'Nama untuk pesanan WhatsApp',
+        notePlaceholder: 'Waktu ambil, nombor meja, atau nota tambahan',
+        sendBtn: 'Hantar pesanan WhatsApp',
+        consentTitle: 'Privasi & Rekod Pesanan',
+        consentCheck: 'Saya faham dan bersetuju sebelum menghantar pesanan ini.',
+        optionsTitle: 'Pilihan & Tambahan',
+        confirmAddons: 'Sahkan & Tambah ke Pesanan', cancelBtn: 'Batal',
+        emptyCart: 'Troli anda kosong. Tambah item dari menu.',
+        igLink: 'Lihat foto dan video di Instagram',
+        itemCount: n => `${n} item`,
+      },
+      en: {
+        light: 'Light', night: 'Night',
+        checking: 'Checking hours', openNow: 'Open now', closed: 'Closed',
+        closedBannerText: 'Store is currently closed',
+        heroLede: 'Browse the live menu and build a WhatsApp order.',
+        browseMenu: 'Browse menu', reviewCart: 'Review cart',
+        cats: 'Categories', menuItems: 'Menu items', avail: 'Available', from: 'From',
+        searchPlaceholder: 'Search menu items...', availOnly: 'Available only',
+        cartTitle: 'Your cart', total: 'Total',
+        namePlaceholder: 'Name for WhatsApp order',
+        notePlaceholder: 'Pickup time, table number, or extra note',
+        sendBtn: 'Send WhatsApp order',
+        consentTitle: 'Privacy & Order Record',
+        consentCheck: 'I understand and agree before sending this order.',
+        optionsTitle: 'Options & Add-ons',
+        confirmAddons: 'Confirm & Add to Order', cancelBtn: 'Cancel',
+        emptyCart: 'Your cart is empty. Add items from the menu.',
+        igLink: 'View photos and videos on Instagram',
+        itemCount: n => `${n} item${n === 1 ? '' : 's'}`,
+      }
+    };
+    let _lang = localStorage.getItem('arh_lang') || 'bm';
+    function t(key) { return (STRINGS[_lang] || STRINGS.bm)[key] ?? STRINGS.en[key] ?? key; }
+    function setLang(lang) {
+      _lang = lang;
+      localStorage.setItem('arh_lang', lang);
+      document.documentElement.lang = lang === 'bm' ? 'ms' : 'en';
+      const btn = document.getElementById('langToggle');
+      if (btn) btn.textContent = lang === 'bm' ? 'EN' : 'BM';
+      applyStaticStrings();
+      syncAmbienceVars();
+      renderShell();
+      renderMenu();
+      updateCart();
+    }
+    function applyStaticStrings() {
+      const q = (id, prop, val) => { const el = document.getElementById(id); if (el) el[prop] = val; };
+      q('browseMenuBtn',    'textContent', t('browseMenu'));
+      q('reviewCartBtn',    'textContent', t('reviewCart'));
+      q('searchInput',      'placeholder', t('searchPlaceholder'));
+      q('availableToggle',  'textContent', t('availOnly'));
+      q('cartTitle',        'textContent', t('cartTitle'));
+      const total = document.querySelector('.total-row > span');
+      if (total) total.textContent = t('total');
+      q('custName',  'placeholder', t('namePlaceholder'));
+      q('custNote',  'placeholder', t('notePlaceholder'));
+      const sendBtn = document.querySelector('.wa-order-btn');
+      if (sendBtn) sendBtn.textContent = t('sendBtn');
+      const cTitle = document.querySelector('.consent-title');
+      if (cTitle) cTitle.textContent = t('consentTitle');
+      const cCheck = document.querySelector('.consent-check-label');
+      if (cCheck) cCheck.textContent = t('consentCheck');
+    }
+
     function syncAmbienceVars() {
       const mode = localStorage.getItem("fnb-ambience-mode") || "light";
       const root = document.documentElement;
@@ -1977,7 +2033,7 @@
       const toggle = document.getElementById("ambienceToggle");
       if (toggle) {
         const isNight = mode === "night";
-        toggle.textContent = isNight ? "Night" : "Light";
+        toggle.textContent = isNight ? t('night') : t('light');
         toggle.setAttribute("aria-pressed", String(isNight));
       }
       if (mode === "night") {
@@ -2013,6 +2069,11 @@
       syncAmbienceVars();
     });
     syncAmbienceVars();
+    // Init lang toggle state
+    document.documentElement.lang = _lang === 'bm' ? 'ms' : 'en';
+    const _ltb = document.getElementById('langToggle');
+    if (_ltb) _ltb.textContent = _lang === 'bm' ? 'EN' : 'BM';
+    applyStaticStrings();
 
     function esc(value) {
       return String(value == null ? "" : value).replace(/[<>&"]/g, ch => ({
@@ -2197,9 +2258,9 @@
       document.getElementById("brandTitle").textContent = storeConfig.name;
       document.getElementById("brandSub").textContent = storeConfig.slogan || storeConfig.hours || "";
       document.getElementById("heroTitle").textContent = storeConfig.name;
-      document.getElementById("heroLede").textContent = storeConfig.slogan || "Browse the live menu and build a WhatsApp order.";
-      document.getElementById("mediaTitle").textContent = "Coffee, croffles, no noise.";
-      document.getElementById("mediaNote").textContent = storeConfig.hours || "A quieter ordering page for premium coffee, lattes, matcha and croffles.";
+      document.getElementById("heroLede").textContent = storeConfig.slogan || t('heroLede');
+      document.getElementById("mediaTitle").textContent = storeConfig.name;
+      document.getElementById("mediaNote").textContent = storeConfig.hours || storeConfig.slogan || "";
 
       const mark = document.getElementById("brandMark");
       if (storeConfig.logo_url) {
@@ -2227,10 +2288,10 @@
       const available = menuData.items.filter(i => i.avail !== false).length;
       const minPrice = Math.min(...menuData.items.flatMap(item => itemOptions(item).map(o => o.price)).filter(Number.isFinite));
       document.getElementById("quickStats").innerHTML = [
-        ["Categories", menuData.categories.length],
-        ["Menu items", menuData.items.length],
-        ["Available", available],
-        ["From", Number.isFinite(minPrice) ? money(minPrice) : "-"]
+        [t('cats'), menuData.categories.length],
+        [t('menuItems'), menuData.items.length],
+        [t('avail'), available],
+        [t('from'), Number.isFinite(minPrice) ? money(minPrice) : "-"]
       ].map(([label, value]) => `
         <div class="quick-card">
           <div class="quick-label">${esc(label)}</div>
@@ -2244,17 +2305,42 @@
         const low = opts.length ? Math.min(...opts.map(o => o.price)) : 0;
         return `<div class="feature-row"><span>${esc(item.name)}</span><span>${money(low)}</span></div>`;
       }).join("");
+
+      renderAbout();
+    }
+
+    function renderAbout() {
+      const si = APP_CONFIG.store.storeInfo;
+      const band = document.getElementById('aboutBand');
+      if (!band) return;
+      if (!si || si.enabled === false) { band.classList.add('hidden'); return; }
+      band.classList.remove('hidden');
+      const isBm = _lang === 'bm';
+      const q = id => document.getElementById(id);
+      q('aboutKicker').textContent = si.kicker || '';
+      q('aboutTitle').textContent = (isBm && si.titleBm) ? si.titleBm : (si.title || '');
+      const copies = (isBm && si.copyBm?.length) ? si.copyBm : (si.copy || []);
+      q('aboutCopy').innerHTML = copies.map(c => `<p class="about-copy">${esc(c)}</p>`).join('');
+      q('aboutTags').innerHTML = (si.tags || []).map(tag => `<span class="about-tag">${esc(tag)}</span>`).join('');
+      const igEl = q('igLink');
+      if (si.igHandle) {
+        igEl.href = `https://www.instagram.com/${esc(si.igHandle)}/`;
+        igEl.textContent = t('igLink');
+        igEl.classList.remove('hidden');
+      } else {
+        igEl.classList.add('hidden');
+      }
     }
 
     function renderOpenState() {
       const closed = storeConfig.isOpen === false;
       const status = document.getElementById("statusChip");
-      status.textContent = closed ? "Closed" : "Open now";
+      status.textContent = closed ? t('closed') : t('openNow');
       status.className = "chip " + (closed ? "status-closed" : "status-open");
 
       const banner = document.getElementById("closedBanner");
       if (closed) {
-        banner.innerHTML = `<span class="closed-banner-icon">🔒</span>Store is currently closed<span class="closed-banner-msg">${esc(storeConfig.closedMessage || "We are currently closed.")}</span>`;
+        banner.innerHTML = `<span class="closed-banner-icon">🔒</span>${t('closedBannerText')}<span class="closed-banner-msg">${esc(storeConfig.closedMessage || "We are currently closed.")}</span>`;
         banner.classList.remove("hidden");
       } else {
         banner.classList.add("hidden");
@@ -3280,7 +3366,7 @@
 
     function updateCart() {
       const total = cart.reduce((sum, item) => sum + item.price, 0);
-      const label = `${cart.length} item${cart.length === 1 ? "" : "s"}`;
+      const label = typeof t('itemCount') === 'function' ? t('itemCount')(cart.length) : `${cart.length} item`;
       document.getElementById("topCartCount").textContent = cart.length;
       document.getElementById("floatingCartLabel").textContent = label;
       document.getElementById("floatingCartTotal").textContent = money(total);
@@ -3306,7 +3392,7 @@
     function renderCart() {
       const list = document.getElementById("cartList");
       if (!cart.length) {
-        list.innerHTML = `<div class="empty-state">Your cart is empty.</div>`;
+        list.innerHTML = `<div class="empty-state">${t('emptyCart')}</div>`;
         updateCart();
         return;
       }
