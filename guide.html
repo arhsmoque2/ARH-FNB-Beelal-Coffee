@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0a0a">
-<title>Admin Guide</title>
+<title>Panduan Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -32,6 +32,9 @@ li{margin-bottom:6px;}
 section{scroll-margin-top:24px;}
 hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
 .subtitle{font-size:14px;color:var(--text3);margin-bottom:24px;}
+.topbar-guide{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.lang-btn{background:none;border:1px solid var(--border);border-radius:20px;padding:7px 16px;color:var(--text2);font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all 0.15s;}
+.lang-btn:hover{background:var(--bg3);color:var(--text);}
 .toc{position:sticky;top:12px;z-index:10;background:rgba(17,17,17,0.94);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:30px;box-shadow:0 8px 28px rgba(0,0,0,0.28);}
 .toc-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:10px;}
 .toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;}
@@ -69,241 +72,326 @@ hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
 .checklist-item label{font-size:14px;color:var(--text2);cursor:pointer;}
 .checklist-item input:checked+label{color:var(--text);text-decoration:line-through;text-decoration-color:var(--green);}
 .print-btn{position:fixed;right:18px;bottom:18px;z-index:20;background:var(--text);color:var(--bg);border:none;border-radius:999px;padding:10px 14px;font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.35);}
+.new-badge{display:inline-flex;align-items:center;padding:2px 8px;background:var(--green2);color:var(--green);border-radius:8px;font-size:10px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;margin-left:6px;}
+.en-text{display:none;}
 @media(max-width:560px){.toc{max-height:44vh;overflow:auto}.toc-grid{grid-template-columns:1fr}.mockup-row{display:block}.mockup-val{display:block;text-align:left;margin-top:2px}.print-btn{right:12px;bottom:12px}}
-@media print{body{background:#fff;color:#000;max-width:none;padding:20px}.toc,.print-btn,.back-top{display:none}.card,.mockup,.tip,.warn,.checklist-item{border:1px solid #bbb;background:#fff;color:#000}p,.step-body,li,.mockup-label,.mockup-val,.card-sub,.checklist-item label{color:#111}h1,h2,h3,strong,.card-title{color:#000}hr{border-color:#bbb}}
+@media print{body{background:#fff;color:#000;max-width:none;padding:20px}.toc,.print-btn,.back-top,.lang-btn,.topbar-guide{display:none}.card,.mockup,.tip,.warn,.checklist-item{border:1px solid #bbb;background:#fff;color:#000}p,.step-body,li,.mockup-label,.mockup-val,.card-sub,.checklist-item label{color:#111}h1,h2,h3,strong,.card-title{color:#000}hr{border-color:#bbb}}
 </style>
 </head>
 <body id="top">
 
-<button class="print-btn" onclick="window.print()">Print Guide</button>
+<button class="print-btn" onclick="window.print()" id="printBtn">Cetak Panduan</button>
 
-<h1>Admin Panel Guide</h1>
-<p class="subtitle">A practical owner guide for updating the menu, store details, theme, and order records.</p>
+<div class="topbar-guide">
+  <div>
+    <h1 id="pageTitle">Panduan Panel Admin</h1>
+    <p class="subtitle" id="pageSubtitle" style="margin-bottom:0">Panduan praktikal untuk pemilik kedai menguruskan menu, butiran kedai, tema, dan rekod pesanan.</p>
+  </div>
+  <button class="lang-btn" id="guideLangToggle" onclick="setGuideLang(_gLang==='bm'?'en':'bm')">EN</button>
+</div>
 
 <div class="toc" aria-label="Guide contents">
-  <div class="toc-title">Contents</div>
+  <div class="toc-title" id="tocTitle">Kandungan</div>
   <div class="toc-grid">
-    <a href="#quick-map">0 · What Opens What</a>
-    <a href="#logging-in">1 · Logging In</a>
-    <a href="#store-tab">2 · Store Details</a>
-    <a href="#menu-tab">3 · Managing the Menu</a>
-    <a href="#orders-tab">4 · Viewing Orders</a>
-    <a href="#theme-studio">5 · Theme Studio</a>
-    <a href="#security-tab">6 · Security &amp; PINs</a>
-    <a href="#checklist">7 · Setup Checklist</a>
-    <a href="#recovery">8 · Recovery</a>
+    <a href="#quick-map"><span class="bm-text">0 · Halaman Mana Buat Apa</span><span class="en-text">0 · What Opens What</span></a>
+    <a href="#logging-in"><span class="bm-text">1 · Log Masuk</span><span class="en-text">1 · Logging In</span></a>
+    <a href="#store-tab"><span class="bm-text">2 · Butiran Kedai</span><span class="en-text">2 · Store Details</span></a>
+    <a href="#menu-tab"><span class="bm-text">3 · Urus Menu</span><span class="en-text">3 · Managing the Menu</span></a>
+    <a href="#orders-tab"><span class="bm-text">4 · Lihat Pesanan</span><span class="en-text">4 · Viewing Orders</span></a>
+    <a href="#theme-studio"><span class="bm-text">5 · Studio Tema</span><span class="en-text">5 · Theme Studio</span></a>
+    <a href="#security-tab"><span class="bm-text">6 · Keselamatan & PIN</span><span class="en-text">6 · Security &amp; PINs</span></a>
+    <a href="#lang-toggle"><span class="bm-text">7 · Tukar Bahasa</span><span class="en-text">7 · Language Toggle</span></a>
+    <a href="#checklist"><span class="bm-text">8 · Senarai Semak</span><span class="en-text">8 · Setup Checklist</span></a>
+    <a href="#recovery"><span class="bm-text">9 · Pemulihan</span><span class="en-text">9 · Recovery</span></a>
   </div>
 </div>
 
 <section id="quick-map">
-<h2>🗺️ What Opens What</h2>
+<h2>🗺️ <span class="bm-text">Halaman Mana Buat Apa</span><span class="en-text">What Opens What</span></h2>
 <div class="card">
   <div class="card-head">
     <div class="card-icon" style="background:var(--blue2);">🛠️</div>
-    <div><div class="card-title"><code>admin.html</code></div><div class="card-sub">Owner and developer control panel</div></div>
+    <div><div class="card-title"><code>admin.html</code></div><div class="card-sub bm-text">Panel kawalan pemilik dan pembangun</div><div class="card-sub en-text">Owner and developer control panel</div></div>
   </div>
-  <p style="margin:0;font-size:14px;">Use this page to change store info, menu items, availability, orders, PINs, and Theme Studio settings.</p>
+  <p class="bm-text" style="margin:0;font-size:14px;">Guna halaman ini untuk tukar info kedai, item menu, ketersediaan, pesanan, PIN, dan tetapan Studio Tema.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">Use this page to change store info, menu items, availability, orders, PINs, and Theme Studio settings.</p>
 </div>
 <div class="card">
   <div class="card-head">
     <div class="card-icon" style="background:var(--green2);">📱</div>
-    <div><div class="card-title"><code>index.html</code></div><div class="card-sub">Customer-facing menu</div></div>
+    <div><div class="card-title"><code>index.html</code></div><div class="card-sub bm-text">Menu untuk pelanggan</div><div class="card-sub en-text">Customer-facing menu</div></div>
   </div>
-  <p style="margin:0;font-size:14px;">This is what customers open to browse the menu and send orders through WhatsApp.</p>
+  <p class="bm-text" style="margin:0;font-size:14px;">Ini yang pelanggan buka untuk lihat menu dan hantar pesanan melalui WhatsApp.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">This is what customers open to browse the menu and send orders through WhatsApp.</p>
 </div>
-<div class="tip"><strong>Tip:</strong> After saving in <code>admin.html</code>, refresh <code>index.html</code> to check what customers will see.</div>
-<a class="back-top" href="#top">↑ Back to top</a>
+<div class="tip">
+  <strong>Tip:</strong>
+  <span class="bm-text">Selepas simpan dalam <code>admin.html</code>, muat semula <code>index.html</code> untuk semak apa yang pelanggan nampak.</span>
+  <span class="en-text">After saving in <code>admin.html</code>, refresh <code>index.html</code> to check what customers will see.</span>
+</div>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
-
 <hr>
 
 <section id="logging-in">
-<h2>🔐 Logging In</h2>
-<p>Open <strong><span translate="no">admin.html</span></strong> on your phone or computer. You will see a 4-digit <span translate="no">PIN</span> screen.</p>
+<h2>🔐 <span class="bm-text">Log Masuk</span><span class="en-text">Logging In</span></h2>
+<p class="bm-text">Buka <strong>admin.html</strong> pada telefon atau komputer anda. Anda akan nampak skrin PIN 4 digit.</p>
+<p class="en-text">Open <strong>admin.html</strong> on your phone or computer. You will see a 4-digit PIN screen.</p>
 <div class="card">
   <div class="card-head">
     <div class="card-icon" style="background:var(--green2);">🏪</div>
-    <div><div class="card-title">Owner PIN</div><div class="card-sub">For daily store operation</div></div>
+    <div><div class="card-title bm-text">PIN Pemilik</div><div class="card-title en-text">Owner PIN</div><div class="card-sub bm-text">Untuk operasi kedai harian</div><div class="card-sub en-text">For daily store operation</div></div>
   </div>
-  <p style="margin:0;font-size:14px;">Use it for store details, menu management, orders, Theme Studio, and Owner PIN changes.</p>
+  <p class="bm-text" style="margin:0;font-size:14px;">Guna untuk butiran kedai, urus menu, pesanan, Studio Tema, dan tukar PIN Pemilik.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">Use it for store details, menu management, orders, Theme Studio, and Owner PIN changes.</p>
 </div>
 <div class="card">
   <div class="card-head">
     <div class="card-icon" style="background:var(--purple2);">🛠️</div>
-    <div><div class="card-title">Developer PIN</div><div class="card-sub">For setup and recovery</div></div>
+    <div><div class="card-title bm-text">PIN Pembangun</div><div class="card-title en-text">Developer PIN</div><div class="card-sub bm-text">Untuk persediaan dan pemulihan</div><div class="card-sub en-text">For setup and recovery</div></div>
   </div>
-  <p style="margin:0;font-size:14px;">Everything above, plus Dev tools, API keys, model settings, error logs, and master theme snapshot.</p>
+  <p class="bm-text" style="margin:0;font-size:14px;">Semua di atas, tambah alat Pembangun, kunci API, tetapan model, log ralat, dan snapshot tema utama.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">Everything above, plus Dev tools, API keys, model settings, error logs, and master theme snapshot.</p>
 </div>
-<div class="tip"><strong>Tip:</strong> If you enter the wrong PIN, wait 2 seconds and try again. PINs are stored in <span translate="no">Firebase</span>, not in the browser.</div>
-<a class="back-top" href="#top">↑ Back to top</a>
+<div class="tip">
+  <strong>Tip:</strong>
+  <span class="bm-text">Jika PIN salah, tunggu 2 saat dan cuba lagi. PIN disimpan dalam Firebase, bukan dalam pelayar.</span>
+  <span class="en-text">If you enter the wrong PIN, wait 2 seconds and try again. PINs are stored in Firebase, not in the browser.</span>
+</div>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
-
 <hr>
 
 <section id="store-tab">
-<h2>🏪 Store Details</h2>
-<p>The <strong>Store</strong> tab controls the details customers see on the menu page.</p>
-<h3>Open / Closed Toggle</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Log in with your Owner PIN.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Tap the <strong>Store</strong> tab.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Use the <strong>Store is Open</strong> switch. The customer menu updates immediately.</div></div>
-<div class="warn"><strong>Important:</strong> When closed, customers see a warning and cannot add items to cart. Re-open the store when you are ready to receive orders.</div>
-
-<h3>Update Store Info</h3>
-<p>In the Store tab you can edit:</p>
-<div class="mockup">
-  <div class="mockup-row"><span class="mockup-label">Store Name</span><span class="mockup-val">Shown at the top of the menu</span></div>
-  <div class="mockup-row"><span class="mockup-label">Slogan</span><span class="mockup-val">Short line below the name</span></div>
-  <div class="mockup-row"><span class="mockup-label">Opening Hours</span><span class="mockup-val">Shown under the header</span></div>
-  <div class="mockup-row"><span class="mockup-label">WhatsApp Number</span><span class="mockup-val">Country code + digits only</span></div>
-  <div class="mockup-row"><span class="mockup-label">Address + Map URL</span><span class="mockup-val">Shown in the footer if filled</span></div>
-  <div class="mockup-row"><span class="mockup-label">Social Links</span><span class="mockup-val">Instagram, TikTok, Facebook</span></div>
-  <div class="mockup-row"><span class="mockup-label">Delivery Links</span><span class="mockup-val">Example: GrabFood | https://...</span></div>
-  <div class="mockup-row"><span class="mockup-label">Closed Message</span><span class="mockup-val">Custom message when the shop is closed</span></div>
-  <div class="mockup-row"><span class="mockup-label">Footer Text</span><span class="mockup-val">Small credit or powered-by line</span></div>
+<h2>🏪 <span class="bm-text">Butiran Kedai</span><span class="en-text">Store Details</span></h2>
+<p class="bm-text">Tab <strong>Kedai</strong> mengawal butiran yang pelanggan lihat pada halaman menu.</p>
+<p class="en-text">The <strong>Store</strong> tab controls the details customers see on the menu page.</p>
+<h3><span class="bm-text">Toggle Buka / Tutup</span><span class="en-text">Open / Closed Toggle</span></h3>
+<div class="step"><div class="step-num">1</div><div class="step-body bm-text">Log masuk dengan PIN Pemilik anda.</div><div class="step-body en-text">Log in with your Owner PIN.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body bm-text">Ketik tab <strong>Kedai</strong>.</div><div class="step-body en-text">Tap the <strong>Store</strong> tab.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body bm-text">Guna suis <strong>Kedai Buka</strong>. Menu pelanggan dikemas kini serta-merta.</div><div class="step-body en-text">Use the <strong>Store is Open</strong> switch. The customer menu updates immediately.</div></div>
+<div class="warn">
+  <strong><span class="bm-text">Penting:</span><span class="en-text">Important:</span></strong>
+  <span class="bm-text"> Apabila tutup, pelanggan nampak amaran dan tidak boleh tambah item ke troli. Buka semula kedai apabila anda bersedia terima pesanan.</span>
+  <span class="en-text"> When closed, customers see a warning and cannot add items to cart. Re-open the store when you are ready to receive orders.</span>
 </div>
-<h3>Upload Logo and Banner</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Tap <strong>Upload Logo</strong> to add the square image beside your store name.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Tap <strong>Upload Banner</strong> to add a wide promo image above the menu.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Tap <strong>Save Store Info</strong>.</div></div>
-<div class="tip"><strong>Tip:</strong> Logo and banner upload needs the developer to set an <span translate="no">Imgur</span> Client ID once in the Dev tab.</div>
-<a class="back-top" href="#top">↑ Back to top</a>
+<h3><span class="bm-text">Kemas Kini Info Kedai</span><span class="en-text">Update Store Info</span></h3>
+<div class="mockup">
+  <div class="mockup-row"><span class="mockup-label bm-text">Nama Kedai</span><span class="mockup-label en-text">Store Name</span><span class="mockup-val bm-text">Dipaparkan di bahagian atas menu</span><span class="mockup-val en-text">Shown at the top of the menu</span></div>
+  <div class="mockup-row"><span class="mockup-label">Slogan</span><span class="mockup-val bm-text">Baris pendek di bawah nama</span><span class="mockup-val en-text">Short line below the name</span></div>
+  <div class="mockup-row"><span class="mockup-label bm-text">Waktu Operasi</span><span class="mockup-label en-text">Opening Hours</span><span class="mockup-val bm-text">Dipaparkan di bawah pengepala</span><span class="mockup-val en-text">Shown under the header</span></div>
+  <div class="mockup-row"><span class="mockup-label bm-text">Nombor WhatsApp</span><span class="mockup-label en-text">WhatsApp Number</span><span class="mockup-val bm-text">Kod negara + digit sahaja</span><span class="mockup-val en-text">Country code + digits only</span></div>
+  <div class="mockup-row"><span class="mockup-label bm-text">Alamat + URL Peta</span><span class="mockup-label en-text">Address + Map URL</span><span class="mockup-val bm-text">Dipaparkan di footer jika diisi</span><span class="mockup-val en-text">Shown in the footer if filled</span></div>
+  <div class="mockup-row"><span class="mockup-label bm-text">Pautan Sosial</span><span class="mockup-label en-text">Social Links</span><span class="mockup-val">Instagram, TikTok, Facebook</span></div>
+  <div class="mockup-row"><span class="mockup-label bm-text">Pautan Penghantaran</span><span class="mockup-label en-text">Delivery Links</span><span class="mockup-val bm-text">Contoh: GrabFood | https://...</span><span class="mockup-val en-text">Example: GrabFood | https://...</span></div>
+  <div class="mockup-row"><span class="mockup-label bm-text">Mesej Tutup</span><span class="mockup-label en-text">Closed Message</span><span class="mockup-val bm-text">Mesej khas apabila kedai tutup</span><span class="mockup-val en-text">Custom message when the shop is closed</span></div>
+</div>
+<h3><span class="bm-text">Muat Naik Logo dan Banner</span><span class="en-text">Upload Logo and Banner</span></h3>
+<div class="step"><div class="step-num">1</div><div class="step-body bm-text">Ketik <strong>Muat Naik Logo</strong> untuk tambah imej segiempat di sebelah nama kedai anda.</div><div class="step-body en-text">Tap <strong>Upload Logo</strong> to add the square image beside your store name.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body bm-text">Ketik <strong>Muat Naik Banner</strong> untuk tambah imej promosi lebar di atas menu.</div><div class="step-body en-text">Tap <strong>Upload Banner</strong> to add a wide promo image above the menu.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body bm-text">Ketik <strong>Simpan Info Kedai</strong>.</div><div class="step-body en-text">Tap <strong>Save Store Info</strong>.</div></div>
+<div class="tip">
+  <strong>Tip:</strong>
+  <span class="bm-text"> Muat naik logo dan banner memerlukan pembangun untuk tetapkan ID Pelanggan Imgur sekali dalam tab Pembangun.</span>
+  <span class="en-text"> Logo and banner upload needs the developer to set an Imgur Client ID once in the Dev tab.</span>
+</div>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
-
 <hr>
 
 <section id="menu-tab">
-<h2>📋 Managing the Menu</h2>
-<p>The <strong>Menu</strong> tab lets you add, edit, delete, and mark items as sold out.</p>
-<h3>Mark an Item as Sold Out</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Find the item in the list.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Tap <strong>Sold Out</strong>. Customers will see the item greyed out and cannot order it.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Tap <strong>Enable</strong> to make it available again.</div></div>
-<h3>Add a New Item</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Tap <strong>+ Add Item</strong>.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Fill in category, name, description, emoji, and optional photo.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">For drinks, enter Hot, Cold, or Frappe prices. Leave a size blank to hide it.</div></div>
-<div class="step"><div class="step-num">4</div><div class="step-body">For food, enter one fixed price.</div></div>
-<div class="step"><div class="step-num">5</div><div class="step-body">Tap <strong>Add Item</strong>.</div></div>
-<h3>Edit, Delete, and Categories</h3>
+<h2>📋 <span class="bm-text">Urus Menu</span><span class="en-text">Managing the Menu</span></h2>
+<p class="bm-text">Tab <strong>Menu</strong> membolehkan anda tambah, edit, padam, dan tandakan item sebagai habis dijual.</p>
+<p class="en-text">The <strong>Menu</strong> tab lets you add, edit, delete, and mark items as sold out.</p>
+<h3><span class="bm-text">Tandakan Item Habis Dijual</span><span class="en-text">Mark an Item as Sold Out</span></h3>
+<div class="step"><div class="step-num">1</div><div class="step-body bm-text">Cari item dalam senarai.</div><div class="step-body en-text">Find the item in the list.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body bm-text">Ketik <strong>Habis Dijual</strong>. Pelanggan akan nampak item berkeadaan redup dan tidak boleh mengesanya.</div><div class="step-body en-text">Tap <strong>Sold Out</strong>. Customers will see the item greyed out and cannot order it.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body bm-text">Ketik <strong>Aktifkan</strong> untuk jadikannya tersedia semula.</div><div class="step-body en-text">Tap <strong>Enable</strong> to make it available again.</div></div>
+<h3><span class="bm-text">Tambah Item Baru</span><span class="en-text">Add a New Item</span></h3>
+<div class="step"><div class="step-num">1</div><div class="step-body bm-text">Ketik <strong>+ Tambah Item</strong>.</div><div class="step-body en-text">Tap <strong>+ Add Item</strong>.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body bm-text">Isi kategori, nama, penerangan, emoji, dan foto pilihan.</div><div class="step-body en-text">Fill in category, name, description, emoji, and optional photo.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body bm-text">Untuk minuman, masukkan harga Panas, Sejuk, atau Frappé. Kosongkan saiz untuk sembunyikannya.</div><div class="step-body en-text">For drinks, enter Hot, Cold, or Frappe prices. Leave a size blank to hide it.</div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body bm-text">Untuk makanan, masukkan satu harga tetap.</div><div class="step-body en-text">For food, enter one fixed price.</div></div>
+<div class="step"><div class="step-num">5</div><div class="step-body bm-text">Ketik <strong>Tambah Item</strong>.</div><div class="step-body en-text">Tap <strong>Add Item</strong>.</div></div>
+<h3><span class="bm-text">Edit, Padam, dan Kategori</span><span class="en-text">Edit, Delete, and Categories</span></h3>
 <ul>
-  <li>✏️ Tap <strong>Edit</strong> beside an item to change details, prices, photos, and add-ons.</li>
-  <li>🗑️ Tap <strong>Del</strong> only when you really want to remove an item.</li>
-  <li>🏷️ Use <strong>Categories</strong> to rename category labels or add a new category.</li>
+  <li>✏️ <span class="bm-text">Ketik <strong>Edit</strong> di sebelah item untuk tukar butiran, harga, foto, dan tambahan.</span><span class="en-text">Tap <strong>Edit</strong> beside an item to change details, prices, photos, and add-ons.</span></li>
+  <li>🗑️ <span class="bm-text">Ketik <strong>Padam</strong> hanya apabila anda betul-betul mahu buang item.</span><span class="en-text">Tap <strong>Del</strong> only when you really want to remove an item.</span></li>
+  <li>🏷️ <span class="bm-text">Guna <strong>Kategori</strong> untuk menamakan semula label kategori atau tambah kategori baru.</span><span class="en-text">Use <strong>Categories</strong> to rename category labels or add a new category.</span></li>
 </ul>
-<h3>Add-ons &amp; Options</h3>
-<div class="card"><div class="card-title" style="margin-bottom:6px;">Choice</div><p style="margin:0;font-size:14px;">A required selection, such as sauce type or spice level.</p></div>
-<div class="card"><div class="card-title" style="margin-bottom:6px;">Optional</div><p style="margin:0;font-size:14px;">A checkbox with an extra price, such as Extra Cheese.</p></div>
-<a class="back-top" href="#top">↑ Back to top</a>
+<h3><span class="bm-text">Tambahan & Pilihan</span><span class="en-text">Add-ons &amp; Options</span></h3>
+<div class="card"><div class="card-title" style="margin-bottom:6px;">Choice</div><p class="bm-text" style="margin:0;font-size:14px;">Pilihan wajib, seperti jenis sos atau tahap pedas.</p><p class="en-text" style="margin:0;font-size:14px;">A required selection, such as sauce type or spice level.</p></div>
+<div class="card"><div class="card-title" style="margin-bottom:6px;">Optional</div><p class="bm-text" style="margin:0;font-size:14px;">Kotak semak dengan harga tambahan, seperti Keju Tambahan.</p><p class="en-text" style="margin:0;font-size:14px;">A checkbox with an extra price, such as Extra Cheese.</p></div>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
-
 <hr>
 
 <section id="orders-tab">
-<h2>📦 Viewing Orders</h2>
-<p>The <strong>Orders</strong> tab shows a log of orders sent through <span translate="no">WhatsApp</span>, newest first.</p>
-<p>Each entry shows customer name, time, items ordered, add-ons, and estimated total.</p>
-<div class="tip"><strong>Tip:</strong> This is a reference log. Actual conversation and fulfilment still happen in WhatsApp.</div>
-<p>Tap <strong>Refresh</strong> to reload latest orders. The app keeps up to 1,000 order records.</p>
-<a class="back-top" href="#top">↑ Back to top</a>
+<h2>📦 <span class="bm-text">Lihat Pesanan</span><span class="en-text">Viewing Orders</span></h2>
+<p class="bm-text">Tab <strong>Pesanan</strong> menunjukkan log pesanan yang dihantar melalui WhatsApp, terbaru dahulu.</p>
+<p class="en-text">The <strong>Orders</strong> tab shows a log of orders sent through WhatsApp, newest first.</p>
+<p class="bm-text">Setiap entri menunjukkan nama pelanggan, masa, item yang dipesan, tambahan, dan anggaran jumlah.</p>
+<p class="en-text">Each entry shows customer name, time, items ordered, add-ons, and estimated total.</p>
+<div class="tip">
+  <strong>Tip:</strong>
+  <span class="bm-text"> Ini adalah log rujukan. Perbualan sebenar dan pemenuhan pesanan masih berlaku dalam WhatsApp.</span>
+  <span class="en-text"> This is a reference log. Actual conversation and fulfilment still happen in WhatsApp.</span>
+</div>
+<p class="bm-text">Ketik <strong>Muat Semula</strong> untuk memuatkan pesanan terkini. Aplikasi menyimpan sehingga 1,000 rekod pesanan.</p>
+<p class="en-text">Tap <strong>Refresh</strong> to reload latest orders. The app keeps up to 1,000 order records.</p>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
-
 <hr>
 
 <section id="theme-studio">
-<h2>🎨 Theme Studio</h2>
-<p><strong>Theme Studio</strong> changes the menu appearance: colours, fonts, and small design tweaks. It uses AI only when you chat with the design helper.</p>
-<div class="warn"><strong>Requires setup:</strong> The developer must save an <span translate="no">OpenRouter</span> API key in the Dev tab before chat works.</div>
-<h3>Change Theme by Chat</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Tap <strong>Theme Studio</strong>.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Type a simple request, for example: <em>"Make it look like a cosy cafe"</em>.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Tap Send. If you like the result, keep it. If not, restore the last saved theme.</div></div>
-<h3>Quick Action Chips</h3>
-<div style="margin-bottom:8px;">
-  <span class="badge purple">🌸 Seasonal Theme</span>
-  <span class="badge purple">🎉 Festive Theme</span>
-  <span class="badge purple">↩ Reset to Default</span>
-  <span class="badge purple">✏️ Change Slogan</span>
-  <span class="badge purple">🚫 Category Off</span>
-  <span class="badge purple">✅ All Available</span>
+<h2>🎨 <span class="bm-text">Studio Tema</span><span class="en-text">Theme Studio</span></h2>
+<p class="bm-text"><strong>Studio Tema</strong> menukar penampilan menu: warna, fon, dan reka letak kecil. Ia menggunakan AI hanya apabila anda berbual dengan pembantu reka bentuk.</p>
+<p class="en-text"><strong>Theme Studio</strong> changes the menu appearance: colours, fonts, and small design tweaks. It uses AI only when you chat with the design helper.</p>
+<div class="warn">
+  <strong><span class="bm-text">Perlukan persediaan:</span><span class="en-text">Requires setup:</span></strong>
+  <span class="bm-text"> Pembangun mesti simpan kunci API OpenRouter dalam tab Pembangun sebelum sembang berfungsi.</span>
+  <span class="en-text"> The developer must save an OpenRouter API key in the Dev tab before chat works.</span>
 </div>
-<h3>Upload a Design Template ZIP</h3>
-<p>A <span translate="no">ZIP</span> is a compressed folder. In this app, it means a downloaded <span translate="no">HTML</span> template from a design website.</p>
-<div class="step"><div class="step-num">1</div><div class="step-body">Search the web for <strong>free restaurant HTML template</strong> or <strong>free cafe HTML template</strong>.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Download the template as a ZIP file.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Back in Theme Studio, upload it like attaching a photo in WhatsApp.</div></div>
-<div class="step"><div class="step-num">4</div><div class="step-body">Pick the fonts or colours you want, then apply them.</div></div>
-<div class="tip"><strong>Tip:</strong> If this sounds confusing, skip ZIP upload. The chat and colour picker are enough for most stores.</div>
-<h3>Factory Reset</h3>
-<p>Developer login can restore the original master theme if the design becomes messy or unreadable.</p>
-<a class="back-top" href="#top">↑ Back to top</a>
+<h3><span class="bm-text">Tukar Tema Melalui Sembang</span><span class="en-text">Change Theme by Chat</span></h3>
+<div class="step"><div class="step-num">1</div><div class="step-body bm-text">Ketik <strong>Studio Tema</strong>.</div><div class="step-body en-text">Tap <strong>Theme Studio</strong>.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body bm-text">Taip permintaan ringkas, contohnya: <em>"Jadikan ia kelihatan seperti kafe yang selesa"</em>.</div><div class="step-body en-text">Type a simple request, for example: <em>"Make it look like a cosy cafe"</em>.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body bm-text">Ketik Hantar. Jika anda suka hasilnya, simpan. Jika tidak, pulihkan tema terakhir yang disimpan.</div><div class="step-body en-text">Tap Send. If you like the result, keep it. If not, restore the last saved theme.</div></div>
+<h3><span class="bm-text">Cip Tindakan Pantas</span><span class="en-text">Quick Action Chips</span></h3>
+<div style="margin-bottom:8px;">
+  <span class="badge purple">🌸 <span class="bm-text">Tema Bermusim</span><span class="en-text">Seasonal Theme</span></span>
+  <span class="badge purple">🎉 <span class="bm-text">Tema Perayaan</span><span class="en-text">Festive Theme</span></span>
+  <span class="badge purple">↩ <span class="bm-text">Tetapkan Semula</span><span class="en-text">Reset to Default</span></span>
+  <span class="badge purple">✏️ <span class="bm-text">Tukar Slogan</span><span class="en-text">Change Slogan</span></span>
+  <span class="badge purple">🚫 <span class="bm-text">Kategori Tutup</span><span class="en-text">Category Off</span></span>
+  <span class="badge purple">✅ <span class="bm-text">Semua Tersedia</span><span class="en-text">All Available</span></span>
+</div>
+<h3><span class="bm-text">Set Semula Kilang</span><span class="en-text">Factory Reset</span></h3>
+<p class="bm-text">Log masuk pembangun boleh memulihkan tema utama asal jika reka bentuk menjadi tidak kemas atau tidak boleh dibaca.</p>
+<p class="en-text">Developer login can restore the original master theme if the design becomes messy or unreadable.</p>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
-
 <hr>
 
 <section id="security-tab">
-<h2>🔒 Security &amp; PINs</h2>
-<h3>Change Owner PIN</h3>
-<div class="step"><div class="step-num">1</div><div class="step-body">Go to the <strong>Security</strong> tab.</div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body">Enter the new 4-digit PIN twice.</div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body">Tap <strong>Update Owner PIN</strong>.</div></div>
-<div class="warn"><strong>Write it down.</strong> If both Owner PIN and Developer PIN are lost, your developer must reset it directly in Firebase.</div>
-<h3>Change Developer PIN</h3>
-<p>Developer PIN can be changed from the Security tab only when logged in as developer.</p>
-<a class="back-top" href="#top">↑ Back to top</a>
+<h2>🔒 <span class="bm-text">Keselamatan & PIN</span><span class="en-text">Security &amp; PINs</span></h2>
+<h3><span class="bm-text">Tukar PIN Pemilik</span><span class="en-text">Change Owner PIN</span></h3>
+<div class="step"><div class="step-num">1</div><div class="step-body bm-text">Pergi ke tab <strong>Keselamatan</strong>.</div><div class="step-body en-text">Go to the <strong>Security</strong> tab.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body bm-text">Masukkan PIN 4 digit baru dua kali.</div><div class="step-body en-text">Enter the new 4-digit PIN twice.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body bm-text">Ketik <strong>Kemas Kini PIN Pemilik</strong>.</div><div class="step-body en-text">Tap <strong>Update Owner PIN</strong>.</div></div>
+<div class="warn">
+  <strong><span class="bm-text">Tulis ia.</span><span class="en-text">Write it down.</span></strong>
+  <span class="bm-text"> Jika PIN Pemilik dan PIN Pembangun hilang, pembangun anda perlu tetapkan semula terus dalam Firebase.</span>
+  <span class="en-text"> If both Owner PIN and Developer PIN are lost, your developer must reset it directly in Firebase.</span>
+</div>
+<h3><span class="bm-text">Tukar PIN Pembangun</span><span class="en-text">Change Developer PIN</span></h3>
+<p class="bm-text">PIN Pembangun boleh ditukar dari tab Keselamatan hanya apabila log masuk sebagai pembangun.</p>
+<p class="en-text">Developer PIN can be changed from the Security tab only when logged in as developer.</p>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
+<hr>
 
+<section id="lang-toggle">
+<h2>🌐 <span class="bm-text">Tukar Bahasa</span><span class="en-text">Language Toggle</span> <span class="new-badge">Baru</span></h2>
+<p class="bm-text">Menu pelanggan, panel admin, dan panduan ini semuanya menyokong Bahasa Malaysia dan Bahasa Inggeris. Bahasa Malaysia adalah lalai.</p>
+<p class="en-text">The customer menu, admin panel, and this guide all support Bahasa Malaysia and English. Bahasa Malaysia is the default.</p>
+<h3><span class="bm-text">Menu Pelanggan</span><span class="en-text">Customer Menu</span></h3>
+<p class="bm-text">Ketik butang <strong>EN</strong> di bar atas di sebelah togol Cerah/Malam untuk tukar ke Bahasa Inggeris. Ketik <strong>BM</strong> untuk kembali ke Bahasa Malaysia. Pilihan disimpan dalam pelayar.</p>
+<p class="en-text">Tap the <strong>EN</strong> button in the top bar beside the Light/Night toggle to switch to English. Tap <strong>BM</strong> to return to Bahasa Malaysia. The choice is saved in the browser.</p>
+<h3><span class="bm-text">Panel Admin</span><span class="en-text">Admin Panel</span></h3>
+<p class="bm-text">Butang bahasa muncul di skrin PIN (sudut kanan atas) dan dalam bar atas selepas log masuk. Kedua-duanya menggunakan keutamaan yang sama.</p>
+<p class="en-text">The language button appears on the PIN screen (top right) and in the top bar after login. Both share the same preference.</p>
+<div class="tip">
+  <strong>Tip:</strong>
+  <span class="bm-text"> Tetapan bahasa dikongsi merentas semua halaman — tukar sekali, semua halaman ikut.</span>
+  <span class="en-text"> Language is shared across all pages — change it once, all pages follow.</span>
+</div>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
+</section>
 <hr>
 
 <section id="checklist">
-<h2>✅ Setup Checklist</h2>
-<p>Tick each task after you complete it. Progress is saved on this device.</p>
+<h2>✅ <span class="bm-text">Senarai Semak Persediaan</span><span class="en-text">Setup Checklist</span></h2>
+<p class="bm-text">Tandakan setiap tugas selepas anda selesaikan. Kemajuan disimpan pada peranti ini.</p>
+<p class="en-text">Tick each task after you complete it. Progress is saved on this device.</p>
 <div class="checklist">
-  <div class="checklist-item"><input type="checkbox" id="chk-owner-pin"><label for="chk-owner-pin">Change Owner PIN</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-store-info"><label for="chk-store-info">Update store name, slogan, opening hours, and WhatsApp number</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-logo"><label for="chk-logo">Upload logo</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-banner"><label for="chk-banner">Upload banner or promo image</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-footer"><label for="chk-footer">Add address, map, social, or delivery links if available</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-menu"><label for="chk-menu">Add or edit at least one menu item</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-soldout"><label for="chk-soldout">Test Sold Out and Enable on one item</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-customer-page"><label for="chk-customer-page">Open index.html and check the customer menu</label></div>
-  <div class="checklist-item"><input type="checkbox" id="chk-test-order"><label for="chk-test-order">Send one test WhatsApp order</label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-owner-pin"><label for="chk-owner-pin"><span class="bm-text">Tukar PIN Pemilik</span><span class="en-text">Change Owner PIN</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-store-info"><label for="chk-store-info"><span class="bm-text">Kemas kini nama kedai, slogan, waktu operasi, dan nombor WhatsApp</span><span class="en-text">Update store name, slogan, opening hours, and WhatsApp number</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-logo"><label for="chk-logo"><span class="bm-text">Muat naik logo</span><span class="en-text">Upload logo</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-banner"><label for="chk-banner"><span class="bm-text">Muat naik banner atau imej promosi</span><span class="en-text">Upload banner or promo image</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-footer"><label for="chk-footer"><span class="bm-text">Tambah alamat, peta, sosial, atau pautan penghantaran jika ada</span><span class="en-text">Add address, map, social, or delivery links if available</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-menu"><label for="chk-menu"><span class="bm-text">Tambah atau edit sekurang-kurangnya satu item menu</span><span class="en-text">Add or edit at least one menu item</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-soldout"><label for="chk-soldout"><span class="bm-text">Uji Habis Dijual dan Aktifkan pada satu item</span><span class="en-text">Test Sold Out and Enable on one item</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-customer-page"><label for="chk-customer-page"><span class="bm-text">Buka index.html dan semak menu pelanggan</span><span class="en-text">Open index.html and check the customer menu</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-test-order"><label for="chk-test-order"><span class="bm-text">Hantar satu pesanan WhatsApp ujian</span><span class="en-text">Send one test WhatsApp order</span></label></div>
+  <div class="checklist-item"><input type="checkbox" id="chk-lang"><label for="chk-lang"><span class="bm-text">Cuba togol bahasa BM/EN pada menu dan panel admin</span><span class="en-text">Try the BM/EN language toggle on the menu and admin panel</span></label></div>
 </div>
-<a class="back-top" href="#top">↑ Back to top</a>
+<a class="back-top" href="#top"><span class="bm-text">↑ Kembali ke atas</span><span class="en-text">↑ Back to top</span></a>
 </section>
-
 <hr>
 
 <section id="recovery">
-<h2>🛟 Recovery &amp; Troubleshooting</h2>
+<h2>🛟 <span class="bm-text">Pemulihan & Penyelesaian Masalah</span><span class="en-text">Recovery &amp; Troubleshooting</span></h2>
 <div class="card">
-  <div class="card-head"><div class="card-icon" style="background:var(--amber2);">🔑</div><div><div class="card-title">Forgotten Owner PIN</div></div></div>
-  <p style="margin:0;font-size:14px;">Log in with Developer PIN → <strong>Security</strong> tab → update the Owner PIN.</p>
+  <div class="card-head"><div class="card-icon" style="background:var(--amber2);">🔑</div><div><div class="card-title bm-text">PIN Pemilik Dilupakan</div><div class="card-title en-text">Forgotten Owner PIN</div></div></div>
+  <p class="bm-text" style="margin:0;font-size:14px;">Log masuk dengan PIN Pembangun → tab <strong>Keselamatan</strong> → kemas kini PIN Pemilik.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">Log in with Developer PIN → <strong>Security</strong> tab → update the Owner PIN.</p>
 </div>
 <div class="card">
-  <div class="card-head"><div class="card-icon" style="background:var(--red2);">🎨</div><div><div class="card-title">Theme Looks Wrong</div></div></div>
-  <p style="margin:0;font-size:14px;">Log in with Developer PIN → <strong>Theme Studio</strong> → restore last saved theme or factory reset.</p>
+  <div class="card-head"><div class="card-icon" style="background:var(--red2);">🎨</div><div><div class="card-title bm-text">Tema Kelihatan Salah</div><div class="card-title en-text">Theme Looks Wrong</div></div></div>
+  <p class="bm-text" style="margin:0;font-size:14px;">Log masuk dengan PIN Pembangun → <strong>Studio Tema</strong> → pulihkan tema terakhir yang disimpan atau set semula kilang.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">Log in with Developer PIN → <strong>Theme Studio</strong> → restore last saved theme or factory reset.</p>
 </div>
 <div class="card">
-  <div class="card-head"><div class="card-icon" style="background:var(--blue2);">🌐</div><div><div class="card-title">Page Not Loading</div></div></div>
-  <p style="margin:0;font-size:14px;">Check internet connection. The app needs Firebase to load live menu and settings.</p>
+  <div class="card-head"><div class="card-icon" style="background:var(--blue2);">🌐</div><div><div class="card-title bm-text">Halaman Tidak Memuatkan</div><div class="card-title en-text">Page Not Loading</div></div></div>
+  <p class="bm-text" style="margin:0;font-size:14px;">Semak sambungan internet. Aplikasi memerlukan Firebase untuk memuatkan menu dan tetapan langsung.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">Check internet connection. The app needs Firebase to load live menu and settings.</p>
 </div>
 <div class="card">
-  <div class="card-head"><div class="card-icon" style="background:var(--purple2);">⚙️</div><div><div class="card-title">Theme Studio Chat Error</div></div></div>
-  <p style="margin:0;font-size:14px;">Developer login → <strong>Dev</strong> tab → check API key, selected model, and Error Log.</p>
+  <div class="card-head"><div class="card-icon" style="background:var(--purple2);">⚙️</div><div><div class="card-title bm-text">Ralat Sembang Studio Tema</div><div class="card-title en-text">Theme Studio Chat Error</div></div></div>
+  <p class="bm-text" style="margin:0;font-size:14px;">Log masuk Pembangun → tab <strong>Pembangun</strong> → semak kunci API, model yang dipilih, dan Log Ralat.</p>
+  <p class="en-text" style="margin:0;font-size:14px;">Developer login → <strong>Dev</strong> tab → check API key, selected model, and Error Log.</p>
 </div>
 <hr>
-<p style="font-size:13px;color:var(--text3);text-align:center;">Need help? Contact your developer.</p>
+<p style="font-size:13px;color:var(--text3);text-align:center;"><span class="bm-text">Perlukan bantuan? Hubungi pembangun anda.</span><span class="en-text">Need help? Contact your developer.</span></p>
 </section>
 
 <script>
+let _gLang = localStorage.getItem('arh_lang') || 'bm';
+
+function setGuideLang(lang) {
+  _gLang = lang;
+  localStorage.setItem('arh_lang', lang);
+  applyGuideLang();
+}
+
+function applyGuideLang() {
+  const bm = _gLang === 'bm';
+  document.documentElement.lang = bm ? 'ms' : 'en';
+  document.querySelectorAll('.bm-text').forEach(el => el.style.display = bm ? '' : 'none');
+  document.querySelectorAll('.en-text').forEach(el => el.style.display = bm ? 'none' : '');
+  const tb = document.getElementById('guideLangToggle');
+  if (tb) tb.textContent = bm ? 'EN' : 'BM';
+  const pt = document.getElementById('pageTitle');
+  if (pt) pt.textContent = bm ? 'Panduan Panel Admin' : 'Admin Panel Guide';
+  const ps = document.getElementById('pageSubtitle');
+  if (ps) ps.textContent = bm
+    ? 'Panduan praktikal untuk pemilik kedai menguruskan menu, butiran kedai, tema, dan rekod pesanan.'
+    : 'A practical owner guide for updating the menu, store details, theme, and order records.';
+  const tc = document.getElementById('tocTitle');
+  if (tc) tc.textContent = bm ? 'Kandungan' : 'Contents';
+  const pb = document.getElementById('printBtn');
+  if (pb) pb.textContent = bm ? 'Cetak Panduan' : 'Print Guide';
+}
+
+// Checklist persistence
 document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(input => {
   const key = 'arh-fnb-guide-' + input.id;
   input.checked = localStorage.getItem(key) === '1';
-  input.addEventListener('change', () => {
-    localStorage.setItem(key, input.checked ? '1' : '0');
-  });
+  input.addEventListener('change', () => localStorage.setItem(key, input.checked ? '1' : '0'));
 });
+
+applyGuidelang = applyGuideLang; // alias
+applyGuideLang();
 </script>
 </body>
 </html>
