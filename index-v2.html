@@ -8,8 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="assets/ots-coffee/hero-waffle-stall.webp" type="image/webp">
   <script src="config.js"></script>
+  <script>
+    if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.store && APP_CONFIG.store.banner && APP_CONFIG.store.banner.image_url) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = APP_CONFIG.store.banner.image_url;
+      document.head.appendChild(link);
+    }
+  </script>
   <style>
     :root {
       --bg: #f8fafc;
@@ -2158,7 +2166,21 @@
       });
     }
 
+    async function checkMaintenance() {
+      const mode = await fbGet('config/maintenance_mode');
+      if (mode === true || mode === 'true') {
+        document.body.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f0510;color:#fff;text-align:center;padding:24px;flex-direction:column;gap:16px;">
+            <div style="font-size:2rem;font-weight:800;">\u26a0 Under Maintenance</div>
+            <div style="font-size:1.1rem;color:#d1d5db;">This store is temporarily offline for updates. Please check back soon.</div>
+          </div>`;
+        return true;
+      }
+      return false;
+    }
+
     async function init() {
+      if (await checkMaintenance()) return;
       const [cfgR, themeR, itemsR, catsR, sumR, ordersR, picksR] = await Promise.all([
         fbGetSafe("config/store"),
         fbGetSafe("config/theme"),

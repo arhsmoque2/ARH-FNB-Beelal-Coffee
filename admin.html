@@ -859,7 +859,10 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
 
     <div class="dev-section">
-      <div class="dev-title">Error Log</div>
+      <div class="dev-title" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <span>Error Log</span>
+        <button class="btn btn-secondary" id="forceRefreshErrorLog" onclick="loadErrorLog(true)" style="font-size:12px;padding:6px 10px;">Force Refresh</button>
+      </div>
       <div id="errorLog"><div style="color:var(--text2);font-size:13px">Loading...</div></div>
     </div>
   </div>
@@ -1224,7 +1227,21 @@ let importParsedData   = null;
 // ════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════
+async function checkMaintenance() {
+  const mode = await fbGet('config/maintenance_mode');
+  if (mode === true || mode === 'true') {
+    document.body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f0510;color:#fff;text-align:center;padding:24px;flex-direction:column;gap:16px;">
+        <div style="font-size:2rem;font-weight:800;">\u26a0 Under Maintenance</div>
+        <div style="font-size:1.1rem;color:#d1d5db;">This store is temporarily offline for updates. Please check back soon.</div>
+      </div>`;
+    return true;
+  }
+  return false;
+}
+
 async function init() {
+  if (await checkMaintenance()) return;
   // Apply branding from config.js
   document.title = APP_CONFIG.brand.adminName;
   document.getElementById('pinLogo').textContent   = APP_CONFIG.brand.adminName;
@@ -3247,8 +3264,8 @@ async function loadDevTab() {
   }, 'loadDev');
 }
 
-async function loadErrorLog() {
-  const snap = await fbGet('error_log');
+async function loadErrorLog(force = false) {
+  const snap = await fbGet(`error_log${force ? `?t=${Date.now()}` : ''}`);
   const el   = document.getElementById('errorLog');
   if (!snap) { el.innerHTML = '<div style="color:var(--text2);font-size:13px">No errors logged.</div>'; return; }
   const errors = Object.values(snap).sort((a,b) => b.ts-a.ts).slice(0,20);

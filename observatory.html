@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Error Observatory | Woodfire</title>
+  <script src="config.js"></script>
+  <style>
+    :root {
+      --bg: #0f0510;
+      --surface: #1a0505;
+      --text: #fff;
+      --muted: #9ca3af;
+      --accent: #e10000;
+      --ok: #10b981;
+      font-family: "DM Sans", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 24px; }
+    .shell { max-width: 1100px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; }
+    .meta { color: var(--muted); margin-bottom: 24px; font-size: 0.9rem; }
+    .toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    button, input, select {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid #333;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font: inherit;
+    }
+    button { cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #333; vertical-align: top; }
+    th { color: var(--muted); position: sticky; top: 0; background: var(--bg); }
+    .empty { color: var(--muted); padding: 40px 0; }
+    .error { color: var(--accent); }
+    .ok { color: var(--ok); }
+    pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-size: 0.8rem; color: #ddd; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; background: var(--surface); font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>🔬 Error Observatory</h1>
+    <div class="meta" id="meta">Loading...</div>
+
+    <div class="toolbar">
+      <button id="refresh">Refresh</button>
+      <button id="download">Download CSV</button>
+      <input id="filter" type="text" placeholder="Filter by type or context...">
+      <select id="limit">
+        <option value="50">Last 50</option>
+        <option value="100" selected>Last 100</option>
+        <option value="250">Last 250</option>
+      </select>
+    </div>
+
+    <div id="content">
+      <p class="empty">Fetching error log...</p>
+    </div>
+  </div>
+
+  <script>
+    (async function () {
+      if (typeof APP_CONFIG === 'undefined') {
+        document.getElementById('content').innerHTML = '<p class="error">APP_CONFIG not found. Make sure config.js is present.</p>';
+        return;
+      }
+
+      const meta = document.getElementById('meta');
+      const rootUrl = `${APP_CONFIG.firebase.url}/${APP_CONFIG.firebase.root}`;
+      meta.textContent = `Store: ${APP_CONFIG.store.name} \u00b7 Firebase root: ${APP_CONFIG.firebase.root}`;
+
+      let currentRows = [];
+
+      async function loadErrors() {
+        const limit = parseInt(document.getElementById('limit').value, 10);
+        const res = await fetch(`${rootUrl}/error_log.json?orderBy="$key"&limitToLast=${limit}`);
+        const data = res.ok ? await res.json() : null;
+        if (!data) {
+          document.getElementById('content').innerHTML = '<p class="error">Could not read error_log.</p>';
+          return;
+        }
+        const rows = Object.entries(data || {})
+          .map(([key, val]) => ({ id: key, ...val }))
+          .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        currentRows = rows;
+        render();
+      }
+
+      function render() {
+        const term = document.getElementById('filter').value.toLowerCase();
+        const rows = currentRows.filter((r) =>
+          JSON.stringify(r).toLowerCase().includes(term)
+        );
+
+        if (!rows.length) {
+          document.getElementById('content').innerHTML = '<p class="empty">No errors match the current filter.</p>';
+          return;
+        }
+
+        const html = [
+          '<table>',
+          '<thead><tr><th>Time</th><th>Type</th><th>Context</th><th>Phase</th><th>Status</th><th>Detail</th></tr></thead>',
+          '<tbody>',
+          ...rows.map((r) => {
+            const time = r.ts ? new Date(r.ts).toLocaleString(APP_CONFIG.brand.locale || 'en-MY') : r.id;
+            const status = r.http_status || (r.error ? 'error' : 'ok');
+            const statusClass = String(status).startsWith('2') || status === 'ok' ? 'ok' : 'error';
+            const detail = JSON.stringify(r, null, 2);
+            return `
+              <tr>
+                <td>${time}</td>
+                <td><span class="badge">${r.type || 'unknown'}</span></td>
+                <td>${r.ctx || '-'}</td>
+                <td>${r.phase || '-'}</td>
+                <td class="${statusClass}">${status}</td>
+                <td><pre>${escapeHtml(detail)}</pre></td>
+              </tr>
+            `;
+          }),
+          '</tbody></table>',
+        ].join('');
+        document.getElementById('content').innerHTML = html;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function downloadCsv() {
+        if (!currentRows.length) return;
+        const headers = ['id', 'ts', 'type', 'ctx', 'phase', 'http_status', 'endpoint', 'message'];
+        const lines = [headers.join(',')];
+        for (const r of currentRows) {
+          const cells = headers.map((h) => {
+            const val = r[h];
+            if (val === undefined || val === null) return '';
+            const text = String(val).replace(/"/g, '""');
+            return `"${text}"`;
+          });
+          lines.push(cells.join(','));
+        }
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `error-log-${APP_CONFIG.firebase.root}-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      document.getElementById('refresh').addEventListener('click', loadErrors);
+      document.getElementById('download').addEventListener('click', downloadCsv);
+      document.getElementById('filter').addEventListener('input', render);
+      document.getElementById('limit').addEventListener('change', loadErrors);
+
+      await loadErrors();
+    })();
+  </script>
+</body>
+</html>
