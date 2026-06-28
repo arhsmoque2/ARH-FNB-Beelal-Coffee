@@ -24,7 +24,7 @@ const APP_CONFIG = {
 
   billing: {
     workerUrl: 'https://fnb-billing-ledger.arh-homelab.workers.dev',
-    secret:    'FNBBILLINGSECRET_2026',
+    secret:    'Yod4oJJKoDqBz4pwsQXXYyxZlF1Lo5ThvghFQt9Xjbg',
   },
 
   // ── Store Defaults ──────────────────────────────────────────────────────────
