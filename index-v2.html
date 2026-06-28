@@ -3441,14 +3441,6 @@
 
     async function logOrder(orderId, order) {
       try {
-        const snap = await fbGet('orders');
-        let orders = snap ? Object.entries(snap).map(([k,v]) => ({ key:k, ...v })) : [];
-        // ring buffer: keep max 1000
-        if (orders.length >= 1000) {
-          orders.sort((a,b) => a.ts - b.ts);
-          const oldest = orders[0].key;
-          await fbDelete('orders/' + oldest);
-        }
         await fbSet('orders/' + orderId, order);
       } catch {}
     }
@@ -3774,19 +3766,6 @@
       if (note) msg += `\n\n📝 ${note}`;
       msg += `\n\n_via ${APP_CONFIG.brand.appName} menu_`;
 
-      const waWindow = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-      if (!waWindow) {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(msg).then(() => {
-            alert("WhatsApp couldn't open automatically, but your order has been copied to your clipboard! You can paste it directly into WhatsApp.");
-          }).catch(() => {
-            alert("WhatsApp couldn't open automatically. Please copy the order text and send it manually.");
-          });
-        } else {
-          alert("WhatsApp couldn't open automatically. Please copy the order text and send it manually.");
-        }
-      }
-
       const orderId = 'ord_' + Date.now();
       const orderPayload = {
         name,
@@ -3801,7 +3780,20 @@
         },
         ts: Date.now(),
       };
-      
+
+      const waWindow = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+      if (!waWindow) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(msg).then(() => {
+            alert("WhatsApp couldn't open automatically, but your order has been copied to your clipboard! You can paste it directly into WhatsApp.");
+          }).catch(() => {
+            alert("WhatsApp couldn't open automatically. Please copy the order text and send it manually.");
+          });
+        } else {
+          alert("WhatsApp couldn't open automatically. Please copy the order text and send it manually.");
+        }
+      }
+
       lastOrderContext = {
         order_id: orderId,
         order_ts: orderPayload.ts,
@@ -3814,7 +3806,34 @@
       localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
 
       logOrder(orderId, orderPayload);
+      recordBillingEvent(orderId, orderPayload);
       setTimeout(openFeedbackModal, 700);
+    }
+
+    async function recordBillingEvent(orderId, order) {
+      const billing = APP_CONFIG.billing;
+      if (!billing || !billing.workerUrl || !billing.secret) return;
+      const storeSlug = (APP_CONFIG.firebase.root || '').replace(/_/g, '-');
+      if (!storeSlug) return;
+      const body = {
+        store_slug: storeSlug,
+        order_id: orderId,
+        submitted_at: order.ts,
+        order_total_cents: Math.round((order.total || 0) * 100),
+        currency: APP_CONFIG.store.currency || 'RM',
+        item_count: (order.items || []).length,
+      };
+      try {
+        fetch(billing.workerUrl + '/record-order', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + billing.secret,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+          keepalive: true,
+        }).catch(() => {});
+      } catch {}
     }
 
     document.getElementById("searchInput").addEventListener("input", event => {
