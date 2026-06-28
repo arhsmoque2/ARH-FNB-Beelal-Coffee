@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <title>FnB Dev Console</title>
+  <script src="config.js"></script>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #111827;
+      --ink: #f8fafc;
+      --muted: #94a3b8;
+      --faint: #64748b;
+      --line: rgba(148, 163, 184, 0.14);
+      --brand: #6366f1;
+      --brand2: #ec4899;
+      --green: #10b981;
+      --gold: #f59e0b;
+      --red: #ef4444;
+      --shadow: 0 16px 40px rgba(0,0,0,0.28);
+      --radius: 10px;
+      font-family: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.45; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    a { color: var(--brand); }
+    .shell { width: min(1320px, calc(100% - 32px)); margin: 0 auto; }
+    header { border-bottom: 1px solid var(--line); background: rgba(17,24,39,.82); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20; }
+    .header-inner { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 12px 0; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .mark { width: 38px; height: 38px; border-radius: 8px; background: linear-gradient(135deg, var(--brand), var(--brand2)); display: grid; place-items: center; font-weight: 900; color: #fff; }
+    h1 { font-size: 18px; margin: 0; }
+    .subtitle { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 9px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: transform .06s, background .15s; }
+    .btn:hover { background: #1f2937; }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .btn.primary:hover { background: #4f46e5; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-top: 18px; box-shadow: var(--shadow); }
+    .panel h2 { margin: 0 0 14px; font-size: 15px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .field input, .field select { background: #0b1120; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; outline: none; }
+    .field input:focus, .field select:focus { border-color: var(--brand); }
+    .field.half { grid-column: span 1; }
+    .card { background: rgba(15, 23, 42, .7); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+    .card .label { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .card .value { font-size: 26px; font-weight: 900; margin-top: 6px; }
+    .card .hint { font-size: 12px; color: var(--faint); margin-top: 6px; }
+    .status { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; }
+    .status.ok { background: rgba(16,185,129,.12); color: var(--green); }
+    .status.warn { background: rgba(245,158,11,.12); color: var(--gold); }
+    .status.err { background: rgba(239,68,68,.12); color: var(--red); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: none; }
+    .num { font-variant-numeric: tabular-nums; text-align: right; }
+    .truncate { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-wrap { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding-top: 10px; }
+    .bar { flex: 1; min-width: 6px; background: linear-gradient(180deg, var(--brand), var(--brand2)); border-radius: 3px 3px 0 0; position: relative; opacity: .9; }
+    .bar:hover { opacity: 1; }
+    .bar::after { content: attr(data-label); position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%) rotate(-35deg); transform-origin: left top; font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin: -18px -18px 16px; padding: 0 18px; }
+    .tab { padding: 12px 14px; font-weight: 700; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); }
+    .tab.active { color: var(--ink); border-color: var(--brand); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+    pre.raw { background: #0b1120; border: 1px solid var(--line); border-radius: 8px; padding: 14px; max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+    .empty { color: var(--faint); padding: 18px; text-align: center; font-size: 13px; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; background: rgba(99,102,241,.15); color: #a5b4fc; }
+    @media (max-width: 720px) {
+      .header-inner { flex-direction: column; align-items: flex-start; }
+      .grid-2, .grid-4 { grid-template-columns: 1fr; }
+      .truncate { max-width: 140px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell header-inner">
+      <div class="brand">
+        <div class="mark">⌘</div>
+        <div>
+          <h1>FnB Dev Console</h1>
+          <div class="subtitle">Total Firebase visibility + billing analytics</div>
+        </div>
+      </div>
+      <div class="row">
+        <span id="connStatus" class="status warn"><span class="dot"></span>Not loaded</span>
+        <button id="loadBtn" class="btn primary">Load data</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="panel">
+      <div class="grid-2">
+        <div class="field">
+          <label>Firebase DB URL</label>
+          <input id="dbUrl" type="text" placeholder="https://...firebasedatabase.app">
+        </div>
+        <div class="field">
+          <label>Store root</label>
+          <input id="root" type="text" placeholder="woodfire_kulim">
+        </div>
+        <div class="field">
+          <label>Billing Worker URL</label>
+          <input id="billingUrl" type="text" placeholder="https://fnb-billing-ledger...workers.dev">
+        </div>
+        <div class="field">
+          <label>Dev admin token</label>
+          <input id="adminToken" type="password" placeholder="FNB_DEV_ADMIN_TOKEN">
+        </div>
+        <div class="field">
+          <label>Date range</label>
+          <select id="range">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
+        <div class="field" style="justify-content:flex-end;gap:10px;flex-direction:row;align-items:center;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-size:13px;color:var(--ink);">
+            <input id="loadAll" type="checkbox"> Load all orders (no limit)
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>📊 Snapshot</h2>
+      <div id="summaryGrid" class="grid-4">
+        <div class="card"><div class="label">Orders</div><div class="value" id="sOrders">–</div><div class="hint" id="sOrdersHint">Firebase orders node</div></div>
+        <div class="card"><div class="label">Total sales</div><div class="value" id="sSales">–</div><div class="hint" id="sSalesHint">Sum of order totals</div></div>
+        <div class="card"><div class="label">AOV</div><div class="value" id="sAov">–</div><div class="hint" id="sAovHint">Average order value</div></div>
+        <div class="card"><div class="label">Items sold</div><div class="value" id="sItems">–</div><div class="hint" id="sItemsHint">Quantity from order lines</div></div>
+        <div class="card"><div class="label">Feedback</div><div class="value" id="sFeedback">–</div><div class="hint" id="sFeedbackHint">Store + app feedback</div></div>
+        <div class="card"><div class="label">Item reviews</div><div class="value" id="sReviews">–</div><div class="hint" id="sReviewsHint">feedback/item_reviews</div></div>
+        <div class="card"><div class="label">Billing orders</div><div class="value" id="sBilling">–</div><div class="hint" id="sBillingHint">Ledger current month</div></div>
+        <div class="card"><div class="label">Est. fee</div><div class="value" id="sFee">–</div><div class="hint" id="sFeeHint">RM0.50 / submitted order</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="tabs">
+        <div class="tab active" data-tab="chart">Sales trend</div>
+        <div class="tab" data-tab="orders">Recent orders</div>
+        <div class="tab" data-tab="items">Top items</div>
+        <div class="tab" data-tab="feedback">Feedback</div>
+        <div class="tab" data-tab="raw">Raw tree</div>
+      </div>
+
+      <div id="chartTab" class="tab-content active">
+        <h2 style="margin-top:0">Daily sales (selected range)</h2>
+        <div id="chartWrap" class="bar-wrap"></div>
+      </div>
+
+      <div id="ordersTab" class="tab-content">
+        <table id="ordersTable">
+          <thead><tr><th>Time</th><th>Order ID</th><th>Customer</th><th>Items</th><th class="num">Total</th><th>Note</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="itemsTab" class="tab-content">
+        <table id="itemsTable">
+          <thead><tr><th>Item</th><th class="num">Sold</th><th class="num">Revenue</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="feedbackTab" class="tab-content">
+        <h2 style="margin-top:0">Store & app feedback</h2>
+        <table id="feedbackTable">
+          <thead><tr><th>Time</th><th>Type</th><th>Comment</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <h2 style="margin-top:22px">Item reviews</h2>
+        <table id="reviewsTable">
+          <thead><tr><th>Time</th><th>Item</th><th>Rating</th><th>Comment</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="rawTab" class="tab-content">
+        <h2 style="margin-top:0">Full store snapshot</h2>
+        <pre id="rawJson" class="raw mono">Load data to see the raw Firebase tree.</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const fmtMoney = (n, cur='RM') => `${cur} ${Number(n || 0).toFixed(2)}`;
+    const fmtDate = ts => {
+      if (!ts) return '—';
+      const d = new Date(typeof ts === 'string' ? Number(ts) : ts);
+      return isNaN(d) ? String(ts) : d.toLocaleString('en-MY', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+    };
+    const fmtDay = ts => {
+      const d = new Date(ts);
+      return `${d.getDate()} ${d.toLocaleString('en-MY',{month:'short'})}`;
+    };
+    const slugifyRoot = root => (root || '').replace(/_/g, '-');
+
+    function defaultsFromConfig() {
+      try {
+        if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.firebase) {
+          $('dbUrl').value = APP_CONFIG.firebase.url || '';
+          $('root').value = APP_CONFIG.firebase.root || '';
+          if (APP_CONFIG.billing && APP_CONFIG.billing.workerUrl) {
+            $('billingUrl').value = APP_CONFIG.billing.workerUrl;
+          }
+        }
+      } catch {}
+    }
+    defaultsFromConfig();
+
+    function fbUrl(path) {
+      const db = $('dbUrl').value.replace(/\/$/, '');
+      const root = $('root').value.replace(/\/$/, '');
+      return `${db}/${root}/${path}.json`;
+    }
+
+    async function fbGet(path) {
+      const res = await fetch(fbUrl(path));
+      if (!res.ok) throw new Error(`${path}: ${res.status}`);
+      return await res.json();
+    }
+
+    async function fetchOrders(limitAll) {
+      // Try ordered by key with a sane limit first; if loadAll is checked, fetch the full node.
+      const path = limitAll ? 'orders' : 'orders?orderBy="$key"&limitToLast=500';
+      const data = await fbGet(path);
+      if (!data || typeof data !== 'object') return {};
+      return data;
+    }
+
+    function parseOrderEntries(orders) {
+      const entries = [];
+      for (const [id, o] of Object.entries(orders || {})) {
+        if (!o || typeof o !== 'object') continue;
+        entries.push({ id, ...o });
+      }
+      return entries.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    }
+
+    function rangeCutoff() {
+      const v = $('range').value;
+      if (v === 'all') return 0;
+      const days = parseInt(v, 10);
+      return Date.now() - days * 24 * 60 * 60 * 1000;
+    }
+
+    function analyze(entries, cutoff) {
+      const filtered = cutoff ? entries.filter(e => (e.ts || 0) >= cutoff) : entries;
+      const count = filtered.length;
+      const sales = filtered.reduce((s, e) => s + (parseFloat(e.total) || 0), 0);
+      const aov = count ? sales / count : 0;
+      const itemsSold = filtered.reduce((s, e) => s + ((Array.isArray(e.items) ? e.items.length : 0)), 0);
+      const itemMap = {};
+      filtered.forEach(o => {
+        (Array.isArray(o.items) ? o.items : []).forEach(it => {
+          const key = it.name || 'Unknown';
+          if (!itemMap[key]) itemMap[key] = { name: key, qty: 0, revenue: 0 };
+          itemMap[key].qty += 1;
+          itemMap[key].revenue += (parseFloat(it.price) || 0);
+        });
+      });
+      const topItems = Object.values(itemMap).sort((a, b) => b.qty - a.qty);
+      const daily = {};
+      filtered.forEach(o => {
+        const day = new Date(o.ts || 0).toISOString().slice(0, 10);
+        if (!daily[day]) daily[day] = { day, ts: o.ts || 0, sales: 0, count: 0 };
+        daily[day].sales += (parseFloat(o.total) || 0);
+        daily[day].count += 1;
+      });
+      const days = Object.values(daily).sort((a, b) => a.day.localeCompare(b.day));
+      return { count, sales, aov, itemsSold, topItems, days, filtered };
+    }
+
+    function flattenFeedback(feedback) {
+      const rows = [];
+      if (feedback && feedback.store) {
+        Object.entries(feedback.store).forEach(([id, f]) => rows.push({ id, type: 'store', ...f }));
+      }
+      if (feedback && feedback.app) {
+        Object.entries(feedback.app).forEach(([id, f]) => rows.push({ id, type: 'app', ...f }));
+      }
+      return rows.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    }
+
+    function flattenReviews(feedback) {
+      const rows = [];
+      const items = feedback && feedback.item_reviews ? feedback.item_reviews : {};
+      Object.entries(items).forEach(([itemId, reviews]) => {
+        Object.entries(reviews || {}).forEach(([id, r]) => {
+          rows.push({ id, itemId, ...r });
+        });
+      });
+      return rows.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    }
+
+    function setStatus(text, type='warn') {
+      const el = $('connStatus');
+      el.className = `status ${type}`;
+      el.innerHTML = `<span class="dot"></span>${text}`;
+    }
+
+    function renderChart(days) {
+      const wrap = $('chartWrap');
+      wrap.innerHTML = '';
+      if (!days.length) { wrap.innerHTML = '<div class="empty">No orders in selected range.</div>'; return; }
+      const max = Math.max(...days.map(d => d.sales), 1);
+      days.forEach(d => {
+        const h = Math.max(4, (d.sales / max) * 100);
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.style.height = `${h}%`;
+        bar.setAttribute('data-label', `${fmtDay(d.ts)} · ${fmtMoney(d.sales)}`);
+        bar.title = `${d.day}: ${d.count} orders, ${fmtMoney(d.sales)}`;
+        wrap.appendChild(bar);
+      });
+    }
+
+    function renderTable(tbodyId, rows, renderer) {
+      const tbody = $(tbodyId).querySelector('tbody');
+      tbody.innerHTML = '';
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="99" class="empty">No records.</td></tr>'; return; }
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = renderer(r);
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadBilling(slug) {
+      const url = $('billingUrl').value.replace(/\/$/, '');
+      const token = $('adminToken').value.trim();
+      const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+      if (!url || !token || !slug) return { ok: false, error: 'Missing billing URL/token or slug' };
+      try {
+        const res = await fetch(`${url}/usage/${slug}/${month}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          const body = await res.text();
+          throw new Error(`${res.status}: ${body}`);
+        }
+        const json = await res.json();
+        return { ok: true, data: json.data || {} };
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
+    }
+
+    async function loadData() {
+      $('loadBtn').disabled = true;
+      setStatus('Loading…', 'warn');
+      try {
+        const root = $('root').value.trim();
+        if (!root || !$('dbUrl').value.trim()) throw new Error('Enter Firebase URL and root');
+
+        const [orders, menu, feedback, config] = await Promise.all([
+          fetchOrders($('loadAll').checked).catch(e => { throw new Error(`orders: ${e.message}`); }),
+          fbGet('menu').catch(() => ({})),
+          fbGet('feedback').catch(() => ({})),
+          fbGet('config').catch(() => ({}))
+        ]);
+
+        const entries = parseOrderEntries(orders);
+        const cutoff = rangeCutoff();
+        const stats = analyze(entries, cutoff);
+
+        // Summary cards
+        $('sOrders').textContent = stats.count;
+        $('sOrdersHint').textContent = `${entries.length} total in Firebase${$('loadAll').checked ? '' : ' (last 500 loaded)'}`;
+        $('sSales').textContent = fmtMoney(stats.sales);
+        $('sSalesHint').textContent = cutoff ? 'In selected range' : 'All loaded orders';
+        $('sAov').textContent = fmtMoney(stats.aov);
+        $('sAovHint').textContent = `${stats.count} orders`;
+        $('sItems').textContent = stats.itemsSold;
+        $('sItemsHint').textContent = `${stats.topItems.length} distinct SKUs`;
+
+        const fbRows = flattenFeedback(feedback);
+        const reviewRows = flattenReviews(feedback);
+        $('sFeedback').textContent = fbRows.length;
+        $('sReviews').textContent = reviewRows.length;
+
+        // Billing
+        const slug = slugifyRoot(root);
+        const billing = await loadBilling(slug);
+        if (billing.ok) {
+          const b = billing.data;
+          $('sBilling').textContent = b.billable_orders ?? '–';
+          $('sBillingHint').textContent = `Ledger ${b.month || new Date().toISOString().slice(0,7)}`;
+          $('sFee').textContent = fmtMoney((b.fee_cents || 0) / 100);
+          $('sFeeHint').textContent = `Submitted-order model`;
+        } else {
+          $('sBilling').textContent = '–';
+          $('sBillingHint').textContent = billing.error;
+          $('sFee').textContent = '–';
+          $('sFeeHint').textContent = 'Billing not loaded';
+        }
+
+        // Tabs
+        renderChart(stats.days.slice(-30));
+        renderTable('ordersTable', stats.filtered.slice(0, 100), o => `
+          <td>${fmtDate(o.ts)}</td>
+          <td class="mono">${o.id}</td>
+          <td>${o.name || 'Customer'}</td>
+          <td>${(Array.isArray(o.items) ? o.items.length : 0)}</td>
+          <td class="num">${fmtMoney(o.total)}</td>
+          <td class="truncate" title="${(o.note || '').replace(/"/g,'&quot;')}">${o.note || '—'}</td>
+        `);
+        renderTable('itemsTable', stats.topItems.slice(0, 50), it => `
+          <td>${it.name}</td>
+          <td class="num">${it.qty}</td>
+          <td class="num">${fmtMoney(it.revenue)}</td>
+        `);
+        renderTable('feedbackTable', fbRows.slice(0, 100), f => `
+          <td>${fmtDate(f.created_at)}</td>
+          <td><span class="badge">${f.type}</span></td>
+          <td class="truncate" title="${(f.comment || '').replace(/"/g,'&quot;')}">${f.comment || '—'}</td>
+          <td>${f.status || 'new'}</td>
+        `);
+        renderTable('reviewsTable', reviewRows.slice(0, 100), r => `
+          <td>${fmtDate(r.created_at)}</td>
+          <td>${r.itemId}</td>
+          <td>${'★'.repeat(r.rating || 0)}${'☆'.repeat(5 - (r.rating || 0))}</td>
+          <td class="truncate" title="${(r.comment || '').replace(/"/g,'&quot;')}">${r.comment || '—'}</td>
+        `);
+
+        $('rawJson').textContent = JSON.stringify({ config, menu, orders, feedback }, null, 2);
+        setStatus('Loaded', 'ok');
+      } catch (e) {
+        console.error(e);
+        setStatus(e.message, 'err');
+      } finally {
+        $('loadBtn').disabled = false;
+      }
+    }
+
+    $('loadBtn').addEventListener('click', loadData);
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        $(t.dataset.tab + 'Tab').classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
