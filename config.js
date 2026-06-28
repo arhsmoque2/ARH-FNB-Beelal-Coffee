@@ -22,6 +22,11 @@ const APP_CONFIG = {
     root: 'beelal_coffee',
   },
 
+  billing: {
+    workerUrl: 'https://fnb-billing-ledger.arh-homelab.workers.dev',
+    secret:    'FNBBILLINGSECRET_2026',
+  },
+
   // ── Store Defaults ──────────────────────────────────────────────────────────
   // Fallback values used when Firebase has no data yet.
   // Once saved via the Admin panel, Firebase values take over permanently.
