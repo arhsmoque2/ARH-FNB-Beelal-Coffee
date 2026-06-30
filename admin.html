@@ -359,7 +359,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 <!-- PIN SCREEN -->
 <div class="pin-screen" id="pinScreen">
   <div style="position:absolute;top:16px;right:16px;">
-    <button id="pinLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="background:none;border:1px solid rgba(200,152,42,0.3);border-radius:20px;padding:5px 12px;color:var(--text2);font-size:11px;font-weight:700;font-family:var(--fb);cursor:pointer;display:none">EN</button>
+    <button id="pinLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="background:none;border:1px solid rgba(200,152,42,0.3);border-radius:20px;padding:5px 12px;color:var(--text2);font-size:11px;font-weight:700;font-family:var(--fb);cursor:pointer;">EN</button>
   </div>
   <div class="pin-logo" id="pinLogo">Panel Admin</div>
   <!-- First run: dev PIN setup -->
@@ -401,7 +401,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
   <div class="topbar">
     <div><div class="topbar-title" id="topbarTitle">Panel Admin</div><div class="topbar-role" id="roleLabel">Pemilik</div></div>
     <div style="display:flex;gap:6px;align-items:center;">
-      <button class="lock-btn" id="adminLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="display:none">EN</button>
+      <button class="lock-btn" id="adminLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')">EN</button>
       <button class="lock-btn" id="lockBtn" onclick="logout()">Kunci</button>
     </div>
   </div>
@@ -3732,7 +3732,7 @@ const ADMIN_STRINGS = {
     tabs: { store:'Store', menu:'Menu', orders:'Orders', feedback:'Feedback', security:'Security', studio:'Theme Studio', dev:'Dev ⚙' },
   }
 };
-let _aLang = localStorage.getItem('arh_lang') || 'en';
+let _aLang = localStorage.getItem('arh_lang') || 'bm';
 function ta(key) { return (ADMIN_STRINGS[_aLang] || ADMIN_STRINGS.bm)[key] ?? ADMIN_STRINGS.en[key] ?? key; }
 function setAdminLang(lang) {
   _aLang = lang;

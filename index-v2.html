@@ -1744,7 +1744,7 @@
         </div>
       </a>
       <div class="top-actions">
-        <button class="ambience-toggle lang-toggle" id="langToggle" type="button" aria-label="Switch language" onclick="setLang(_lang==='bm'?'en':'bm')" style="display:none">EN</button>
+        <button class="ambience-toggle lang-toggle" id="langToggle" type="button" aria-label="Switch language" onclick="setLang(_lang==='bm'?'en':'bm')">EN</button>
         <button class="ambience-toggle" id="ambienceToggle" type="button" aria-label="Switch light and night mode" aria-pressed="false">Light</button>
         <span class="chip" id="statusChip">Checking hours</span>
         <button class="cart-top" type="button" onclick="openCart()">Cart <span id="topCartCount">0</span></button>
@@ -1768,7 +1768,7 @@
         <div class="quick-row" id="quickStats"></div>
       </div>
 
-      <div class="media-card" id="mediaCard" style="display:none">
+      <div class="media-card" id="mediaCard">
         <div class="plate" id="fallbackPlate" aria-hidden="true"></div>
         <div class="media-inner">
           <div>
@@ -2000,7 +2000,7 @@
         itemCount: n => `${n} item${n === 1 ? '' : 's'}`,
       }
     };
-    let _lang = localStorage.getItem('arh_lang') || 'en';
+    let _lang = localStorage.getItem('arh_lang') || 'bm';
     function t(key) { return (STRINGS[_lang] || STRINGS.bm)[key] ?? STRINGS.en[key] ?? key; }
     function setLang(lang) {
       _lang = lang;
@@ -2336,8 +2336,6 @@
       const band = document.getElementById('aboutBand');
       if (!band) return;
       if (!si || si.enabled === false) { band.classList.add('hidden'); return; }
-      const hasContent = si.kicker || si.title || si.titleBm || si.copy?.length || si.copyBm?.length || si.tags?.length || si.igHandle;
-      if (!hasContent) { band.classList.add('hidden'); return; }
       band.classList.remove('hidden');
       const isBm = _lang === 'bm';
       const q = id => document.getElementById(id);
