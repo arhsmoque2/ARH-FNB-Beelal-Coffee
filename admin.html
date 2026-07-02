@@ -359,7 +359,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 <!-- PIN SCREEN -->
 <div class="pin-screen" id="pinScreen">
   <div style="position:absolute;top:16px;right:16px;">
-    <button id="pinLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="background:none;border:1px solid rgba(200,152,42,0.3);border-radius:20px;padding:5px 12px;color:var(--text2);font-size:11px;font-weight:700;font-family:var(--fb);cursor:pointer;">EN</button>
+    <button id="pinLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="background:none;border:1px solid rgba(200,152,42,0.3);border-radius:20px;padding:5px 12px;color:var(--text2);font-size:11px;font-weight:700;font-family:var(--fb);cursor:pointer;display:none">EN</button>
   </div>
   <div class="pin-logo" id="pinLogo">Panel Admin</div>
   <!-- First run: dev PIN setup -->
@@ -401,7 +401,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
   <div class="topbar">
     <div><div class="topbar-title" id="topbarTitle">Panel Admin</div><div class="topbar-role" id="roleLabel">Pemilik</div></div>
     <div style="display:flex;gap:6px;align-items:center;">
-      <button class="lock-btn" id="adminLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')">EN</button>
+      <button class="lock-btn" id="adminLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="display:none">EN</button>
       <button class="lock-btn" id="lockBtn" onclick="logout()">Kunci</button>
     </div>
   </div>
@@ -502,6 +502,13 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         <button class="btn btn-secondary btn-sm" onclick="addInfoCard('photo')">+ Photo card</button>
       </div>
       <button class="btn btn-primary" style="margin-top:14px" onclick="saveStoreInfo()">Save About Section</button>
+    </div>
+
+    <div class="a-card">
+      <div class="a-card-title">Store Highlights</div>
+      <div class="sec-sub" style="margin-bottom:16px">4 spotlight blocks shown below the hero banner. Leave all 4 empty to fall back to auto-computed menu stats.</div>
+      <div id="highlightsBuilder"></div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="saveHighlights()">Save Highlights</button>
     </div>
   </div>
 
@@ -1354,6 +1361,7 @@ function logout() {
 async function loadAll() {
   await loadStoreTab();
   await loadStoreInfo();
+  await loadHighlights();
   await loadMenuData();
   await loadOrders();
   await loadOwnerFeedback();
@@ -1576,6 +1584,53 @@ async function saveStoreInfo() {
     await fbSet('config/store_info', info);
     toast('About section saved ✓');
   }, 'saveStoreInfo');
+}
+
+// ════════════════════════════════════════════════════════════
+// STORE HIGHLIGHTS
+// ════════════════════════════════════════════════════════════
+const DEFAULT_HIGHLIGHTS = [
+  { emoji: '🔥', label: 'Signature',  value: '' },
+  { emoji: '⭐', label: 'Bestseller', value: '' },
+  { emoji: '🌶️', label: 'Special',    value: '' },
+  { emoji: '🕐', label: 'Open until', value: '' },
+];
+let highlights = DEFAULT_HIGHLIGHTS.map(h => ({ ...h }));
+
+function renderHighlightsBuilder() {
+  document.getElementById('highlightsBuilder').innerHTML = highlights.map((h, i) => `
+    <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:8px;margin-bottom:8px;align-items:center">
+      <input class="form-input" style="text-align:center;font-size:18px" value="${escapeHtml(h.emoji)}"
+        oninput="highlights[${i}].emoji=this.value" placeholder="🔥">
+      <input class="form-input" value="${escapeHtml(h.label)}"
+        oninput="highlights[${i}].label=this.value" placeholder="Label (e.g. Signature)">
+      <input class="form-input" value="${escapeHtml(h.value)}"
+        oninput="highlights[${i}].value=this.value" placeholder="Value (e.g. Woodfire Brisket)">
+    </div>`).join('');
+}
+
+async function loadHighlights() {
+  await safe(async () => {
+    const data = await fbGet('config/highlights');
+    if (Array.isArray(data) && data.length === 4) {
+      highlights = data.map((h, i) => ({
+        emoji: h.emoji ?? DEFAULT_HIGHLIGHTS[i].emoji,
+        label: h.label ?? DEFAULT_HIGHLIGHTS[i].label,
+        value: h.value ?? '',
+      }));
+    } else {
+      highlights = DEFAULT_HIGHLIGHTS.map(h => ({ ...h }));
+    }
+    renderHighlightsBuilder();
+  }, 'loadHighlights');
+}
+
+async function saveHighlights() {
+  await safe(async () => {
+    const allEmpty = highlights.every(h => !h.value.trim());
+    await fbSet('config/highlights', allEmpty ? null : highlights);
+    toast(allEmpty ? 'Highlights cleared — auto stats will show ✓' : 'Highlights saved ✓');
+  }, 'saveHighlights');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3732,7 +3787,7 @@ const ADMIN_STRINGS = {
     tabs: { store:'Store', menu:'Menu', orders:'Orders', feedback:'Feedback', security:'Security', studio:'Theme Studio', dev:'Dev ⚙' },
   }
 };
-let _aLang = localStorage.getItem('arh_lang') || 'bm';
+let _aLang = localStorage.getItem('arh_lang') || 'en';
 function ta(key) { return (ADMIN_STRINGS[_aLang] || ADMIN_STRINGS.bm)[key] ?? ADMIN_STRINGS.en[key] ?? key; }
 function setAdminLang(lang) {
   _aLang = lang;
