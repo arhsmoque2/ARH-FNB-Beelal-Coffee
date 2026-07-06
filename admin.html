@@ -450,7 +450,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         <div class="photo-upload-area">
           <img id="iLogoPreview" class="photo-preview" style="display:none">
           <input type="hidden" id="iLogo">
-          <label class="photo-upload-btn">📷 Upload Logo<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleLogoUpload(this)"></label>
+          <label class="photo-upload-btn">📷 Upload Logo<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handleLogoUpload(this)"></label>
           <div id="iLogoStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
         </div>
       </div>
@@ -459,7 +459,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         <div class="photo-upload-area">
           <img id="iBannerPreview" class="photo-preview" style="display:none;max-height:80px;width:100%;object-fit:cover">
           <input type="hidden" id="iBanner">
-          <label class="photo-upload-btn">🖼️ Upload Banner<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleBannerUpload(this)"></label>
+          <label class="photo-upload-btn">🖼️ Upload Banner<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handleBannerUpload(this)"></label>
           <div id="iBannerStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
         </div>
       </div>
@@ -1858,17 +1858,19 @@ async function imgurUpload(file, maxW, maxH) {
 async function handleLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
+  if (!['image/jpeg','image/png'].includes(file.type)) {
+    toast('JPG or PNG only'); input.value = ''; return;
+  }
   const statusEl = document.getElementById('iLogoStatus');
-  statusEl.textContent = 'Uploading…';
+  statusEl.textContent = 'Processing…';
   try {
-    const url = await imgurUpload(file, 400, 400);
-    document.getElementById('iLogo').value = url;
+    const dataUrl = await resizeImageToDataURL(file, 400, 0.82);
+    document.getElementById('iLogo').value = dataUrl;
     const preview = document.getElementById('iLogoPreview');
-    preview.src = url; preview.style.display = 'block';
-    statusEl.textContent = 'Uploaded ✓ — tap Save Store Info to apply';
+    preview.src = dataUrl; preview.style.display = 'block';
+    statusEl.textContent = 'Photo ready — tap Save Store Info to apply ✓';
   } catch (e) {
-    statusEl.textContent = 'Upload failed: ' + e.message;
-    if (!e.logged) logError({ type:'upload_error', ctx:'handleLogoUpload', msg:e.message, phase:e.phase, http_status:e.httpStatus, raw:e.raw });
+    statusEl.textContent = 'Failed to process image';
   } finally {
     input.value = '';
   }
@@ -1877,17 +1879,19 @@ async function handleLogoUpload(input) {
 async function handleBannerUpload(input) {
   const file = input.files[0];
   if (!file) return;
+  if (!['image/jpeg','image/png'].includes(file.type)) {
+    toast('JPG or PNG only'); input.value = ''; return;
+  }
   const statusEl = document.getElementById('iBannerStatus');
-  statusEl.textContent = 'Uploading…';
+  statusEl.textContent = 'Processing…';
   try {
-    const url = await imgurUpload(file, 1200, 400);
-    document.getElementById('iBanner').value = url;
+    const dataUrl = await resizeImageToDataURL(file, 1200, 0.82);
+    document.getElementById('iBanner').value = dataUrl;
     const preview = document.getElementById('iBannerPreview');
-    preview.src = url; preview.style.display = 'block';
-    statusEl.textContent = 'Uploaded ✓ — tap Save Store Info to apply';
+    preview.src = dataUrl; preview.style.display = 'block';
+    statusEl.textContent = 'Photo ready — tap Save Store Info to apply ✓';
   } catch (e) {
-    statusEl.textContent = 'Upload failed: ' + e.message;
-    if (!e.logged) logError({ type:'upload_error', ctx:'handleBannerUpload', msg:e.message, phase:e.phase, http_status:e.httpStatus, raw:e.raw });
+    statusEl.textContent = 'Failed to process image';
   } finally {
     input.value = '';
   }
