@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-engine-version="v2">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
-  <script src="config.js"></script>
+  <script src="/registry-resolver.js"></script>
+  <script src="/config.js"></script>
   <script>
     if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.store && APP_CONFIG.store.banner && APP_CONFIG.store.banner.image_url) {
       const link = document.createElement('link');
@@ -1917,8 +1918,8 @@
   </div>
 
   <script>
-    const FB_URL = APP_CONFIG.firebase.url;
-    const FB_ROOT = APP_CONFIG.firebase.root;
+    let FB_URL = APP_CONFIG.firebase.url;
+    let FB_ROOT = APP_CONFIG.firebase.root;
     const CUR = APP_CONFIG.store.currency || "RM";
     const DEFAULT_CONFIG = {
       store: {
@@ -2186,6 +2187,16 @@
     }
 
     async function init() {
+      const _reg = await (window.__registryReady || Promise.resolve({ active: false }));
+      if (_reg.active) {
+        if (!_reg.ok) {
+          document.getElementById("loader").textContent =
+            _reg.reason === "unreachable" ? "Could not reach store registry. Please retry." : "Store not found. Check the link.";
+          return;
+        }
+        FB_ROOT = _reg.entry.root;
+        if (_reg.entry.url) FB_URL = _reg.entry.url;
+      }
       if (await checkMaintenance()) return;
       const [cfgR, themeR, itemsR, catsR, sumR, ordersR, picksR, hlR] = await Promise.all([
         fbGetSafe("config/store"),

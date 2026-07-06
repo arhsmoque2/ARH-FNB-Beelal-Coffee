@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-engine-version="v2">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,7 +7,8 @@
 <title>Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&family=Figtree:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Playfair+Display:wght@700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="config.js"></script>
+<script src="/registry-resolver.js"></script>
+<script src="/config.js"></script>
 <!-- JSZip for ZIP extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -950,8 +951,8 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 // ════════════════════════════════════════════════════════════
 // FIREBASE CONFIG  (values come from config.js)
 // ════════════════════════════════════════════════════════════
-const FB_URL  = APP_CONFIG.firebase.url;
-const FB_ROOT = APP_CONFIG.firebase.root;
+let FB_URL  = APP_CONFIG.firebase.url;
+let FB_ROOT = APP_CONFIG.firebase.root;
 const CUR     = APP_CONFIG.store.currency;
 const APP_VERSION = '2026.05.25.1';
 const LOCAL_RELEASES = {
@@ -1248,6 +1249,19 @@ async function checkMaintenance() {
 }
 
 async function init() {
+  const _reg = await (window.__registryReady || Promise.resolve({ active: false }));
+  if (_reg.active) {
+    if (!_reg.ok) {
+      document.body.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f0510;color:#fff;text-align:center;padding:24px;flex-direction:column;gap:16px;">
+          <div style="font-size:2rem;font-weight:800;">${_reg.reason === 'unreachable' ? '⚠ Connection problem' : '⚠ Store not found'}</div>
+          <div style="font-size:1.1rem;color:#d1d5db;">${_reg.reason === 'unreachable' ? 'Could not reach the store registry. Please retry.' : 'This admin link does not match a registered store.'}</div>
+        </div>`;
+      return;
+    }
+    FB_ROOT = _reg.entry.root;
+    if (_reg.entry.url) FB_URL = _reg.entry.url;
+  }
   if (await checkMaintenance()) return;
   // Apply branding from config.js
   document.title = APP_CONFIG.brand.adminName;
