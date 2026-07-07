@@ -823,6 +823,9 @@
       justify-content: center;
       padding: 16px;
     }
+    /* Addons sheet must stack above the photo lightbox (z-index 200) so quick-add
+       from the photo view can open it without disappearing behind the lightbox. */
+    #addonsSheet { z-index: 210; }
     .sheet.open { display: flex; }
     .sheet-panel {
       width: min(620px, 100%);
@@ -3236,8 +3239,9 @@
         price: option.price + addonTotal,
         addons: selectedAddons
       });
-      
+
       updateCart();
+      _updatePhotoCartStrip(); // no-op if the photo lightbox isn't open
     }
 
     function closeAddonsSheet() {
@@ -3407,7 +3411,9 @@
         }
       }
 
-      const qty = sel ? cart.filter(i => i.id === _photoItem.id && i.option === sel.label).length : 0;
+      // Only count add-on-free lines here — an add-on customized line can't be
+      // represented by this simple +/- counter, so it's managed from the main cart sheet.
+      const qty = sel ? cart.filter(i => i.id === _photoItem.id && i.option === sel.label && !(i.addons && i.addons.length)).length : 0;
       const qtyEl = document.getElementById('photoCartQty');
       if (qtyEl) { qtyEl.textContent = qty; qtyEl.className = 'photo-cart-qty' + (qty > 0 ? ' has-items' : ''); }
     }
@@ -3423,11 +3429,15 @@
       const sel  = opts[_photoSelectedOptIdx] || opts[0];
       if (!sel) return;
       if (delta > 0) {
-        cart.push({ ..._photoItem, option: sel.label, price: sel.price, uid: Date.now() + Math.random() });
-        updateCart(); renderCart(); _updatePhotoCartStrip();
+        // Route through the same addToCart() the menu grid uses — items with
+        // add-ons open the add-ons sheet instead of being pushed to cart raw
+        // (previously this spread the raw menu item, corrupting the WhatsApp
+        // order text with "undefined" add-ons and a numeric uid removeCart() couldn't match).
+        addToCart(_photoItem.id, opts.indexOf(sel));
+        _updatePhotoCartStrip();
       } else {
         const idx = [...cart].map((c, i) => ({ c, i })).reverse()
-          .find(({ c }) => c.id === _photoItem.id && c.option === sel.label);
+          .find(({ c }) => c.id === _photoItem.id && c.option === sel.label && !(c.addons && c.addons.length));
         if (idx) {
           cart.splice(idx.i, 1);
           updateCart(); renderCart(); _updatePhotoCartStrip();
