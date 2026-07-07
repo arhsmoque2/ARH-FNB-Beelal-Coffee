@@ -3411,9 +3411,12 @@
         }
       }
 
-      // Only count add-on-free lines here — an add-on customized line can't be
-      // represented by this simple +/- counter, so it's managed from the main cart sheet.
-      const qty = sel ? cart.filter(i => i.id === _photoItem.id && i.option === sel.label && !(i.addons && i.addons.length)).length : 0;
+      // Count every matching line, add-on customized or not — showing 0 here right after a
+      // successful add-with-addons reads as "the add failed" even though the item is in the
+      // cart. The quick "-" button still only ever removes an add-on-free line (see
+      // photoChangeQty) since decrementing an arbitrary add-on combo from this simple counter
+      // would be ambiguous; this is a display-only reconciliation, not a removal capability.
+      const qty = sel ? cart.filter(i => i.id === _photoItem.id && i.option === sel.label).length : 0;
       const qtyEl = document.getElementById('photoCartQty');
       if (qtyEl) { qtyEl.textContent = qty; qtyEl.className = 'photo-cart-qty' + (qty > 0 ? ' has-items' : ''); }
     }
