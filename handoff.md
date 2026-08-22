@@ -6,6 +6,97 @@
 
 ---
 
+## 0. 🔴 URGENT, DO FIRST — Repo/Infra migration: old fleet repo → this repo
+
+This repo (`arhsmoque2/ARH-FNB-Beelal-Coffee`) was forked from the shared fleet template
+(`arhsmoque/arh-fnb-webapp`, branch `store/beelal`) on 2026-08-22. The **code** side of that
+fork is done. The **Cloudflare infrastructure** side has not been confirmed done — this
+section is a runbook for a local agent (with CF dashboard/`wrangler` access) to verify and
+finish it. Nothing below this point in the handoff matters much if the wrong repo is still
+the one actually serving customers.
+
+### 0a. Verify which project currently owns the live URL — do this before anything else
+
+`wrangler.jsonc` in this repo declares CF project name `"beelal-coffee"`. A standalone
+Workers project with that name would normally produce a URL like
+`beelal-coffee.<account-subdomain>.workers.dev`. But the URL everyone refers to as "live" —
+`https://store-beelal-fnb-pwa.arh-homelab.workers.dev` — follows the **old** fleet's naming
+pattern (`store-<name>-fnb-pwa`), which is what the old `fnb-pwa` CF project auto-generates
+for branch builds off `store/beelal`. Those two facts don't fit together cleanly, so one of
+two things is true, and it changes everything about the rest of this runbook:
+
+- **(a)** This new repo/project has never actually been connected to Cloudflare — the
+  `store-beelal-fnb-pwa...` URL customers are hitting is still being served by the **old**
+  repo/branch/project. Every fix merged into this repo's `main` (see §1–2 below) is sitting
+  in a repo that isn't deployed anywhere yet.
+- **(b)** Someone already cut over and mapped a custom route to preserve the old URL on the
+  new `beelal-coffee` project — possible, but nothing in this repo documents it, and it would
+  be unusual to do before the code-side migration was finished.
+
+**Action:** Open the Cloudflare dashboard → Workers & Pages. Look for both `fnb-pwa` and
+`beelal-coffee` projects. Check which one currently owns/routes
+`store-beelal-fnb-pwa.arh-homelab.workers.dev` (or whatever custom domain, if any). Report
+back which case (a) or (b) is true — it determines whether steps 0b onward are "do this
+whole migration" or "just confirm and document what's already in place."
+
+### 0b. If case (a) — full migration still needed
+
+1. **Stand up (or confirm) the `beelal-coffee` CF Workers project** connected to
+   `arhsmoque2/ARH-FNB-Beelal-Coffee`, production branch **`main`** (not a `store/*` branch —
+   this repo's whole structure assumes `main` is production, unlike the old fleet's
+   branch-per-store model).
+2. **Re-provision secrets on the new project** — secrets live per-Worker in Cloudflare, they
+   do not travel with git history:
+   - `UPLOAD_SECRET` (gates `worker.js` upload routes)
+   - `billing.secret`'s replacement, once relocated server-side (still open — see §3.1 below)
+   - `GEMINI_API_KEY`, once payment-flow work starts (see §3.4 below)
+   - Reusing the old project's exact secret values is fine for continuity, but rotating
+     during the move is the better call — `billing.secret` is already known to have leaked
+     once (git history has a "rotate billing secret" commit from the old repo).
+3. **Re-provision bindings** — also per-project, not per-repo:
+   - `MEDIA_BUCKET` R2 binding — currently missing even from this repo's `wrangler.jsonc`
+     (see §3.2 below); needs adding *and* the bucket itself needs to exist/be reachable from
+     the new project.
+   - Diff the old project's full dashboard config (bindings, KV/D1/anything else) against
+     this repo's `wrangler.jsonc` side by side — don't assume `worker.js`'s comments list
+     every dependency; confirm against what's actually configured on the old project.
+4. **Data needs no migration.** Firebase RTDB (`ash-2026-photobook` project, `beelal_coffee`
+   root) is shared infra, independent of which CF project/repo serves the frontend. As long
+   as `config.js`'s `firebase.url`/`firebase.root` stay unchanged (they have, and must not
+   change — see `AGENTS.md`), orders/menu/theme data keep working through the cutover with
+   zero data migration required. This is the lowest-risk part of the whole move.
+5. **Cut over the URL.** However `store-beelal-fnb-pwa.arh-homelab.workers.dev` is currently
+   routed needs to move to the new project. If it's a `*.workers.dev` subdomain generated
+   from the project name, the new project literally cannot reproduce that exact URL — either
+   set up a custom route/domain mapping to preserve it, or accept the live URL changes to
+   `beelal-coffee.<account>.workers.dev` and update everywhere that URL is referenced
+   (WhatsApp order-confirmation links if any, bookmarks, `AGENTS.md`, `README.md`).
+6. **Decommission the old path** once the new one is verified live and taking real traffic —
+   disable the old `fnb-pwa` project's branch build for `store/beelal` (or just leave that
+   branch frozen) so two live deployments can't race each other on push. Don't delete the old
+   repo/branch immediately; keep it as a rollback path for at least one full business cycle.
+7. **Verify end-to-end on the new URL** before calling it done: place a real test order,
+   confirm it lands in `beelal_coffee/orders` in Firebase, confirm the WhatsApp deep link
+   fires correctly, confirm `admin.html` loads and can read/write config on the new
+   deployment.
+
+### 0c. If case (b) — already cut over
+
+Just document it: update `AGENTS.md`/`README.md` to state explicitly that the CF project
+migration is complete (it currently reads as aspirational, not confirmed), and still work
+through steps 2–3 above as a *verification* pass (confirm secrets/bindings are actually
+present on the live project, not assumed) rather than a fresh setup.
+
+### What I could not do from the sandbox and why
+
+I have no Cloudflare API token or dashboard access in this session — I can read
+`wrangler.jsonc` and infer from URL-naming conventions, but I cannot query Cloudflare's
+actual project list, routes, secrets, or bindings to resolve 0a myself. See §4 below for
+exactly what credentials would let a cloud-sandbox session do this verification/execution
+itself next time, instead of needing a local agent for it.
+
+---
+
 ## 1. What this session fixed (safe, mechanical, done from the sandbox)
 
 | Fix | File | Why |
