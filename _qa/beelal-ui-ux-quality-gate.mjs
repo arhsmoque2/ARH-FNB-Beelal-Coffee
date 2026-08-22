@@ -8,9 +8,20 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 const TARGET_HTML_FILES = [
-  path.join(repoRoot, 'v2', 'index.html'),
   path.join(repoRoot, 'index.html'),
+  path.join(repoRoot, 'index-legacy.html'),
+  path.join(repoRoot, 'index-v2.html'),
   path.join(repoRoot, 'admin.html')
+].filter(f => fs.existsSync(f));
+
+// Storefront entrypoints checked by Gates 2-4 below. There are currently two
+// candidate "live" storefronts in this repo (index-legacy.html and
+// index-v2.html) with an unresolved question about which one actually serves
+// customers (see AGENTS.md / handoff.md). Until that's resolved, both are
+// checked rather than silently picking one — a gap in either is real signal.
+const STOREFRONT_HTML_FILES = [
+  path.join(repoRoot, 'index-legacy.html'),
+  path.join(repoRoot, 'index-v2.html')
 ].filter(f => fs.existsSync(f));
 
 console.log('\n======================================================');
@@ -47,18 +58,18 @@ if (gate1Pass) console.log('  ✅ Syntax structure clean across all HTML entrypo
 // Gate 2: Mobile Layout & Touch Target Integrity (ARH DevKit)
 console.log('📱 Gate 2: Mobile Layout & Touch Target Integrity (ARH DevKit)...');
 let gate2Pass = true;
-const beelalIndex = path.join(repoRoot, 'v2', 'index.html');
-if (fs.existsSync(beelalIndex)) {
-  const html = fs.readFileSync(beelalIndex, 'utf8');
+for (const storefront of STOREFRONT_HTML_FILES) {
+  const relPath = path.relative(repoRoot, storefront);
+  const html = fs.readFileSync(storefront, 'utf8');
 
   if (!html.includes('name="viewport"') || !html.includes('width=device-width')) {
-    console.error('  ❌ Missing mobile viewport meta tag.');
+    console.error('  ❌ [' + relPath + '] Missing mobile viewport meta tag.');
     gate2Pass = false;
     totalErrors++;
   }
 
   if (!html.includes('.floating-cart') || !html.includes('position: fixed')) {
-    console.error('  ❌ Floating cart missing fixed positioning.');
+    console.error('  ❌ [' + relPath + '] Floating cart missing fixed positioning.');
     gate2Pass = false;
     totalErrors++;
   }
@@ -72,7 +83,7 @@ if (fs.existsSync(beelalIndex)) {
 
   for (const item of requiredInteractive) {
     if (!item.pattern.test(html)) {
-      console.error('  ❌ Missing CSS rule for ' + item.name);
+      console.error('  ❌ [' + relPath + '] Missing CSS rule for ' + item.name);
       gate2Pass = false;
       totalErrors++;
     }
@@ -83,8 +94,9 @@ if (gate2Pass) console.log('  ✅ Viewport, floating dock, and touch targets pas
 // Gate 3: Accessibility & HTML5 Semantics
 console.log('🌐 Gate 3: HTML5 Semantics, A11y & Keyboard Navigation...');
 let gate3Pass = true;
-if (fs.existsSync(beelalIndex)) {
-  const html = fs.readFileSync(beelalIndex, 'utf8');
+for (const storefront of STOREFRONT_HTML_FILES) {
+  const relPath = path.relative(repoRoot, storefront);
+  const html = fs.readFileSync(storefront, 'utf8');
   const a11yChecks = [
     { name: 'Escape key close handler', check: html.includes('Escape') },
     { name: 'Aria labels on icon buttons', check: html.includes('aria-label') },
@@ -95,7 +107,7 @@ if (fs.existsSync(beelalIndex)) {
 
   for (const ac of a11yChecks) {
     if (!ac.check) {
-      console.error('  ❌ A11y requirement missing: ' + ac.name);
+      console.error('  ❌ [' + relPath + '] A11y requirement missing: ' + ac.name);
       gate3Pass = false;
       totalErrors++;
     }
@@ -106,8 +118,10 @@ if (gate3Pass) console.log('  ✅ ARIA markers, keyboard listeners, and accessib
 // Gate 4: F&B UX Contract (UEQ 6 Dimensions)
 console.log('🍽️ Gate 4: F&B User Experience Contract (UEQ 6-Dimension Evaluation)...');
 let gate4Pass = true;
-if (fs.existsSync(beelalIndex)) {
-  const html = fs.readFileSync(beelalIndex, 'utf8');
+for (const storefront of STOREFRONT_HTML_FILES) {
+  const relPath = path.relative(repoRoot, storefront);
+  console.log('  --- ' + relPath + ' ---');
+  const html = fs.readFileSync(storefront, 'utf8');
   const ueqGates = [
     { dim: 'Efficiency', test: html.includes('changeCartQty') && html.includes('sendOrder') && html.includes('floatingCart'), desc: 'In-cart stepper and direct WhatsApp checkout flow' },
     { dim: 'Attractiveness', test: html.includes('--brand') && html.includes('--paper') && (html.includes('<img') || html.includes('item-media')), desc: 'Appetizing presentation and clear branding' },
@@ -132,18 +146,21 @@ console.log('');
 // Gate 5: Cart Stepper & State Calculation Invariants
 console.log('🛒 Gate 5: Cart Stepper & WhatsApp Payload Invariants...');
 let gate5Pass = true;
-if (fs.existsSync(beelalIndex)) {
-  const html = fs.readFileSync(beelalIndex, 'utf8');
+for (const storefront of STOREFRONT_HTML_FILES) {
+  const relPath = path.relative(repoRoot, storefront);
+  const html = fs.readFileSync(storefront, 'utf8');
   const requiredFunctions = ['addToCart', 'changeCartQty', 'removeCart', 'updateCart', 'renderCart', 'confirmAddons', 'sendOrder'];
 
   for (const fn of requiredFunctions) {
     if (!html.includes('function ' + fn)) {
-      console.error('  ❌ Missing required function: function ' + fn + '()');
+      console.error('  ❌ [' + relPath + '] Missing required function: function ' + fn + '()');
       gate5Pass = false;
       totalErrors++;
     }
   }
+}
 
+{
   const testCart = [
     { uid: '1', id: 'c1', name: 'Americano', option: 'Cold', unitPrice: 8.00, price: 16.00, qty: 2, addons: [] },
     { uid: '2', id: 'f1', name: 'Scrambled Egg Baguette', option: 'Regular', unitPrice: 6.90, price: 6.90, qty: 1, addons: [{ name: 'Extra Cheese', value: 'Yes', price: 2.00 }] }
