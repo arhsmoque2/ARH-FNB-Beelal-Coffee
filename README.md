@@ -1,176 +1,91 @@
-# arh-fnb-webapp — Multi-Store FnB Menu PWA
+# Beelal Coffee — Standalone Storefront
 
-A zero-dependency menu PWA for small food & beverage businesses.
-Vanilla HTML/CSS/JS + Firebase Realtime Database + Cloudflare Workers. No build step.
+A zero-dependency menu PWA for Beelal Coffee (Malaysian specialty coffee + light food).
+Vanilla HTML/CSS/JS + Firebase Realtime Database + Cloudflare Workers. No build step, no
+package manager, no CI.
 
-## Live Deployments
+> Forked from the shared `ARH-FNB-Webapp` multi-store template (`store/beelal` branch) into
+> this standalone repo on 2026-08-22. It is **not** governed by the shared fleet sync anymore
+> — see `AGENTS.md` for the store-specific contract agents must follow.
 
-| Store | Branch | Preview URL |
-|---|---|---|
-| Beelal Coffee | `store/beelal` | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
-| The Rizz Western Empire | `store/therizz` | `https://store-therizz-fnb-pwa.arh-homelab.workers.dev` |
-| Template (production) | `main` | `https://fnb-pwa.arh-homelab.workers.dev` |
+## Live Deployment
 
-All deployments are automatic — push to a branch, CF builds within ~30 seconds.
+| | |
+|---|---|
+| CF project | `beelal-coffee` |
+| Live URL | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
+| Deploy trigger | Push to `main` — Cloudflare Workers builds automatically (Workers Assets, see `wrangler.jsonc`) |
 
----
+## Live Storefront
 
-## Repository Architecture
-
-```
-main              ← clean reusable template (no real store data)
-store/beelal      ← Beelal Coffee — own config, own Firebase namespace
-store/therizz     ← The Rizz Western Empire — own config, own Firebase namespace
-```
-
-`main` is the template base. Each store lives on its own branch and is **never merged back into main**. The branches are the deployment artifacts — Cloudflare Workers builds each one as a permanent branch preview.
-
-**Adding a new store:**
-```bash
-git checkout main
-git checkout -b store/<newstore>
-# edit config.js with the new store's details
-git push -u origin store/<newstore>
-# CF auto-builds a preview URL: store-<newstore>-fnb-pwa.arh-homelab.workers.dev
-```
-
----
+`index.html` redirects to **`index-v2.html`**, which is the confirmed live, customer-facing
+storefront (confirmed 2026-08-22). An older parallel build, `index-legacy.html`, has been
+removed from the repo — `journal.md` predates that confirmation and still refers to it as the
+live app; treat this README and `AGENTS.md` as current over that older note.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `config.js` | **The only file you edit per store** — all business settings |
-| `index.html` | Customer-facing menu PWA (engine — never edit for branding) |
-| `admin.html` | Owner/developer admin panel (engine — never edit for branding) |
-| `guide.html` | Owner reference guide |
-| `wrangler.jsonc` | Cloudflare Workers project name for this branch |
-
----
+| `config.js` | The only file store owners edit — all business/branding settings (menu, theme, contact, Firebase namespace) |
+| `index.html` | Redirect shim → `index-v2.html` |
+| `index-v2.html` | **Live storefront** — customer-facing menu, cart, checkout |
+| `admin.html` | Owner/developer admin panel |
+| `dev-console.html` | Developer diagnostics console |
+| `observatory.html` | Client-side error log viewer |
+| `guide.html` | Owner reference guide (Malay) |
+| `worker.js` | Cloudflare Worker — R2-backed media upload/serve routes, falls through to static assets otherwise |
+| `wrangler.jsonc` | Cloudflare Workers project config for this deployment |
+| `migrate-photos.js` | One-off Firebase photo migration script |
+| `_qa/beelal-ui-ux-quality-gate.mjs` | Static HTML quality gate — run with `node _qa/beelal-ui-ux-quality-gate.mjs` before pushing UI changes |
 
 ## Infrastructure
 
 ### Cloudflare Workers
-- **Project name:** `fnb-pwa`
-- **Connected repo:** `arhsmoque/arh-fnb-webapp`
-- **Production branch:** `main`
-- **Branch builds:** enabled — every branch gets a preview URL automatically
-- **API token:** `arh-fnb-webapp` (scoped to this project only)
+- **Project:** `beelal-coffee`, serves static assets from repo root plus the upload/media
+  routes in `worker.js`.
+- **Required secret:** `UPLOAD_SECRET` (set via `wrangler secret put UPLOAD_SECRET`) — gates
+  `/api/upload/video` and `/api/upload/image`.
+- **Required R2 binding:** `MEDIA_BUCKET`, expected by `worker.js` for `/api/upload/*` and
+  `/media/*`. **Not currently declared in `wrangler.jsonc`** — those routes will fail until
+  the binding is added there (or confirmed to already exist via the CF dashboard).
 
 ### Firebase Realtime Database
-- **Project:** `ash-2026-photobook` (shared — one DB for all stores, forever)
 - **URL:** `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`
-- **Isolation:** each store writes under its own `firebase.root` key — data never overlaps, no cross-store reads possible
+  (shared instance — do not create a new project)
+- **Root:** `beelal_coffee` — never change this; it would orphan all live order/menu data.
+- `defaultMenu` in `config.js` is only a seed used if Firebase has no data yet; editing it
+  does not change what live customers see.
 
-**Never create a new Firebase project for a new store.** Just pick a new `firebase.root` key.
-
-| Store | `firebase.root` |
-|---|---|
-| Beelal Coffee | `beelal_coffee` |
-| The Rizz | `therizz` |
-| New store | any unique key, lowercase, underscores ok, no slashes |
-
----
+### Billing
+- `config.js` → `billing.workerUrl` points at `fnb-billing-ledger.arh-homelab.workers.dev`.
+- ⚠️ `billing.secret` in `config.js` is currently a plaintext shared secret shipped in the
+  public client bundle. This needs to move server-side (checked inside a Worker via
+  `wrangler secret put`, the same pattern `worker.js` already uses for `UPLOAD_SECRET`) and
+  be rotated. See `handoff.md`.
 
 ## config.js Schema
 
-`config.js` is the sole adapter between the engine and a specific store. Every field:
+`config.js` is the sole adapter between the shared engine (`index.html`/`admin.html`) and
+this store. See the inline comments in the file itself — every field is documented there.
 
-```js
-const _STORE_NAME = 'My Store Name';  // defined first — used in systemPrompt
+## Quality Gate
 
-const APP_CONFIG = {
-  firebase: {
-    url:  'https://...',   // Firebase RTDB URL
-    root: 'my_store',      // unique namespace key — no slashes, no spaces
-  },
-
-  store: {
-    name:     _STORE_NAME,
-    slogan:   '...',
-    phone:    '601XXXXXXXX',   // WhatsApp number, digits only, country code first
-    hours:    '...',
-    currency: 'RM',
-
-    sizeLegend: ['HOT 8oz', 'COLD 12oz', 'FRAPPÉ 16oz', 'LARGE +RM4'],
-    // ^ shown above drink categories. Omit sizes not offered by the store.
-
-    foodAddons: [              // optional — shown at bottom of showAddons: true categories
-      { name: 'Extra Cheese', price: 2 },
-    ],
-  },
-
-  brand: {
-    appName:   _STORE_NAME,    // page title, PWA name, WhatsApp order footer
-    adminName: 'My Admin',     // shown in admin panel header
-    locale:    'en-MY',        // date/time locale
-  },
-
-  ai: {
-    model:        'google/gemma-4-26b-it:free',
-    systemPrompt: `...`,       // inline — uses _STORE_NAME helper
-    quickChips:   [...],       // shortcut prompts shown in AI Studio
-  },
-
-  defaultTheme: {
-    bg, bg2, bg3,              // page background layers
-    surface,                   // card background
-    primary, accent, accent2,  // brand colours
-    text, text2, text3,        // text hierarchy
-    font_display, font_body,   // Google Fonts strings
-  },
-
-  defaultMenu: {
-    categories: [
-      // type: 'drinks'   → shows sizeLegend chips above items
-      // showAddons: true → shows foodAddons rows at bottom of section
-      { id: 'coffee', label: 'Coffee', emoji: '☕', type: 'drinks' },
-    ],
-    items: [
-      // hot/cold/frappe → drink prices per size (null = not offered)
-      // price           → fixed price for food items
-      // avail: false    → shown as crossed out / sold out
-      { id:'c1', cat:'coffee', name:'Americano', desc:'', emoji:'☕',
-        hot:6, cold:8, frappe:10, price:null, avail:true },
-    ],
-  },
-};
+```bash
+node _qa/beelal-ui-ux-quality-gate.mjs
 ```
 
----
+Checks (against `index-v2.html`, plus `index.html`/`admin.html` for syntax balance):
+1. `<script>`/`<style>` tag balance across all HTML entrypoints
+2. Mobile viewport, floating-cart positioning, touch-target CSS
+3. Basic a11y (Escape handlers, aria-labels, accessible form inputs, reduced-motion)
+4. F&B UX contract (UEQ 6-dimension smoke checks: efficiency, attractiveness, dependability,
+   perspicuity, stimulation, novelty)
+5. Required cart JS functions present + cart math invariants
 
-## Setting Up a New Store (step by step)
-
-1. **Branch from main**
-   ```bash
-   git checkout main && git pull origin main
-   git checkout -b store/<newstore>
-   ```
-
-2. **Edit `config.js`** — fill in every field. Key things:
-   - `firebase.url` — **always use the shared URL above**, never create a new Firebase project
-   - `firebase.root` — pick a new unique key (e.g. `newstore_kl`); this is the only Firebase change needed
-   - `store.sizeLegend` — only include sizes the store actually offers
-   - `store.foodAddons` — omit the field entirely if the store has no add-ons
-   - `defaultMenu` — replace with real items before first deploy
-
-3. **`wrangler.jsonc`** — already set to `fnb-pwa`, no change needed
-
-4. **Push**
-   ```bash
-   git add config.js
-   git commit -m "feat: <Store Name> store configuration"
-   git push -u origin store/<newstore>
-   ```
-   CF builds automatically. Preview URL appears within ~30 seconds.
-
-5. **First-time admin setup** — open `<preview-url>/admin.html`:
-   - Set 4-digit Developer PIN
-   - Dev tab → paste OpenRouter API key → Test → Save *(free at openrouter.ai)*
-   - Dev tab → **Take Master Snapshot**
-   - Security tab → set Owner PIN (default: `1234`)
-
----
+This is a static string/regex check on the HTML source, not an execution/DOM test — it will
+not catch logic regressions that don't change a function's presence. There is no CI wired up
+to run it automatically; run it manually before pushing UI changes.
 
 ## Recovery
 
@@ -178,15 +93,14 @@ const APP_CONFIG = {
 |---|---|
 | Owner forgot PIN | Dev PIN → Security tab → reset Owner PIN |
 | Theme broken | Dev PIN → AI Studio → Factory Reset |
-| Redeploy needed | Push any commit to the store branch |
-| Debug errors | Dev PIN → Dev tab → Error Log |
-
----
+| Redeploy needed | Push any commit to `main` |
+| Debug errors | Dev PIN → Dev tab → Error Log, or `observatory.html` |
 
 ## Architecture
 
-- **No build system** — vanilla HTML/CSS/JS, static files served directly
-- **Firebase Realtime Database** — stores menu, theme, config, orders, PINs; namespaced per store via `firebase.root`
-- **Cloudflare Workers** — serves static files globally; one CF project (`fnb-pwa`) covers all stores via branch builds
-- **OpenRouter** — AI gateway for the theme studio (optional, free tier available)
-- **WhatsApp** — order delivery via `wa.me` deep link, no integration needed
+- **No build system** — vanilla HTML/CSS/JS, static files served directly, no `package.json`.
+- **Firebase Realtime Database** — menu, theme, config, orders, PINs; namespaced under
+  `beelal_coffee`.
+- **Cloudflare Workers** — serves static files + the upload/media API in `worker.js`.
+- **WhatsApp** — order delivery via `wa.me` deep link, no payment integration yet (see
+  `journal.md` §6 / `handoff.md` for the designed-but-unimplemented payment flow).
