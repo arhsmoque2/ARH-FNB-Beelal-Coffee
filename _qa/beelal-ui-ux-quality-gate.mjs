@@ -9,18 +9,14 @@ const repoRoot = path.resolve(__dirname, '..');
 
 const TARGET_HTML_FILES = [
   path.join(repoRoot, 'index.html'),
-  path.join(repoRoot, 'index-legacy.html'),
   path.join(repoRoot, 'index-v2.html'),
   path.join(repoRoot, 'admin.html')
 ].filter(f => fs.existsSync(f));
 
-// Storefront entrypoints checked by Gates 2-4 below. There are currently two
-// candidate "live" storefronts in this repo (index-legacy.html and
-// index-v2.html) with an unresolved question about which one actually serves
-// customers (see AGENTS.md / handoff.md). Until that's resolved, both are
-// checked rather than silently picking one — a gap in either is real signal.
+// Storefront entrypoint checked by Gates 2-4 below. index-v2.html is the
+// confirmed live storefront (index.html redirects to it); index-legacy.html
+// was removed once that was confirmed — see AGENTS.md / handoff.md.
 const STOREFRONT_HTML_FILES = [
-  path.join(repoRoot, 'index-legacy.html'),
   path.join(repoRoot, 'index-v2.html')
 ].filter(f => fs.existsSync(f));
 

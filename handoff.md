@@ -15,35 +15,20 @@
 | Stale branding | `observatory.html` | `<title>` said "Woodfire" (a different store's leftover branding). Changed to "Beelal Coffee". |
 | README rewritten | `README.md` | Described the old multi-branch fleet setup (`store/beelal`, `store/therizz`, shared `fnb-pwa` CF project) that no longer applies to this standalone repo. Rewritten to match `AGENTS.md` and current file layout, and now documents the two open items below instead of hiding them. |
 
-Quality gate now correctly **fails** (14 errors) because `index-legacy.html` is missing the
-modern cart-stepper/UEQ features that `index-v2.html` has. That's real signal, not a bug in
-the gate — see §2 below. I did not force it green.
+Quality gate initially correctly **failed** (14 errors) because `index-legacy.html` was
+missing the modern cart-stepper/UEQ features that `index-v2.html` has — real signal, not a
+gate bug. Once §2 was resolved and `index-legacy.html` removed, the gate was pointed at
+`index-v2.html` only and now passes for real (0 errors), not vacuously like before.
 
-## 2. 🔴 Needs a human decision before any further storefront work
+## 2. ✅ RESOLVED — `index-v2.html` is the live storefront
 
-**Which file is the actual live, customer-facing storefront: `index-legacy.html` or `index-v2.html`?**
+Confirmed by the owner on 2026-08-22. `index-legacy.html` has been **deleted** from the repo
+(git history still has it if ever needed). `AGENTS.md` and `README.md` updated accordingly.
+`journal.md` still contains the old (now superseded) June note calling `index-legacy.html`
+the live app — left as historical record, not corrected, since it's a session log.
 
-Evidence is contradictory:
-- `index.html` (the entrypoint CF actually serves at `/`) redirects to **`index-v2.html`**.
-- `journal.md` (2026-06-10) and the old `handoff.md` content (preserved below) both say
-  **`index-legacy.html`** is "the live order-writing app (529 real orders)" and explicitly
-  list `index-v2.html` under "Do NOT Touch — V2 preview, not the live order app".
-- Running the quality gate today shows `index-v2.html` has the full modern feature set
-  (cart-qty-stepper, floating cart, escape handlers, etc.) and `index-legacy.html` has none
-  of it — consistent with `index-v2.html` having been developed further and become the real
-  live app *after* that June note was written, but that is an inference, not a confirmed fact.
-
-**I did not resolve this myself** — it affects a production app with real order history and
-picking wrong risks either editing a dead file or corrupting the live order flow.
-
-**How to confirm (needs local/dashboard access, see §4):**
-1. Open `https://store-beelal-fnb-pwa.arh-homelab.workers.dev/` in a browser and check which
-   file's network request actually loads (view page source / Network tab).
-2. Cross-check against Firebase: `beelal_coffee/orders` — see which build's write shape
-   (field names) matches recent order timestamps.
-3. Once confirmed, update `AGENTS.md` and `README.md` to state it explicitly, and either
-   delete or clearly mark the non-live file (e.g. rename to `index-v2-preview.html` or move
-   under a `/archive` note) so this ambiguity can't recur.
+This unblocks: the quality gate now runs against `index-v2.html` only and passes for real
+(not vacuously); the payment-flow build (§3.4 below) has a confirmed target file.
 
 ## 3. Remaining work that needs local-machine / credentialed access
 
@@ -54,9 +39,9 @@ either a decision only the owner can make, or credentials/access this session do
 |---|---|---|---|
 | 1 | Rotate & relocate `config.js` → `billing.secret` | It's a live shared secret (`fnb-billing-ledger` worker auth). I can restructure the client code, but rotating the actual secret and updating the billing Worker's expected value requires CF account access I don't have. Also don't know the billing Worker's source/contract (it's not in this repo) so I can't safely design the server-side proxy without guessing its API. | CF dashboard/`wrangler` access to `fnb-billing-ledger`; that Worker's source or API contract |
 | 2 | Wire up `MEDIA_BUCKET` R2 binding | `worker.js` expects it; `wrangler.jsonc` doesn't declare it. Adding a binding block is easy, but if the R2 bucket doesn't already exist in the CF account, a blind add breaks deploy instead of fixing anything. | Confirmation the `fnb-pwa-media` R2 bucket exists (or create it), then add the binding + redeploy to verify |
-| 3 | Resolve §2 (live storefront file) | Production-affecting, ambiguous evidence | Browser check + Firebase order inspection (see §2) |
-| 4 | Implement payment flow | Fully designed, not started (see `journal.md` §6 and the preserved plan below) — this is a real feature build, not a fix, and depends on §2 being resolved first (which file to build it in) | `GEMINI_API_KEY` secret, and a human answer to §2 |
-| 5 | No CI wired to the quality gate | I can add a GitHub Actions workflow that runs `node _qa/beelal-ui-ux-quality-gate.mjs` on PRs — I held off since it's currently red (see §2/gate results) and I don't want to block PRs on an unresolved ambiguity. Once §2 is resolved this is a 10-minute add. | Nothing blocking except deciding whether a red gate should block merges yet |
+| 3 | ~~Resolve live storefront file~~ | ✅ Done — see §2 | — |
+| 4 | Implement payment flow | Fully designed, not started (see `journal.md` §6 and the preserved plan below) — build it in `index-v2.html`, now confirmed live | `GEMINI_API_KEY` secret |
+| 5 | Wire CI to the quality gate | Now safe to add — the gate passes cleanly against the confirmed live file (§2). A GitHub Actions workflow running `node _qa/beelal-ui-ux-quality-gate.mjs` on PRs is a ~10-minute add whenever wanted. | Nothing blocking |
 | 6 | Firebase security rules review | `config.js`/`worker.js` reference read/write patterns but the actual `database.rules.json` (or console-configured rules) isn't in this repo, so I can't audit what's actually enforced server-side. | Export of current Firebase RTDB rules, or console access |
 
 ## 4. What I'd need supplied directly to this repo for full sandbox independence
@@ -75,9 +60,10 @@ live system" from the sandbox, without needing a local machine in the loop, I'd 
 2. **Firebase read access** — either a service-account JSON scoped to the
    `ash-2026-photobook` project (ideally read-only, ideally restricted to the `beelal_coffee`
    node) or, at minimum, the exported `database.rules.json` committed to this repo so rules
-   are reviewable/versioned like the rest of the code. Without this I can't confirm which
-   storefront file is actually writing real orders (§2), can't verify Firebase rules match
-   what `worker.js`/`config.js` assume, and can't test payment-flow writes once built.
+   are reviewable/versioned like the rest of the code. Without this I can't verify Firebase
+   rules match what `worker.js`/`config.js` assume, and can't test payment-flow writes once
+   built. (§2, the storefront-file question, is now resolved by owner confirmation rather
+   than needing this — but this access would have let me confirm it myself.)
 3. **The `fnb-billing-ledger` Worker's source** (as a repo, or vendored into this one, or at
    least its API contract documented) — I can't safely redesign the billing-secret handling
    (§3.1) while treating that Worker as a black box; I could break billing for the store.
@@ -90,22 +76,20 @@ live system" from the sandbox, without needing a local machine in the loop, I'd 
 6. **A CI workflow secret set** (GitHub Actions repo secrets mirroring #1) if/when the quality
    gate gets wired into CI (§3.5) and later a `wrangler deploy` step is added — otherwise CI
    can only ever run the static gate, never verify an actual deploy.
-7. **Explicit answer to §2** — not a credential, just a decision, but it blocks nearly
-   everything else (§3.3, §3.4, and safely deleting the non-live file).
-
 None of the above lets me bypass asking before destructive/production actions (secret
-rotation, deleting the non-live storefront file, etc.) — I'd still confirm those — but it
-would let me *verify* my work against the real system instead of reasoning from source code
-alone, and get from "plausible" to "tested" without a round-trip through a local machine.
+rotation, etc.) — I'd still confirm those — but it would let me *verify* my work against the
+real system instead of reasoning from source code alone, and get from "plausible" to "tested"
+without a round-trip through a local machine.
 
 ---
 
 ## Preserved: Payment Feature Plan (originally written 2026-06-10, still not implemented)
 
-This plan pre-dates the standalone-repo split and pre-dates the `index-legacy.html` vs
-`index-v2.html` ambiguity in §2 — **re-confirm which file to build this in before starting**.
-Local-machine paths below (`C:\00_ARH\...`) are from the original authoring machine and don't
-apply to this sandboxed repo; treat everything else as still-valid design.
+This plan pre-dates the standalone-repo split. It originally targeted `index-legacy.html`,
+which has since been confirmed dead and deleted (§2) — **build this in `index-v2.html`
+instead**, now confirmed live. Local-machine paths below (`C:\00_ARH\...`) are from the
+original authoring machine and don't apply to this sandboxed repo; treat everything else as
+still-valid design.
 
 ### Firebase
 - URL: `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`
@@ -189,7 +173,7 @@ payment: {
 
 ---
 
-### Step 3 — Storefront file (confirm which one per §2): Customer payment flow
+### Step 3 — `index-v2.html`: Customer payment flow
 
 #### 3a. After "Send Order" button, insert a payment method picker step
 
