@@ -1,7 +1,8 @@
 {
-  // "name" is the shared Cloudflare Workers project — do not change per store.
-  // All stores share this project; each gets its own preview URL via branch builds.
-  "name": "fnb-pwa",
+  // Standalone Cloudflare Workers project for Beelal Coffee.
+  // Deployed at: https://store-beelal-fnb-pwa.arh-homelab.workers.dev
+  // Repo: https://github.com/arhsmoque2/ARH-FNB-Beelal-Coffee
+  "name": "beelal-coffee",
   "compatibility_date": "2026-04-14",
   "observability": {
     "enabled": true

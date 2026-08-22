@@ -1,6 +1,9 @@
-# AGENTS.md — Beelal Coffee (`store/beelal`)
+# AGENTS.md — Beelal Coffee Standalone Storefront
 
-Context file for AI agents. Read this before making any changes to this branch.
+Context file for AI agents. Read this before making any changes to this repo.
+
+> **Standalone Repo** — `ARH-FNB-Beelal-Coffee` on `arhsmoque2`. Forked from
+> `ARH-FNB-Webapp:store/beelal` on 2026-08-22. Not governed by the shared fleet sync.
 
 ---
 
@@ -23,9 +26,10 @@ Context file for AI agents. Read this before making any changes to this branch.
 
 | Field | Value |
 |---|---|
-| Branch | `store/beelal` |
+| Repo | `https://github.com/arhsmoque2/ARH-FNB-Beelal-Coffee` |
+| Branch | `main` (was `store/beelal` in `ARH-FNB-Webapp`) |
 | Live URL | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
-| CF project | `fnb-pwa` |
+| CF project | `beelal-coffee` (standalone, previously `fnb-pwa`) |
 | Firebase root | `beelal_coffee` |
 | Firebase URL | `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app` |
 
