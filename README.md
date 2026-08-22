@@ -16,17 +16,12 @@ package manager, no CI.
 | Live URL | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
 | Deploy trigger | Push to `main` — Cloudflare Workers builds automatically (Workers Assets, see `wrangler.jsonc`) |
 
-## ⚠️ Unresolved: which storefront is actually live
+## Live Storefront
 
-`index.html` redirects to **`index-v2.html`**. But `journal.md` (2026-06-10 session notes)
-states the *real* order-writing app with real customer order history is
-**`index-legacy.html`**, and that `index-v2.html` was a WhatsApp-only preview at the time.
-
-Running `_qa/beelal-ui-ux-quality-gate.mjs` today shows `index-v2.html` has the modern
-cart-stepper/UEQ feature set that `index-legacy.html` lacks — so the two files have likely
-diverged since that note was written, but which one Cloudflare is actually serving as the
-customer-facing menu has not been confirmed in this repo. **Do not edit either file assuming
-it's "the live one" without confirming first** — see `handoff.md` for how to check.
+`index.html` redirects to **`index-v2.html`**, which is the confirmed live, customer-facing
+storefront (confirmed 2026-08-22). An older parallel build, `index-legacy.html`, has been
+removed from the repo — `journal.md` predates that confirmation and still refers to it as the
+live app; treat this README and `AGENTS.md` as current over that older note.
 
 ## Files
 
@@ -34,8 +29,7 @@ it's "the live one" without confirming first** — see `handoff.md` for how to c
 |---|---|
 | `config.js` | The only file store owners edit — all business/branding settings (menu, theme, contact, Firebase namespace) |
 | `index.html` | Redirect shim → `index-v2.html` |
-| `index-v2.html` | Storefront candidate — has the current cart-stepper/UEQ feature set |
-| `index-legacy.html` | Storefront candidate — older build; per `journal.md`, previously the order-writing app in production |
+| `index-v2.html` | **Live storefront** — customer-facing menu, cart, checkout |
 | `admin.html` | Owner/developer admin panel |
 | `dev-console.html` | Developer diagnostics console |
 | `observatory.html` | Client-side error log viewer |
@@ -81,8 +75,7 @@ this store. See the inline comments in the file itself — every field is docume
 node _qa/beelal-ui-ux-quality-gate.mjs
 ```
 
-Checks (against both `index-legacy.html` and `index-v2.html`, plus `index.html`/`admin.html`
-for syntax balance):
+Checks (against `index-v2.html`, plus `index.html`/`admin.html` for syntax balance):
 1. `<script>`/`<style>` tag balance across all HTML entrypoints
 2. Mobile viewport, floating-cart positioning, touch-target CSS
 3. Basic a11y (Escape handlers, aria-labels, accessible form inputs, reduced-motion)
