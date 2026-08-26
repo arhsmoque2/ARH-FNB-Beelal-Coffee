@@ -33,7 +33,7 @@ Context file for AI agents. Read this before making any changes to this repo.
 | R2 Bucket | `arh-fnb-beelal-media` (`MEDIA_BUCKET` binding) |
 | Firebase root | `beelal_coffee` |
 | Firebase URL | `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app` |
-| ADR | [`adr/ADR-001-standalone-repo-cutover-and-live-healthcheck.md`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-001-standalone-repo-cutover-and-live-healthcheck.md) |
+| ADR | [`adr/ADR-001`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-001-standalone-repo-cutover-and-live-healthcheck.md), [`adr/ADR-002`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-002-modern-ui-architecture-and-agent-preview-studio.md) |
 
 ---
 
@@ -75,6 +75,7 @@ Or run individual sub-gates:
 * **High-Speed Linting (Oxlint)**: `npm run lint` (or `npx oxlint`)
 * **Mobile & UX Invariants (ARH DevKit)**: `npm run check:ui` (or `node _qa/beelal-ui-ux-quality-gate.mjs`)
 * **Infrastructure Doctor (Cloudflare, D1 & RTDB)**: `npm run check:infra` (or `node _qa/infra-doctor.mjs`)
+* **Ephemeral Preview Studio Generator**: `npm run preview:generate` (or `node _qa/preview-generator.mjs`)
 
 ### 2. Post-Deploy Live Healthcheck (Live Web & Firebase RTDB)
 Probes all deployed endpoints (`/`, `/index-v2.html`, `/admin.html`, `/config.js`, `/observatory.html`, `/guide.html`, `/dev-console.html`) and validates direct Firebase RTDB connectivity:
