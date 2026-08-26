@@ -66,17 +66,21 @@ and has been deleted from the repo — do not recreate it or resurrect its logic
 
 Always run these commands to verify code changes before committing and after deploying:
 
-### 1. Pre-Commit / Pre-Deploy Quality Gate (Static & UX)
-Runs the ARH Web DevKit audit: syntax, mobile touch targets (44px min), HTML5 a11y, and UEQ 6-dimension UX invariants:
+### 1. Unified Pre-Deploy Suite (Oxlint + UI/UX Gate + Infrastructure Doctor)
 ```powershell
-node _qa/beelal-ui-ux-quality-gate.mjs
+npm run check
 ```
+
+Or run individual sub-gates:
+* **High-Speed Linting (Oxlint)**: `npm run lint` (or `npx oxlint`)
+* **Mobile & UX Invariants (ARH DevKit)**: `npm run check:ui` (or `node _qa/beelal-ui-ux-quality-gate.mjs`)
+* **Infrastructure Doctor (Cloudflare, D1 & RTDB)**: `npm run check:infra` (or `node _qa/infra-doctor.mjs`)
 
 ### 2. Post-Deploy Live Healthcheck (Live Web & Firebase RTDB)
 Probes all deployed endpoints (`/`, `/index-v2.html`, `/admin.html`, `/config.js`, `/observatory.html`, `/guide.html`, `/dev-console.html`) and validates direct Firebase RTDB connectivity:
 ```powershell
 # Run against default live site
-node _qa/beelal-live-healthcheck.mjs
+npm run check:live
 
 # Or pass a custom preview URL
 node _qa/beelal-live-healthcheck.mjs "https://store-beelal-fnb-pwa.arh-homelab.workers.dev"

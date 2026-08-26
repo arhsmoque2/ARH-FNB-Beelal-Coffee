@@ -19,8 +19,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run ARH UI/UX Quality Gate
-        run: node _qa/beelal-ui-ux-quality-gate.mjs
+      - name: Run Full Quality Gate Suite (Oxlint, UI/UX, Infra Doctor)
+        run: npm run check
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
@@ -28,3 +28,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+
+      - name: Post-Deploy Live Healthcheck
+        run: npm run check:live
