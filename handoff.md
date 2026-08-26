@@ -48,15 +48,14 @@ whole migration" or "just confirm and document what's already in place."
 2. **Re-provision secrets on the new project** — secrets live per-Worker in Cloudflare, they
    do not travel with git history:
    - `UPLOAD_SECRET` (gates `worker.js` upload routes)
-   - `billing.secret`'s replacement, once relocated server-side (still open — see §3.1 below)
-   - `GEMINI_API_KEY`, once payment-flow work starts (see §3.4 below)
+   - `BILLING_SECRET` — provisioned on the new Worker and encrypted in the ARH SOPS vault
+   - `GEMINI_API_KEY` remains intentionally unused; the parser endpoint is disabled by policy
    - Reusing the old project's exact secret values is fine for continuity, but rotating
      during the move is the better call — `billing.secret` is already known to have leaked
      once (git history has a "rotate billing secret" commit from the old repo).
 3. **Re-provision bindings** — also per-project, not per-repo:
-   - `MEDIA_BUCKET` R2 binding — currently missing even from this repo's `wrangler.jsonc`
-     (see §3.2 below); needs adding *and* the bucket itself needs to exist/be reachable from
-     the new project.
+   - `MEDIA_BUCKET` R2 binding — it now points at `arh-fnb-beelal-media`, which has been created
+     and verified for the new project.
    - Diff the old project's full dashboard config (bindings, KV/D1/anything else) against
      this repo's `wrangler.jsonc` side by side — don't assume `worker.js`'s comments list
      every dependency; confirm against what's actually configured on the old project.
@@ -128,43 +127,34 @@ either a decision only the owner can make, or credentials/access this session do
 
 | # | Item | Why I didn't do it | Who/what's needed |
 |---|---|---|---|
-| 1 | Rotate & relocate `config.js` → `billing.secret` | It's a live shared secret (`fnb-billing-ledger` worker auth). I can restructure the client code, but rotating the actual secret and updating the billing Worker's expected value requires CF account access I don't have. Also don't know the billing Worker's source/contract (it's not in this repo) so I can't safely design the server-side proxy without guessing its API. | CF dashboard/`wrangler` access to `fnb-billing-ledger`; that Worker's source or API contract |
-| 2 | Wire up `MEDIA_BUCKET` R2 binding | `worker.js` expects it; `wrangler.jsonc` doesn't declare it. Adding a binding block is easy, but if the R2 bucket doesn't already exist in the CF account, a blind add breaks deploy instead of fixing anything. | Confirmation the `fnb-pwa-media` R2 bucket exists (or create it), then add the binding + redeploy to verify |
+| 1 | ~~Rotate & relocate `config.js` → `billing.secret`~~ | ✅ Done — server-side proxy uses `BILLING_SECRET`, which is provisioned on `beelal-coffee` and encrypted in SOPS. | — |
+| 2 | ~~Wire up `MEDIA_BUCKET` R2 binding~~ | ✅ Done — binding points at `arh-fnb-beelal-media`, which was created and verified. | — |
 | 3 | ~~Resolve live storefront file~~ | ✅ Done — see §2 | — |
-| 4 | Implement payment flow | Fully designed, not started (see `journal.md` §6 and the preserved plan below) — build it in `index-v2.html`, now confirmed live | `GEMINI_API_KEY` secret |
+| 4 | Implement payment flow | ✅ Local implementation complete: owner-confirmed receipt lifecycle, Tesseract transcription aid, and 30-day receipt cleanup. | Live smoke test after deployment |
 | 5 | Wire CI to the quality gate | Now safe to add — the gate passes cleanly against the confirmed live file (§2). A GitHub Actions workflow running `node _qa/beelal-ui-ux-quality-gate.mjs` on PRs is a ~10-minute add whenever wanted. | Nothing blocking |
 | 6 | Firebase security rules review | `config.js`/`worker.js` reference read/write patterns but the actual `database.rules.json` (or console-configured rules) isn't in this repo, so I can't audit what's actually enforced server-side. | Export of current Firebase RTDB rules, or console access |
 
 ## 4. What I'd need supplied directly to this repo for full sandbox independence
 
-Right now, everything I did this session was source-only (static analysis + text edits) — I
-have **no way to verify anything against the real deployed system**: no CF account, no
-Firebase access, no way to run `wrangler deploy` or `wrangler tail`, no way to see the billing
-Worker's source. To go from "plausible fix based on reading code" to "verified against the
-live system" from the sandbox, without needing a local machine in the loop, I'd need:
+The Cloudflare account and new Worker/R2 provisioning are now verified from this session.
+Firebase rules and the billing Worker remain separately governed systems. To complete live
+system proof, the remaining checks are:
 
-1. **A scoped Cloudflare API token** (env var/secret, e.g. `CLOUDFLARE_API_TOKEN` +
-   `CLOUDFLARE_ACCOUNT_ID`) with permissions limited to the `beelal-coffee` Worker + its R2/KV
-   bindings — so I can run `wrangler deploy --dry-run`, `wrangler r2 bucket list`,
-   `wrangler tail`, and actually confirm bindings/deploys instead of reading `wrangler.jsonc`
-   and hoping.
-2. **Firebase read access** — either a service-account JSON scoped to the
+1. **Firebase read access** — either a service-account JSON scoped to the
    `ash-2026-photobook` project (ideally read-only, ideally restricted to the `beelal_coffee`
    node) or, at minimum, the exported `database.rules.json` committed to this repo so rules
    are reviewable/versioned like the rest of the code. Without this I can't verify Firebase
    rules match what `worker.js`/`config.js` assume, and can't test payment-flow writes once
    built. (§2, the storefront-file question, is now resolved by owner confirmation rather
    than needing this — but this access would have let me confirm it myself.)
-3. **The `fnb-billing-ledger` Worker's source** (as a repo, or vendored into this one, or at
+2. **The `fnb-billing-ledger` Worker's source** (as a repo, or vendored into this one, or at
    least its API contract documented) — I can't safely redesign the billing-secret handling
    (§3.1) while treating that Worker as a black box; I could break billing for the store.
-4. **A `GEMINI_API_KEY`** (Cloudflare Worker secret, or supplied to this session as an env var
-   for local testing before pushing) once payment-flow work (§3.4) actually starts.
-5. **A committed `.dev.vars.example`** (referenced by `.gitignore` but doesn't exist) listing
-   every secret name a fresh clone needs (`UPLOAD_SECRET`, the billing secret once relocated,
-   `GEMINI_API_KEY` when added) with placeholder values — so secret requirements are
+3. **A committed `.dev.vars.example`** (referenced by `.gitignore` but doesn't exist) listing
+   every secret name a fresh clone needs (`UPLOAD_SECRET`, `BILLING_SECRET`, and the deliberately
+   disabled `GEMINI_API_KEY` future option) with placeholder values — so secret requirements are
    self-documenting instead of living in Worker comments and this handoff file.
-6. **A CI workflow secret set** (GitHub Actions repo secrets mirroring #1) if/when the quality
+4. **A CI workflow secret set** (GitHub Actions repo secrets) if/when the quality
    gate gets wired into CI (§3.5) and later a `wrangler deploy` step is added — otherwise CI
    can only ever run the static gate, never verify an actual deploy.
 None of the above lets me bypass asking before destructive/production actions (secret
@@ -174,7 +164,12 @@ without a round-trip through a local machine.
 
 ---
 
-## Preserved: Payment Feature Plan (originally written 2026-06-10, still not implemented)
+## Preserved: Payment Feature Plan (historical reference)
+
+The owner-confirmed receipt lifecycle is now implemented in `index-v2.html`, `admin.html`,
+and `worker.js`. The historical Gemini-based plan below is superseded: Gemini remains
+deliberately disabled, Tesseract.js is local transcription assistance, and owner bank review
+is the only payment authority.
 
 This plan pre-dates the standalone-repo split. It originally targeted `index-legacy.html`,
 which has since been confirmed dead and deleted (§2) — **build this in `index-v2.html`

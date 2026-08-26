@@ -2,12 +2,23 @@
   // Standalone Cloudflare Workers project for Beelal Coffee.
   // Deployed at: https://store-beelal-fnb-pwa.arh-homelab.workers.dev
   // Repo: https://github.com/arhsmoque2/ARH-FNB-Beelal-Coffee
-  "name": "beelal-coffee",
+  "name": "store-beelal-fnb-pwa",
   "compatibility_date": "2026-04-14",
+  "main": "worker.js",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "run_worker_first": ["/api/*", "/media/*"]
+  },
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "arh-fnb-beelal-media"
+    }
+  ],
+  "triggers": {
+    "crons": ["17 16 * * *"]
   }
 }

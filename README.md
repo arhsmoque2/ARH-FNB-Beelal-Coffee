@@ -58,11 +58,13 @@ live app; treat this README and `AGENTS.md` as current over that older note.
   does not change what live customers see.
 
 ### Billing
-- `config.js` → `billing.workerUrl` points at `fnb-billing-ledger.arh-homelab.workers.dev`.
-- ⚠️ `billing.secret` in `config.js` is currently a plaintext shared secret shipped in the
-  public client bundle. This needs to move server-side (checked inside a Worker via
-  `wrangler secret put`, the same pattern `worker.js` already uses for `UPLOAD_SECRET`) and
-  be rotated. See `handoff.md`.
+- `config.js` keeps only the public billing ledger URL.
+- Billing authorization is server-side through `POST /api/record-order`.
+- Provision `BILLING_SECRET` on the Beelal Worker before enabling ledger writes.
+
+### Receipt review policy
+
+Customer receipt photos are bound to the order, OCR is performed locally with Tesseract.js as a transcription aid, and the owner sees both the original photo and OCR text. The owner may correct the sales-record fields and must verify the bank notification before tapping `Payment received`; only that owner action releases the order to the kitchen. Receipt photos are stored privately for a maximum of 30 days and then removed by the Worker cleanup job. The Gemini receipt parser endpoint remains deliberately disabled (`ENABLE_GEMINI_RECEIPT_PARSER = false`) as a quarantined future option; it is not part of payment approval.
 
 ## config.js Schema
 
