@@ -1837,33 +1837,6 @@
     }
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
-    }
-    .search-suggestions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-      align-items: center;
-    }
-    .suggestion-chip {
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.7);
-      border: 1px solid var(--line);
-      font-size: 11.5px;
-      font-weight: 750;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s ease;
-      user-select: none;
-    }
-    .suggestion-chip:hover {
-      background: #fff;
-      color: var(--brand);
-      border-color: var(--brand);
-      transform: translateY(-1px);
-    }
     .redline-badge {
       position: fixed;
       bottom: 20px;
@@ -1957,12 +1930,6 @@
             <input id="searchInput" type="search" placeholder="Search menu items..." autocomplete="off">
           </label>
           <button class="ghost-btn toggle-btn" id="availableToggle" type="button">Available only</button>
-        </div>
-        <div class="search-suggestions" id="searchSuggestions">
-          <span class="suggestion-chip" onclick="applySearchQuery('Latte')">☕ Spanish Latte</span>
-          <span class="suggestion-chip" onclick="applySearchQuery('Americano')">Americano</span>
-          <span class="suggestion-chip" onclick="applySearchQuery('Pasta')">🍝 Pasta</span>
-          <span class="suggestion-chip" onclick="applySearchQuery('Toastie')">🥪 Toastie</span>
         </div>
         <div class="category-strip" id="categoryStrip"></div>
       </div>
