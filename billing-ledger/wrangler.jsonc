@@ -1,0 +1,19 @@
+{
+  "name": "fnb-billing-ledger",
+  "main": "src/index.js",
+  "compatibility_date": "2026-04-14",
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fnb-billing-ledger-db",
+      "database_id": "b42e77ca-478c-4834-94c5-7e3c4da5e03e"
+    }
+  ],
+  "vars": {
+    "CURRENCY_DEFAULT": "RM",
+    "FEE_PER_ORDER_CENTS": "50"
+  }
+}
