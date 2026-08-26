@@ -4,3 +4,6 @@
 !.dev.vars.example
 .env*
 !.env.example
+# ephemeral mockup previews
+preview.html
+mockup-preview.html
