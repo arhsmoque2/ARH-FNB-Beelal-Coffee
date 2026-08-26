@@ -476,6 +476,23 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <button class="btn btn-primary" onclick="saveSizeLegend()">Save Size Legend</button>
     </div>
     <div class="a-card">
+      <div class="a-card-title">Payment Settings</div>
+      <div class="sec-sub" style="margin-bottom:12px">Shown to customers who choose "Pay by QR" at checkout. Upload your real bank/e-wallet QR — customers scan it and mark "I've Paid"; confirm or reject the payment from the Orders tab.</div>
+      <div class="form-row">
+        <label class="form-label">Payment QR (optional — JPG/PNG)</label>
+        <div class="photo-upload-area">
+          <img id="pQrPreview" class="photo-preview" style="display:none">
+          <input type="hidden" id="pQrImage">
+          <label class="photo-upload-btn">📷 Upload QR<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handleQrImageUpload(this)"></label>
+          <div id="pQrStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="form-row"><label class="form-label">Bank Name</label><input class="form-input" id="pBankName" placeholder="e.g. Maybank"></div>
+      <div class="form-row"><label class="form-label">Account Name</label><input class="form-input" id="pAccountName" placeholder="e.g. Beelal Coffee"></div>
+      <div class="form-row"><label class="form-label">Account Number</label><input class="form-input" id="pAccountNumber" placeholder="e.g. 1234567890"></div>
+      <button class="btn btn-primary" onclick="savePaymentSettings()">Save Payment Settings</button>
+    </div>
+    <div class="a-card">
       <div class="a-card-title">Booking Calendar & Pricing Settings</div>
       <div class="sec-sub" style="margin-bottom:12px">Configure holidays, high-demand dates, and manual date blocks.</div>
       <div class="form-row">
@@ -1374,6 +1391,7 @@ function logout() {
 // ════════════════════════════════════════════════════════════
 async function loadAll() {
   await loadStoreTab();
+  await loadPaymentSettings();
   await loadStoreInfo();
   await loadHighlights();
   await loadMenuData();
@@ -1468,6 +1486,60 @@ async function saveStore() {
     storeData = d;
     toast('Store info saved ✓');
   }, 'saveStore');
+}
+
+// ════════════════════════════════════════════════════════════
+// PAYMENT SETTINGS
+// ════════════════════════════════════════════════════════════
+let paymentSettingsData = {};
+
+async function loadPaymentSettings() {
+  await safe(async () => {
+    const p = await fbGet('config/payment_settings');
+    paymentSettingsData = p || {};
+    document.getElementById('pBankName').value = paymentSettingsData.bank_name || APP_CONFIG.payment?.bank_name || '';
+    document.getElementById('pAccountName').value = paymentSettingsData.account_name || APP_CONFIG.payment?.account_name || '';
+    document.getElementById('pAccountNumber').value = paymentSettingsData.account_number || APP_CONFIG.payment?.account_number || '';
+    const qrUrl = paymentSettingsData.qr_image_url || '';
+    document.getElementById('pQrImage').value = qrUrl;
+    const preview = document.getElementById('pQrPreview');
+    if (qrUrl) { preview.src = qrUrl; preview.style.display = 'block'; } else { preview.style.display = 'none'; }
+  }, 'loadPaymentSettings');
+}
+
+async function handleQrImageUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!['image/jpeg','image/png'].includes(file.type)) {
+    toast('JPG or PNG only'); input.value = ''; return;
+  }
+  const statusEl = document.getElementById('pQrStatus');
+  statusEl.textContent = 'Processing…';
+  try {
+    const dataUrl = await resizeImageToDataURL(file, 800, 0.85);
+    document.getElementById('pQrImage').value = dataUrl;
+    const preview = document.getElementById('pQrPreview');
+    preview.src = dataUrl; preview.style.display = 'block';
+    statusEl.textContent = 'QR ready — tap Save Payment Settings to apply ✓';
+  } catch (e) {
+    statusEl.textContent = 'Failed to process image';
+  } finally {
+    input.value = '';
+  }
+}
+
+async function savePaymentSettings() {
+  await safe(async () => {
+    const d = {
+      bank_name:      document.getElementById('pBankName').value.trim(),
+      account_name:   document.getElementById('pAccountName').value.trim(),
+      account_number: document.getElementById('pAccountNumber').value.trim(),
+      qr_image_url:   document.getElementById('pQrImage').value.trim(),
+    };
+    await fbSet('config/payment_settings', d);
+    paymentSettingsData = d;
+    toast('Payment settings saved ✓');
+  }, 'savePaymentSettings');
 }
 
 async function saveBookingSettings() {
@@ -2173,12 +2245,19 @@ function collectAddons() {
 // ════════════════════════════════════════════════════════════
 // ORDERS TAB
 // ════════════════════════════════════════════════════════════
+const PAYMENT_STATUS_BADGE = {
+  cash_pending:           { label: 'Cash · Pending',    bg: '#fef3c7', fg: '#92400e' },
+  awaiting_confirmation:  { label: 'QR · Awaiting',      bg: '#ffedd5', fg: '#9a3412' },
+  confirmed:              { label: 'Confirmed',          bg: '#dcfce7', fg: '#166534' },
+  rejected:               { label: 'Rejected',           bg: '#fee2e2', fg: '#991b1b' },
+};
+
 async function loadOrders() {
   await safe(async () => {
     const snap = await fbGet('orders');
     const el = document.getElementById('ordersList');
     if (!snap) { el.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:20px 0">No orders yet.</div>'; return; }
-    const orders = Object.values(snap).sort((a,b)=>b.ts-a.ts);
+    const orders = Object.entries(snap).map(([id, o]) => ({ id, ...o })).sort((a,b)=>b.ts-a.ts);
     el.innerHTML = '';
     orders.forEach(o => {
       const d = new Date(o.ts);
@@ -2186,14 +2265,47 @@ async function loadOrders() {
       const r = document.createElement('div');
       r.className = 'order-row';
       const itemsStr = (o.items||[]).map(i=>`${i.name}${i.size?' ('+i.size+')':''} — ${CUR}${Number(i.price).toFixed(2)}`).join('<br>');
+      const badge = PAYMENT_STATUS_BADGE[o.payment_status];
+      const badgeHtml = badge
+        ? `<span style="display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:${badge.bg};color:${badge.fg};margin-left:6px">${badge.label}</span>`
+        : '';
+      const actionsHtml = o.payment_status === 'awaiting_confirmation'
+        ? `<div style="display:flex;gap:8px;margin-top:8px">
+             <button class="btn btn-primary btn-sm" onclick="confirmOrderPayment('${o.id}')">✅ Confirm</button>
+             <button class="btn btn-danger btn-sm" onclick="rejectOrderPayment('${o.id}')">❌ Reject</button>
+           </div>`
+        : '';
+      const refHtml = o.payment_ref
+        ? `<div style="margin-top:4px;font-size:11px;color:var(--text3)">Ref: ${escapeHtml(o.payment_ref)}</div>`
+        : '';
       r.innerHTML = `
-        <div class="order-top"><span class="order-name">👤 ${o.name}</span><span class="order-total">${CUR} ${Number(o.total).toFixed(2)}</span></div>
+        <div class="order-top"><span class="order-name">👤 ${escapeHtml(o.name)}${badgeHtml}</span><span class="order-total">${CUR} ${Number(o.total).toFixed(2)}</span></div>
         <div class="order-time">${t}</div>
         <div class="order-items">${itemsStr}</div>
-        ${o.note?`<div style="margin-top:4px;font-size:11px;color:var(--text3);font-style:italic">📝 ${o.note}</div>`:''}`;
+        ${refHtml}
+        ${o.note?`<div style="margin-top:4px;font-size:11px;color:var(--text3);font-style:italic">📝 ${escapeHtml(o.note)}</div>`:''}
+        ${actionsHtml}`;
       el.appendChild(r);
     });
   }, 'loadOrders');
+}
+
+async function confirmOrderPayment(orderId) {
+  await safe(async () => {
+    await fbSet(`orders/${orderId}/payment_status`, 'confirmed');
+    toast('Payment confirmed ✓');
+    await loadOrders();
+  }, 'confirmOrderPayment');
+}
+
+async function rejectOrderPayment(orderId) {
+  const reason = prompt('Reason for rejecting this payment (shown to no one automatically — for your records):') || '';
+  await safe(async () => {
+    await fbSet(`orders/${orderId}/payment_status`, 'rejected');
+    if (reason.trim()) await fbSet(`orders/${orderId}/payment_reject_reason`, reason.trim());
+    toast('Payment rejected');
+    await loadOrders();
+  }, 'rejectOrderPayment');
 }
 
 async function loadSalesDashboard() {

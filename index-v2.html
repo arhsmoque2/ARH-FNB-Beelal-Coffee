@@ -1041,6 +1041,46 @@
       box-shadow: 0 14px 30px rgba(15, 143, 74, .22);
     }
     .send-btn:disabled { opacity: .48; cursor: not-allowed; }
+    .pay-method-picker { display: grid; gap: 10px; margin-top: 14px; }
+    .pay-method-card {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; text-align: left;
+      border: 1px solid rgba(91,20,23,.14); border-radius: var(--radius);
+      background: #fff; padding: 14px 16px; min-height: 54px;
+      font-family: inherit; cursor: pointer;
+    }
+    .pay-method-card:disabled { opacity: .48; cursor: not-allowed; }
+    .pay-method-emoji { font-size: 22px; line-height: 1; }
+    .pay-method-copy { display: flex; flex-direction: column; gap: 2px; }
+    .pay-method-copy strong { color: var(--ink); font-size: 14px; font-weight: 900; }
+    .pay-method-copy small { color: var(--muted); font-size: 12px; font-weight: 700; }
+    #payQrBtn { border-color: var(--brand); background: rgba(15,143,74,.06); }
+    .qr-amount-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 4px; font-weight: 900; color: var(--ink);
+    }
+    .qr-amount-row strong { font-size: 22px; color: var(--brand); }
+    .qr-box {
+      margin: 14px 0; padding: 16px; border-radius: var(--radius);
+      background: #fff; border: 1px solid rgba(91,20,23,.14);
+      display: flex; align-items: center; justify-content: center; min-height: 180px;
+    }
+    .qr-box img { max-width: 100%; max-height: 260px; border-radius: 6px; }
+    .qr-box-empty { text-align: center; color: var(--muted); font-weight: 700; font-size: 13px; }
+    .qr-box-empty-link { display: inline-block; margin-top: 10px; color: var(--brand); font-weight: 900; text-decoration: none; }
+    .qr-ref-row { font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .qr-hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 4px; }
+    .btn-cash-instead {
+      width: 100%; min-height: 44px; margin-top: 10px; border: 0; background: none;
+      color: var(--muted); font-weight: 800; font-size: 13px; cursor: pointer;
+    }
+    .qr-await-icon { text-align: center; font-size: 40px; margin-top: 6px; }
+    .qr-await-title { text-align: center; font-size: 18px; font-weight: 950; color: var(--ink); margin-top: 8px; }
+    .qr-await-text { text-align: center; font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 8px; line-height: 1.5; }
+    .qr-await-summary {
+      margin-top: 14px; padding: 12px 14px; border-radius: var(--radius);
+      background: rgba(91,20,23,.05); text-align: center; font-weight: 800; font-size: 13px; color: var(--ink);
+    }
     .debug-panel {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
       background: rgba(10,10,10,.93); color: #e8e8e8;
@@ -1895,7 +1935,48 @@
         </label>
         <div class="consent-error" id="consentError"></div>
       </div>
-      <button class="send-btn" id="sendBtn" type="button" onclick="sendOrder()">Send WhatsApp order</button>
+      <div class="pay-method-picker" id="payMethodPicker">
+        <button class="pay-method-card" id="payCashBtn" type="button" onclick="sendOrder()">
+          <span class="pay-method-emoji">💵</span>
+          <span class="pay-method-copy"><strong>Pay Cash</strong><small>On pickup or delivery</small></span>
+        </button>
+        <button class="pay-method-card" id="payQrBtn" type="button" onclick="openQrPay()">
+          <span class="pay-method-emoji">📱</span>
+          <span class="pay-method-copy"><strong>Pay by QR</strong><small>Scan with any banking app or e-wallet</small></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR PAY SHEET -->
+  <div class="sheet" id="qrPaySheet" onclick="handleQrPaySheetBackdrop(event)">
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="qrPayTitle">
+      <div class="sheet-head">
+        <h2 class="sheet-title" id="qrPayTitle">Pay by QR</h2>
+        <button class="icon-btn" type="button" onclick="closeQrPay()" aria-label="Close">&times;</button>
+      </div>
+
+      <div id="qrPayView">
+        <div class="qr-amount-row">
+          <span>Amount to pay</span>
+          <strong id="qrPayAmount">RM 0.00</strong>
+        </div>
+        <div class="qr-box" id="qrPayBox"></div>
+        <div class="qr-ref-row">
+          Order ref: <strong id="qrPayRefLabel">—</strong>
+        </div>
+        <div class="qr-hint">Scan the QR above with your banking app or e-wallet, pay the exact amount, then tap "I've Paid" below.</div>
+        <button class="send-btn" type="button" onclick="confirmQrPayment(this)">I've Paid</button>
+        <button class="btn-cash-instead" type="button" onclick="closeQrPay(); openCart();">&larr; Back to cart</button>
+      </div>
+
+      <div id="qrAwaitView" style="display:none">
+        <div class="qr-await-icon" id="qrAwaitIcon">⏳</div>
+        <div class="qr-await-title" id="qrAwaitTitle">Awaiting confirmation</div>
+        <div class="qr-await-text" id="qrAwaitText">Your payment has been submitted. The store owner will confirm it shortly — this screen updates automatically.</div>
+        <div class="qr-await-summary" id="qrAwaitSummary"></div>
+        <button class="btn-cash-instead" type="button" onclick="closeQrPay()">Close</button>
+      </div>
     </div>
   </div>
 
@@ -1988,12 +2069,20 @@
         storeInfo: APP_CONFIG.store.storeInfo || {},
         picksLabel: APP_CONFIG.store.picksLabel || {}
       },
-      theme: APP_CONFIG.defaultTheme || {}
+      theme: APP_CONFIG.defaultTheme || {},
+      payment: {
+        methods:        APP_CONFIG.payment?.methods || ['cash', 'qr'],
+        bank_name:      APP_CONFIG.payment?.bank_name || '',
+        account_name:   APP_CONFIG.payment?.account_name || '',
+        account_number: APP_CONFIG.payment?.account_number || '',
+        qr_image_url:   APP_CONFIG.payment?.qr_image_url || '',
+      }
     };
     const DEFAULT_MENU = APP_CONFIG.defaultMenu || { categories: [], items: [] };
     let activeTheme = DEFAULT_CONFIG.theme || {};
 
     let storeConfig = { ...DEFAULT_CONFIG.store };
+    let paymentConfig = { ...DEFAULT_CONFIG.payment };
     let menuData = { categories: [], items: [] };
     let cart = [];
     let activeCategory = "all";
@@ -2003,6 +2092,11 @@
     let itemSummaries = {};
     let storePicks      = {};
     let storeHighlights = null;
+
+    // ── QR Pay ───────────────────────────────────────────────────────────────
+    let qrPayOrderId = null;
+    let qrPayRef = '';
+    let qrPayPollInterval = null;
 
     // ── i18n ─────────────────────────────────────────────────────────────────
     const STRINGS = {
@@ -2238,7 +2332,7 @@
         if (_reg.entry.url) FB_URL = _reg.entry.url;
       }
       if (await checkMaintenance()) return;
-      const [cfgR, themeR, itemsR, catsR, sumR, picksR, hlR, infoR] = await Promise.all([
+      const [cfgR, themeR, itemsR, catsR, sumR, picksR, hlR, infoR, payR] = await Promise.all([
         fbGetSafe("config/store"),
         fbGetSafe("config/theme"),
         fbGetSafe("menu/items"),
@@ -2246,9 +2340,11 @@
         fbGetSafe("feedback/item_summaries"),
         fbGetSafe("config/store_picks"),
         fbGetSafe("config/highlights"),
-        fbGetSafe("config/store_info")
+        fbGetSafe("config/store_info"),
+        fbGetSafe("config/payment_settings")
       ]);
 
+      paymentConfig = { ...DEFAULT_CONFIG.payment, ...(payR.ok && payR.data ? payR.data : {}) };
       storeConfig = cfgR.data ? { ...DEFAULT_CONFIG.store, ...cfgR.data } : { ...DEFAULT_CONFIG.store };
       storeConfig.storeInfo = (infoR.ok && infoR.data)
         ? { ...DEFAULT_CONFIG.store.storeInfo, ...infoR.data }
@@ -3033,7 +3129,9 @@
       document.getElementById("floatingCartTotal").textContent = money(total);
       document.getElementById("cartTotal").textContent = money(total);
       document.getElementById("floatingCart").classList.toggle("visible", totalCount > 0);
-      document.getElementById("sendBtn").disabled = !totalCount || storeConfig.isOpen === false;
+      const payDisabled = !totalCount || storeConfig.isOpen === false;
+      document.getElementById("payCashBtn").disabled = payDisabled;
+      document.getElementById("payQrBtn").disabled = payDisabled;
       const banner = document.getElementById('reviewPromptBanner');
       if (banner) banner.style.bottom = totalCount > 0 ? '90px' : '20px';
     }
@@ -3427,6 +3525,8 @@
         })),
         total,
         note,
+        payment_method: 'cash',
+        payment_status: 'cash_pending',
         consent: {
           privacy_agreed: true,
           privacy_notice_version: '2026-06-11-community-order-v2',
@@ -3463,6 +3563,147 @@
       logOrder(orderId, orderPayload);
       recordBillingEvent(orderId, orderPayload);
       setTimeout(openFeedbackModal, 700);
+    }
+
+    // ── QR Pay ───────────────────────────────────────────────────────────────
+    function handleQrPaySheetBackdrop(event) {
+      if (event.target.id === "qrPaySheet") closeQrPay();
+    }
+
+    function openQrPay() {
+      if (!cart.length || storeConfig.isOpen === false) return;
+      if (!_hasConsented()) {
+        const agreed = document.getElementById('privacyAgree').checked;
+        const consentError = document.getElementById('consentError');
+        if (!agreed) {
+          consentError.textContent = 'Please tick the privacy agreement before sending.';
+          return;
+        }
+        _markConsented();
+        document.getElementById('consentGate').style.display = 'none';
+      }
+
+      const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
+      qrPayRef = 'BC-' + Date.now().toString(36).toUpperCase();
+
+      document.getElementById('qrPayAmount').textContent = money(total);
+      document.getElementById('qrPayRefLabel').textContent = qrPayRef;
+
+      const qrBox = document.getElementById('qrPayBox');
+      if (paymentConfig.qr_image_url) {
+        qrBox.innerHTML = `<img src="${esc(paymentConfig.qr_image_url)}" alt="${esc(storeConfig.name || APP_CONFIG.store.name)} payment QR">`;
+      } else {
+        const phone = storeConfig.phone || APP_CONFIG.store.phone;
+        const waText = encodeURIComponent(`Hi ${storeConfig.name || APP_CONFIG.store.name}, I'd like to pay for my order (Ref: ${qrPayRef}, Total: ${money(total)}). Please share your payment QR / bank details.`);
+        qrBox.innerHTML = `
+          <div class="qr-box-empty">
+            <div>QR not set up yet.</div>
+            <a class="qr-box-empty-link" href="https://wa.me/${phone}?text=${waText}" target="_blank" rel="noopener">Message us on WhatsApp to pay &rarr;</a>
+          </div>`;
+      }
+
+      document.getElementById('qrPayView').style.display = '';
+      document.getElementById('qrAwaitView').style.display = 'none';
+
+      closeCart();
+      const sheet = document.getElementById('qrPaySheet');
+      sheet.classList.add('open');
+      document.body.classList.add('sheet-open');
+    }
+
+    function closeQrPay() {
+      if (qrPayPollInterval) { clearInterval(qrPayPollInterval); qrPayPollInterval = null; }
+      document.getElementById('qrPaySheet').classList.remove('open');
+      document.body.classList.remove('sheet-open');
+    }
+
+    async function confirmQrPayment(btn) {
+      if (!cart.length) return;
+      if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+      const name = document.getElementById("custName").value.trim() || "Customer";
+      const note = document.getElementById("custNote").value.trim();
+      const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
+      const totalCount = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+      const orderId = 'ord_' + Date.now();
+
+      const orderPayload = {
+        name,
+        items: cart.map(i => ({
+          name: i.name,
+          size: i.option || 'Regular',
+          qty: i.qty || 1,
+          price: i.price,
+          unitPrice: i.unitPrice || i.price,
+          addons: i.addons || []
+        })),
+        total,
+        note,
+        payment_method: 'qr',
+        payment_status: 'awaiting_confirmation',
+        payment_ref: qrPayRef,
+        consent: {
+          privacy_agreed: true,
+          privacy_notice_version: '2026-06-11-community-order-v2',
+          signed: true,
+          consented_at: Date.now(),
+        },
+        ts: Date.now(),
+      };
+
+      try {
+        await fbPut('orders/' + orderId, orderPayload);
+      } catch {}
+
+      qrPayOrderId = orderId;
+      lastOrderContext = {
+        order_id: orderId,
+        order_ts: orderPayload.ts,
+        order_total: total,
+        item_count: totalCount,
+        customer_name: name,
+        items: [...new Map(cart.map(i => [i.id, { id: i.id, name: i.name }])).values()],
+        reviewed: false,
+      };
+      localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
+      recordBillingEvent(orderId, orderPayload);
+
+      cart = [];
+      updateCart();
+      renderCart();
+
+      if (btn) { btn.disabled = false; btn.textContent = "I've Paid"; }
+
+      document.getElementById('qrAwaitSummary').textContent = `${name} — ${money(total)} · Ref ${qrPayRef}`;
+      document.getElementById('qrPayView').style.display = 'none';
+      document.getElementById('qrAwaitView').style.display = '';
+
+      startQrPayStatusPoll(orderId);
+    }
+
+    function startQrPayStatusPoll(orderId) {
+      if (qrPayPollInterval) clearInterval(qrPayPollInterval);
+      const check = async () => {
+        try {
+          const order = await fbGet('orders/' + orderId);
+          const status = order?.payment_status;
+          if (status === 'confirmed') {
+            clearInterval(qrPayPollInterval); qrPayPollInterval = null;
+            document.getElementById('qrAwaitIcon').textContent = '✅';
+            document.getElementById('qrAwaitTitle').textContent = 'Order Confirmed!';
+            document.getElementById('qrAwaitText').textContent = "We've received your payment and your order is being prepared.";
+          } else if (status === 'rejected') {
+            clearInterval(qrPayPollInterval); qrPayPollInterval = null;
+            document.getElementById('qrAwaitIcon').textContent = '⚠️';
+            document.getElementById('qrAwaitTitle').textContent = 'Payment Not Verified';
+            document.getElementById('qrAwaitText').textContent = order?.payment_reject_reason
+              ? `We couldn't verify this payment: ${order.payment_reject_reason}. Please contact us.`
+              : "We couldn't verify this payment. Please contact us on WhatsApp.";
+          }
+        } catch {}
+      };
+      check();
+      qrPayPollInterval = setInterval(check, 10000);
     }
 
     async function recordBillingEvent(orderId, order) {
