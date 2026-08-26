@@ -205,32 +205,6 @@
       min-height: 52px;
       padding: 0 20px;
     }
-    .quick-row {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 9px;
-      margin-top: 36px;
-    }
-    .quick-card {
-      min-height: 92px;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 14px;
-      background: rgba(255, 255, 255, .74);
-      box-shadow: 0 8px 18px rgba(86, 18, 22, .05);
-    }
-    .quick-label {
-      color: var(--faint);
-      font-size: 11px;
-      font-weight: 900;
-      text-transform: uppercase;
-    }
-    .quick-value {
-      margin-top: 8px;
-      font-size: 20px;
-      font-weight: 950;
-      line-height: 1.05;
-    }
     .media-card {
       position: relative;
       min-height: 520px;
@@ -571,8 +545,8 @@
       cursor: pointer; transition: background .15s;
     }
     .photo-cart-btn:active { background: rgba(255,255,255,.25); }
-    .photo-cart-btn.add { background: var(--primary, #4f46e5); border-color: var(--primary, #4f46e5); }
-    .photo-cart-btn.add:active { background: #4338ca; }
+    .photo-cart-btn.add { background: var(--brand); border-color: var(--brand); }
+    .photo-cart-btn.add:active { background: color-mix(in srgb, var(--brand) 85%, black); }
     .photo-cart-qty-wrap { min-width: 40px; text-align: center; }
     .photo-cart-qty { font-size: 18px; font-weight: 800; color: #fff; }
     .photo-cart-qty.has-items { color: #f59e0b; }
@@ -1327,26 +1301,11 @@
     .ghost-btn,
     .chip,
     .category-btn,
-    .quick-card,
     .item-card,
     .side-panel {
       background: color-mix(in srgb, var(--paper) 84%, transparent);
       backdrop-filter: blur(18px);
     }
-
-    .quick-row { gap: 1px; }
-
-    .quick-card {
-      border-radius: 0;
-      box-shadow: none;
-      border-color: var(--line);
-    }
-
-    .quick-card:first-child { border-radius: var(--radius) 0 0 var(--radius); }
-    .quick-card:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
-
-    .quick-label { color: var(--faint); letter-spacing: .08em; }
-    .quick-value { font-family: var(--fd); color: var(--ink); }
 
     .media-card {
       min-height: min(650px, calc(100vh - 172px));
@@ -1413,21 +1372,6 @@
     .hero.hero-has-bg .media-title {
       width: min(320px, 100%);
       font-size: clamp(34px, 3.6vw, 52px);
-    }
-
-    .hero.hero-has-bg .quick-card {
-      background: rgba(255, 248, 237, .12);
-      border-color: rgba(255, 248, 237, .2);
-      color: #fff7ea;
-      backdrop-filter: blur(16px);
-    }
-
-    .hero.hero-has-bg .quick-label {
-      color: rgba(255, 248, 237, .62);
-    }
-
-    .hero.hero-has-bg .quick-value {
-      color: #fff7ea;
     }
 
     @keyframes heroKenburns {
@@ -1769,7 +1713,6 @@
       .main-grid { grid-template-columns: 1fr; }
       .side-panel { display: none; }
       .items-grid { grid-template-columns: 1fr; }
-      .quick-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .controls { top: 68px; }
     }
     @media (max-width: 640px) {
@@ -1793,11 +1736,6 @@
       h1 { font-size: clamp(44px, 17vw, 68px); }
       .hero.hero-has-bg h1 { max-width: 7ch; }
       .hero.hero-has-bg .lede { max-width: 92%; font-size: 16px; }
-      .quick-row { grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 26px; }
-      .quick-card:first-child { border-radius: var(--radius) 0 0 0; }
-      .quick-card:last-child { border-radius: 0 0 var(--radius) 0; }
-      .quick-card { min-height: 78px; padding: 12px; }
-      .quick-value { font-size: 17px; }
       .control-grid { grid-template-columns: 1fr; }
       .toggle-btn { width: max-content; }
       .section-head { align-items: flex-start; flex-direction: column; gap: 6px; }
@@ -1813,10 +1751,10 @@
       font-size: 12px;
       letter-spacing: 0.04em;
     }
-    /* ── MODERN UI ENHANCEMENTS (FWDTools Patterns) ── */
+    /* ── MODERN UI ENHANCEMENTS ── */
     .announcement-ribbon {
-      background: linear-gradient(90deg, #1e1b4b, #312e81, #1e1b4b);
-      color: #e0e7ff;
+      background: linear-gradient(90deg, var(--brand), var(--brand2), var(--brand));
+      color: var(--paper);
       padding: 8px 16px;
       font-size: 12px;
       font-weight: 700;
@@ -1825,18 +1763,20 @@
       justify-content: center;
       gap: 10px;
       text-align: center;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid var(--line);
     }
     .announcement-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
       animation: pulse-dot 2s infinite;
     }
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .55; transform: scale(1.35); }
+    }
     .redline-badge {
       position: fixed;
       bottom: 20px;
@@ -1894,7 +1834,6 @@
             <button class="ghost-btn" type="button" onclick="openCart()" id="reviewCartBtn">Review cart</button>
           </div>
         </div>
-        <div class="quick-row" id="quickStats"></div>
       </div>
 
       <div class="media-card" id="mediaCard" style="display:none">
@@ -2128,7 +2067,6 @@
     let addonsPending = null;
     let itemSummaries = {};
     let storePicks      = {};
-    let storeHighlights = null;
 
     // ── QR Pay ───────────────────────────────────────────────────────────────
     let qrPayOrderId = null;
@@ -2143,7 +2081,6 @@
         closedBannerText: 'Kedai sedang tutup',
         heroLede: 'Lihat menu terkini dan buat pesanan WhatsApp.',
         browseMenu: 'Lihat Menu', reviewCart: 'Semak Troli',
-        cats: 'Kategori', menuItems: 'Item Menu', avail: 'Tersedia', from: 'Dari',
         searchPlaceholder: 'Cari item menu...', availOnly: 'Yang tersedia',
         cartTitle: 'Troli Anda', total: 'Jumlah',
         namePlaceholder: 'Nama untuk pesanan WhatsApp',
@@ -2163,7 +2100,6 @@
         closedBannerText: 'Store is currently closed',
         heroLede: 'Browse the live menu and build a WhatsApp order.',
         browseMenu: 'Browse menu', reviewCart: 'Review cart',
-        cats: 'Categories', menuItems: 'Menu items', avail: 'Available', from: 'From',
         searchPlaceholder: 'Search menu items...', availOnly: 'Available only',
         cartTitle: 'Your cart', total: 'Total',
         namePlaceholder: 'Name for WhatsApp order',
@@ -2369,14 +2305,13 @@
         if (_reg.entry.url) FB_URL = _reg.entry.url;
       }
       if (await checkMaintenance()) return;
-      const [cfgR, themeR, itemsR, catsR, sumR, picksR, hlR, infoR, payR] = await Promise.all([
+      const [cfgR, themeR, itemsR, catsR, sumR, picksR, infoR, payR] = await Promise.all([
         fbGetSafe("config/store"),
         fbGetSafe("config/theme"),
         fbGetSafe("menu/items"),
         fbGetSafe("menu/categories"),
         fbGetSafe("feedback/item_summaries"),
         fbGetSafe("config/store_picks"),
-        fbGetSafe("config/highlights"),
         fbGetSafe("config/store_info"),
         fbGetSafe("config/payment_settings")
       ]);
@@ -2388,7 +2323,6 @@
         : DEFAULT_CONFIG.store.storeInfo;
       itemSummaries = sumR && sumR.data ? sumR.data : {};
       storePicks      = picksR?.data ?? {};
-      storeHighlights = Array.isArray(hlR?.data) && hlR.data.length === 4 ? hlR.data : null;
       applyTheme(themeR.data || DEFAULT_CONFIG.theme);
       if (_hasConsented()) { const g = document.getElementById('consentGate'); if (g) g.style.display = 'none'; }
       showDebugOverlay([
@@ -2505,26 +2439,6 @@
       } else {
         media?.classList.add("generated-hero");
       }
-
-      const available = menuData.items.filter(i => i.avail !== false).length;
-      const minPrice = Math.min(...menuData.items.flatMap(item => itemOptions(item).map(o => o.price)).filter(Number.isFinite));
-      const quickCards = storeHighlights
-        ? storeHighlights.map(h => `
-            <div class="quick-card">
-              <div class="quick-label">${esc(h.emoji || '')} ${esc(h.label || '')}</div>
-              <div class="quick-value">${esc(h.value || '')}</div>
-            </div>`)
-        : [
-            [t('cats'), menuData.categories.length],
-            [t('menuItems'), menuData.items.length],
-            [t('avail'), available],
-            [t('from'), Number.isFinite(minPrice) ? money(minPrice) : "-"]
-          ].map(([label, value]) => `
-            <div class="quick-card">
-              <div class="quick-label">${esc(label)}</div>
-              <div class="quick-value">${esc(value)}</div>
-            </div>`);
-      document.getElementById("quickStats").innerHTML = quickCards.join("");
 
       const picks = menuData.items.filter(i => i.avail !== false).slice(0, 4);
       document.getElementById("featureList").innerHTML = picks.map(item => {

@@ -493,19 +493,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <button class="btn btn-primary" onclick="savePaymentSettings()">Save Payment Settings</button>
     </div>
     <div class="a-card">
-      <div class="a-card-title">Booking Calendar & Pricing Settings</div>
-      <div class="sec-sub" style="margin-bottom:12px">Configure holidays, high-demand dates, and manual date blocks.</div>
-      <div class="form-row">
-        <label class="form-label">High-Demand / Holiday Dates</label>
-        <textarea class="form-input" id="iHighDemandDates" rows="3" style="resize:vertical" placeholder="Comma-separated dates (YYYY-MM-DD), e.g. 2026-06-15, 2026-06-16, 2026-08-31"></textarea>
-      </div>
-      <div class="form-row">
-        <label class="form-label">Manually Blocked Dates</label>
-        <textarea class="form-input" id="iBlockedDates" rows="3" style="resize:vertical" placeholder="Comma-separated dates (YYYY-MM-DD) to block out manually, e.g. 2026-07-01, 2026-07-02"></textarea>
-      </div>
-      <button class="btn btn-primary" onclick="saveBookingSettings()">Save Booking Settings</button>
-    </div>
-    <div class="a-card">
       <div class="a-card-title">About / Store Info</div>
       <div class="sec-sub" style="margin-bottom:12px">Story section shown on the public menu page, below the banner.</div>
       <div class="toggle-row" style="margin-bottom:12px">
@@ -520,13 +507,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         <button class="btn btn-secondary btn-sm" onclick="addInfoCard('photo')">+ Photo card</button>
       </div>
       <button class="btn btn-primary" style="margin-top:14px" onclick="saveStoreInfo()">Save About Section</button>
-    </div>
-
-    <div class="a-card">
-      <div class="a-card-title">Store Highlights</div>
-      <div class="sec-sub" style="margin-bottom:16px">4 spotlight blocks shown below the hero banner. Leave all 4 empty to fall back to auto-computed menu stats.</div>
-      <div id="highlightsBuilder"></div>
-      <button class="btn btn-primary" style="margin-top:14px" onclick="saveHighlights()">Save Highlights</button>
     </div>
   </div>
 
@@ -556,10 +536,10 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
         </div>
       </div>
       <div class="form-row">
-        <div class="form-label" style="margin-bottom:8px">Room Rate Tiers (leave empty if not applicable)</div>
-        <div class="size-config-row"><span class="size-config-label">Weekday Rate</span><input class="form-input" id="nHot" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nHotOz" placeholder="Badge (e.g. 2 Guests)"></div>
-        <div class="size-config-row"><span class="size-config-label">Weekend Rate</span><input class="form-input" id="nCold" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nColdOz" placeholder="Badge (e.g. King Bed)"></div>
-        <div class="size-config-row"><span class="size-config-label">Holiday Rate</span><input class="form-input" id="nFrappe" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nFrappeOz" placeholder="Badge (e.g. Pool View)"></div>
+        <div class="form-label" style="margin-bottom:8px">Size Price Tiers (leave empty if not applicable)</div>
+        <div class="size-config-row"><span class="size-config-label">Hot</span><input class="form-input" id="nHot" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nHotOz" placeholder="Badge (e.g. 8oz)"></div>
+        <div class="size-config-row"><span class="size-config-label">Cold</span><input class="form-input" id="nCold" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nColdOz" placeholder="Badge (e.g. 12oz)"></div>
+        <div class="size-config-row"><span class="size-config-label">Frappé</span><input class="form-input" id="nFrappe" type="number" step="0.5" data-cur-placeholder="Price (CUR)"><input class="form-input" id="nFrappeOz" placeholder="Badge (e.g. 16oz)"></div>
       </div>
       <div class="form-row"><label class="form-label" data-cur-label="Flat Price (CUR)">Flat Price (RM)</label><input class="form-input" id="nPrice" type="number" step="0.5" placeholder="Leave blank if using tiers"></div>
       <button class="btn btn-primary" onclick="addItem()">Add Item</button>
@@ -1393,7 +1373,6 @@ async function loadAll() {
   await loadStoreTab();
   await loadPaymentSettings();
   await loadStoreInfo();
-  await loadHighlights();
   await loadMenuData();
   await loadOrders();
   await loadOwnerFeedback();
@@ -1448,10 +1427,6 @@ async function loadStoreTab() {
   document.getElementById('iSize2').value = legend[1] || '';
   document.getElementById('iSize3').value = legend[2] || '';
   document.getElementById('iSize4').value = legend[3] || '';
-  
-  // Load homestay dates
-  document.getElementById('iHighDemandDates').value = (storeData.high_demand_dates || []).join(', ');
-  document.getElementById('iBlockedDates').value = (storeData.blocked_dates || []).join(', ');
 }
 async function saveStore() {
   await safe(async () => {
@@ -1542,16 +1517,6 @@ async function savePaymentSettings() {
   }, 'savePaymentSettings');
 }
 
-async function saveBookingSettings() {
-  await safe(async () => {
-    const s = await fbGet('config/store') || {};
-    s.high_demand_dates = document.getElementById('iHighDemandDates').value.split(',').map(d => d.trim()).filter(Boolean);
-    s.blocked_dates = document.getElementById('iBlockedDates').value.split(',').map(d => d.trim()).filter(Boolean);
-    await fbSet('config/store', s);
-    storeData = { ...storeData, ...s };
-    toast('Booking settings saved ✓');
-  }, 'saveBookingSettings');
-}
 async function saveSizeLegend() {
   await safe(async () => {
     const legend = [
@@ -1670,53 +1635,6 @@ async function saveStoreInfo() {
     await fbSet('config/store_info', info);
     toast('About section saved ✓');
   }, 'saveStoreInfo');
-}
-
-// ════════════════════════════════════════════════════════════
-// STORE HIGHLIGHTS
-// ════════════════════════════════════════════════════════════
-const DEFAULT_HIGHLIGHTS = [
-  { emoji: '🔥', label: 'Signature',  value: '' },
-  { emoji: '⭐', label: 'Bestseller', value: '' },
-  { emoji: '🌶️', label: 'Special',    value: '' },
-  { emoji: '🕐', label: 'Open until', value: '' },
-];
-let highlights = DEFAULT_HIGHLIGHTS.map(h => ({ ...h }));
-
-function renderHighlightsBuilder() {
-  document.getElementById('highlightsBuilder').innerHTML = highlights.map((h, i) => `
-    <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:8px;margin-bottom:8px;align-items:center">
-      <input class="form-input" style="text-align:center;font-size:18px" value="${escapeHtml(h.emoji)}"
-        oninput="highlights[${i}].emoji=this.value" placeholder="🔥">
-      <input class="form-input" value="${escapeHtml(h.label)}"
-        oninput="highlights[${i}].label=this.value" placeholder="Label (e.g. Signature)">
-      <input class="form-input" value="${escapeHtml(h.value)}"
-        oninput="highlights[${i}].value=this.value" placeholder="Value (e.g. Woodfire Brisket)">
-    </div>`).join('');
-}
-
-async function loadHighlights() {
-  await safe(async () => {
-    const data = await fbGet('config/highlights');
-    if (Array.isArray(data) && data.length === 4) {
-      highlights = data.map((h, i) => ({
-        emoji: h.emoji ?? DEFAULT_HIGHLIGHTS[i].emoji,
-        label: h.label ?? DEFAULT_HIGHLIGHTS[i].label,
-        value: h.value ?? '',
-      }));
-    } else {
-      highlights = DEFAULT_HIGHLIGHTS.map(h => ({ ...h }));
-    }
-    renderHighlightsBuilder();
-  }, 'loadHighlights');
-}
-
-async function saveHighlights() {
-  await safe(async () => {
-    const allEmpty = highlights.every(h => !h.value.trim());
-    await fbSet('config/highlights', allEmpty ? null : highlights);
-    toast(allEmpty ? 'Highlights cleared — auto stats will show ✓' : 'Highlights saved ✓');
-  }, 'saveHighlights');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1880,10 +1798,10 @@ function openEditModal(id) {
     </div>
     ${isDrink?`
     <div class="form-row">
-      <div class="form-label" style="margin-bottom:8px">Room Rate Tiers (leave empty if not applicable)</div>
-      <div class="size-config-row"><span class="size-config-label">Weekday Rate</span><input class="form-input" id="eHot" type="number" step="0.5" placeholder="Price" value="${item.hot??''}"><input class="form-input" id="eHotOz" placeholder="Badge (e.g. 2 Guests)" value="${item.hot_oz||''}"></div>
-      <div class="size-config-row"><span class="size-config-label">Weekend Rate</span><input class="form-input" id="eCold" type="number" step="0.5" placeholder="Price" value="${item.cold??''}"><input class="form-input" id="eColdOz" placeholder="Badge (e.g. King Bed)" value="${item.cold_oz||''}"></div>
-      <div class="size-config-row"><span class="size-config-label">Holiday Rate</span><input class="form-input" id="eFrappe" type="number" step="0.5" placeholder="Price" value="${item.frappe??''}"><input class="form-input" id="eFrappeOz" placeholder="Badge (e.g. Pool View)" value="${item.frappe_oz||''}"></div>
+      <div class="form-label" style="margin-bottom:8px">Size Price Tiers (leave empty if not applicable)</div>
+      <div class="size-config-row"><span class="size-config-label">Hot</span><input class="form-input" id="eHot" type="number" step="0.5" placeholder="Price" value="${item.hot??''}"><input class="form-input" id="eHotOz" placeholder="Badge (e.g. 8oz)" value="${item.hot_oz||''}"></div>
+      <div class="size-config-row"><span class="size-config-label">Cold</span><input class="form-input" id="eCold" type="number" step="0.5" placeholder="Price" value="${item.cold??''}"><input class="form-input" id="eColdOz" placeholder="Badge (e.g. 12oz)" value="${item.cold_oz||''}"></div>
+      <div class="size-config-row"><span class="size-config-label">Frappé</span><input class="form-input" id="eFrappe" type="number" step="0.5" placeholder="Price" value="${item.frappe??''}"><input class="form-input" id="eFrappeOz" placeholder="Badge (e.g. 16oz)" value="${item.frappe_oz||''}"></div>
     </div>`:`<div class="form-row"><label class="form-label">Price (${CUR})</label><input class="form-input" id="ePrice" type="number" step="0.5" value="${item.price??''}"></div>`}
     <div class="form-row" style="margin-top:4px">
       <div class="a-card-title">Options / Add-ons</div>

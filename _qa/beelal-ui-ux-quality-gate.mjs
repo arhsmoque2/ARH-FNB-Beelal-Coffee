@@ -72,7 +72,6 @@ for (const storefront of STOREFRONT_HTML_FILES) {
   const tabletChecks = [
     { name: 'Scroll-snap horizontal category rail', test: html.includes('.category-strip') },
     { name: 'Sidebar collapse to category strip (@media <= 980px)', test: html.includes('.side-panel { display: none') },
-    { name: '2-column quick metrics layout (@media <= 980px)', test: html.includes('.quick-row { grid-template-columns: repeat(2') || html.includes('.quick-row { grid-template-columns: 1fr 1fr') },
     { name: 'Hero single-column collapse (@media <= 980px)', test: html.includes('.hero { grid-template-columns: 1fr') }
   ];
 
@@ -80,8 +79,7 @@ for (const storefront of STOREFRONT_HTML_FILES) {
   const desktopChecks = [
     { name: 'Dual-column hero layout', test: html.includes('grid-template-columns: minmax(0, 1.02fr) minmax(340px, .8fr)') || html.includes('.hero {') },
     { name: 'Sticky sidebar navigation (250px split)', test: html.includes('.main-grid {') && html.includes('250px minmax(0, 1fr)') },
-    { name: '2-column menu items grid', test: html.includes('.items-grid {') && html.includes('repeat(2, minmax(0, 1fr))') },
-    { name: '4-column quick stats overview row', test: html.includes('.quick-row {') && html.includes('repeat(4, minmax(0, 1fr))') }
+    { name: '2-column menu items grid', test: html.includes('.items-grid {') && html.includes('repeat(2, minmax(0, 1fr))') }
   ];
 
   console.log(`  --- Viewport Tier: 📱 Mobile (<640px / 390px) ---`);
@@ -189,6 +187,89 @@ for (const storefront of STOREFRONT_HTML_FILES) {
   }
 }
 if (gate5Pass) console.log('  ✅ In-cart stepper logic, mathematical invariants, and WhatsApp strings verified.\n');
+
+// Gate 6: CSS Integrity & Brand Palette Consistency
+//
+// Catches two classes of copy-paste-from-template UI bug that slipped past
+// Gates 1-5 before (see: the indigo "announcement-ribbon" banner clashing
+// with Beelal's warm coffee-brown/gold theme, commit history has the fix):
+//   a) A CSS block with unbalanced braces. This is stricter than Gate 1's
+//      tag-count check: `<style>`/`</style>` tags can match 1-for-1 while a
+//      rule *inside* is malformed (e.g. an unclosed @keyframes swallows the
+//      next rule as a nested selector). Browsers silently recover from this
+//      by truncating at end-of-stylesheet, so it never throws — it just
+//      quietly drops or corrupts whatever rule came after the mistake.
+//   b) A hardcoded hex color from a generic UI-kit's default palette
+//      (Tailwind's indigo/violet/pink swatches, the classic "unstyled
+//      scaffolding" tell) used directly in a component rule instead of this
+//      site's themed `var(--brand)` / `var(--brand2)` custom properties.
+//      Beelal's entire design system is built on those two variables
+//      (light theme = coffee brown/amber, night mode = gold/amber) so any
+//      rule reaching for a raw indigo/violet/pink hex instead is almost
+//      certainly leftover boilerplate nobody re-themed.
+console.log('🎨 Gate 6: CSS Integrity & Brand Palette Consistency...');
+let gate6Pass = true;
+
+// Known "unstyled template" swatches (Tailwind indigo/violet/pink defaults).
+// Not an exhaustive off-brand list — a small, precise set chosen to catch
+// the boilerplate-leftover pattern with near-zero false positives, not to
+// police every color in the file.
+const OFFBRAND_HEX = /#(4f46e5|6366f1|818cf8|a5b4fc|c7d2fe|e0e7ff|312e81|1e1b4b|3730a3|4338ca|ec4899|f472b6|db2777|fbcfe8)\b/i;
+// Selectors allowed to use arbitrary colors outside the theme system:
+// dev-only diagnostic overlays that customers never see (gated behind a
+// ?inspect=1/?preview=1 query param) don't need to match the storefront's
+// brand palette.
+const OFFBRAND_ALLOWED_SELECTOR = /redline|inspector|devconsole|debug/i;
+
+for (const htmlPath of TARGET_HTML_FILES) {
+  const content = fs.readFileSync(htmlPath, 'utf8');
+  const relPath = path.relative(repoRoot, htmlPath);
+  const styleBlocks = [...content.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m => m[1]);
+
+  for (const css of styleBlocks) {
+    const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // (a) brace balance — walk the whole block, must never go negative and
+    // must end back at zero.
+    let depth = 0;
+    let unbalanced = false;
+    for (const ch of withoutComments) {
+      if (ch === '{') depth++;
+      else if (ch === '}') { depth--; if (depth < 0) { unbalanced = true; break; } }
+    }
+    if (unbalanced || depth !== 0) {
+      console.error('  ❌ [' + relPath + '] Unbalanced braces in a <style> block (ends at depth ' + depth + ') — a rule is likely swallowing or truncating its neighbors.');
+      gate6Pass = false;
+      totalErrors++;
+    }
+
+    // (b) off-brand hardcoded colors, leaf rules only (":root"/theme
+    // variable-definition blocks legitimately hardcode the real values the
+    // custom properties resolve to, so they're intentionally exempt).
+    for (const match of withoutComments.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const [, selector, body] = match;
+      const trimmedSelector = selector.trim();
+      if (/:root|html\[data-mode/.test(trimmedSelector)) continue;
+      if (OFFBRAND_ALLOWED_SELECTOR.test(trimmedSelector)) continue;
+      // var(--brand, #hex) / var(--brand2, #hex) is a legitimate fallback —
+      // --brand/--brand2 are always defined (root default, then overridden
+      // per-theme), so the literal hex there is dead code, not a live
+      // color. Strip those before testing so only a *bare* hardcoded hex,
+      // or a fallback on some other/undefined variable (e.g. the
+      // `var(--primary, #4f46e5)` bug this gate was written to catch —
+      // `--primary` was never defined anywhere, so it always fell through
+      // to the indigo fallback), gets flagged.
+      const bodyForColorCheck = body.replace(/var\(\s*--brand2?\s*,\s*#[0-9a-f]{3,8}\s*\)/gi, '');
+      const hit = bodyForColorCheck.match(OFFBRAND_HEX);
+      if (hit) {
+        console.error('  ❌ [' + relPath + '] Selector "' + trimmedSelector + '" hardcodes off-brand color ' + hit[0] + ' instead of var(--brand)/var(--brand2) — looks like un-themed template boilerplate.');
+        gate6Pass = false;
+        totalErrors++;
+      }
+    }
+  }
+}
+if (gate6Pass) console.log('  ✅ CSS blocks well-formed; no un-themed template colors found.\n');
 
 console.log('======================================================');
 if (totalErrors === 0) {
