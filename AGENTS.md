@@ -27,11 +27,13 @@ Context file for AI agents. Read this before making any changes to this repo.
 | Field | Value |
 |---|---|
 | Repo | `https://github.com/arhsmoque2/ARH-FNB-Beelal-Coffee` |
-| Branch | `main` (was `store/beelal` in `ARH-FNB-Webapp`) |
+| Branch | `main` (production deployment branch) |
 | Live URL | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
-| CF project | `beelal-coffee` (standalone, previously `fnb-pwa`) |
+| CF project | `store-beelal-fnb-pwa` (standalone Cloudflare Workers project) |
+| R2 Bucket | `arh-fnb-beelal-media` (`MEDIA_BUCKET` binding) |
 | Firebase root | `beelal_coffee` |
 | Firebase URL | `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app` |
+| ADR | [`adr/ADR-001-standalone-repo-cutover-and-live-healthcheck.md`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-001-standalone-repo-cutover-and-live-healthcheck.md) |
 
 ---
 
@@ -60,6 +62,38 @@ Context file for AI agents. Read this before making any changes to this repo.
 redirect shim to it). Confirmed 2026-08-22. `index-legacy.html` was an older, superseded build
 and has been deleted from the repo — do not recreate it or resurrect its logic without asking.
 
+## Quality Gates & Verification Commands
+
+Always run these commands to verify code changes before committing and after deploying:
+
+### 1. Pre-Commit / Pre-Deploy Quality Gate (Static & UX)
+Runs the ARH Web DevKit audit: syntax, mobile touch targets (44px min), HTML5 a11y, and UEQ 6-dimension UX invariants:
+```powershell
+node _qa/beelal-ui-ux-quality-gate.mjs
+```
+
+### 2. Post-Deploy Live Healthcheck (Live Web & Firebase RTDB)
+Probes all deployed endpoints (`/`, `/index-v2.html`, `/admin.html`, `/config.js`, `/observatory.html`, `/guide.html`, `/dev-console.html`) and validates direct Firebase RTDB connectivity:
+```powershell
+# Run against default live site
+node _qa/beelal-live-healthcheck.mjs
+
+# Or pass a custom preview URL
+node _qa/beelal-live-healthcheck.mjs "https://store-beelal-fnb-pwa.arh-homelab.workers.dev"
+```
+
+### 3. Trigger On-Demand CI Health Check (Cloud Agents / GitHub Actions)
+Cloud agents and operators can trigger the remote GitHub Actions healthcheck on-demand via `gh`:
+```powershell
+# Trigger on-demand workflow
+gh workflow run live-healthcheck.yml --repo arhsmoque2/ARH-FNB-Beelal-Coffee
+
+# Watch run status
+gh run list --repo arhsmoque2/ARH-FNB-Beelal-Coffee --limit 1
+```
+
+---
+
 ## Agent Rules
 
 1. **Edit `config.js` only** for store-specific/branding changes. `index-v2.html`, `index.html`,
@@ -68,12 +102,9 @@ and has been deleted from the repo — do not recreate it or resurrect its logic
 2. **Firebase is the live source of truth.** `defaultMenu` in `config.js` is a seed used only if Firebase has no data yet. Editing it does not change what live customers see — the owner must do a Dev tab → Master Snapshot to re-seed.
 3. **Never change `firebase.root`.** Changing it would orphan all live data.
 4. **Never change `firebase.url`.** Shared DB — no new Firebase project needed.
-5. **`wrangler.jsonc`'s CF project name is `beelal-coffee`** (standalone; the old `fnb-pwa`
-   shared-fleet project no longer applies here). Note: `worker.js` expects an `MEDIA_BUCKET` R2
-   binding that isn't currently declared in `wrangler.jsonc` — see `handoff.md`.
-6. **`main` is the live deploy branch.** This is a standalone repo, not a branch of the shared
-   fleet template — push feature branches and open PRs against `main` as normal.
+5. **`wrangler.jsonc`'s CF project name is `store-beelal-fnb-pwa`** (standalone project serving `https://store-beelal-fnb-pwa.arh-homelab.workers.dev`).
+6. **`main` is the live deploy branch.** Push feature branches and open PRs against `main`. Pushing to `main` auto-triggers the deployment pipeline (`.github/workflows/deploy.yml`).
 7. **Phone number is real.** Do not replace `60122203743` with a placeholder.
 8. When adding new menu items, continue the ID sequence (`c13`, `n10`, `f14`, etc.).
-9. **`config.js`'s `billing.secret` is a known issue**, not a pattern to copy — it's a live
-   secret shipped client-side and needs rotating server-side. See `handoff.md`.
+9. **Secrets are managed server-side**: `BILLING_SECRET` and `UPLOAD_SECRET` are provisioned as Cloudflare Worker secrets and GitHub repository secrets via the ARH SOPS vault (`sops/cloudflare.enc.yaml` & `sops/beelal.enc.yaml`). Never commit plain text secrets into `config.js`.
+10. **Run Quality Gates**: Always run `node _qa/beelal-ui-ux-quality-gate.mjs` before pushing and `node _qa/beelal-live-healthcheck.mjs` after deploying.
