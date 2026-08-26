@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Beelal Coffee × Green Grounds POS Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-primary: #1b4332;
+      --brand-secondary: #2d6a4f;
+      --brand-accent: #52b788;
+      --brand-soft: #d8f3dc;
+      --bg-canvas: #f7f9f7;
+      --bg-surface: #ffffff;
+      --bg-subtle: #edf2ee;
+      --border: rgba(27, 67, 50, 0.1);
+      --text-main: #131d16;
+      --text-muted: #4d5e53;
+      --text-faint: #8c9b91;
+      --accent-gold: #e7a740;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-pill: 999px;
+      --shadow-sm: 0 4px 12px rgba(27, 67, 50, 0.04);
+      --shadow-md: 0 10px 28px rgba(27, 67, 50, 0.08);
+      --shadow-lg: 0 20px 48px rgba(27, 67, 50, 0.14);
+      --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-canvas);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .top-ribbon {
+      background: var(--brand-primary);
+      color: #e0f2e9;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: center;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--brand-accent);
+      box-shadow: 0 0 8px var(--brand-accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+
+    .app-layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr) 380px;
+      height: calc(100vh - 35px);
+      overflow: hidden;
+    }
+
+    .nav-rail {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px 16px;
+    }
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: var(--shadow-sm);
+    }
+    .brand-text h1 { font-size: 17px; font-weight: 800; color: var(--brand-primary); }
+    .brand-text p { font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
+
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      list-style: none;
+    }
+    .cat-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .cat-btn:hover { background: var(--bg-subtle); color: var(--text-main); }
+    .cat-btn.active {
+      background: var(--brand-soft);
+      color: var(--brand-primary);
+      border-color: rgba(45, 106, 79, 0.2);
+    }
+    .cat-badge {
+      font-size: 11px;
+      background: rgba(27, 67, 50, 0.08);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      font-weight: 800;
+    }
+    .cat-btn.active .cat-badge {
+      background: var(--brand-secondary);
+      color: #fff;
+    }
+
+    .pos-footer-info {
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .menu-canvas {
+      overflow-y: auto;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .canvas-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .canvas-title h2 {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--brand-primary);
+    }
+    .canvas-title p { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+    .search-box {
+      position: relative;
+      width: 320px;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 12px 16px 12px 40px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      outline: none;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+    .search-box input:focus {
+      border-color: var(--brand-accent);
+      box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.2);
+    }
+    .search-box-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-faint);
+      font-size: 14px;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .product-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .product-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(45, 106, 79, 0.25);
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .card-emoji {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: var(--bg-canvas);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .card-tags { display: flex; gap: 4px; }
+    .tag-pill {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      background: var(--brand-soft);
+      color: var(--brand-primary);
+    }
+    .card-info h3 {
+      font-size: 15.5px;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+    .card-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      min-height: 16px;
+    }
+
+    .variant-selector {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-subtle);
+      padding: 3px;
+      border-radius: var(--radius-pill);
+      margin-top: 4px;
+    }
+    .variant-opt {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 6px 4px;
+      border-radius: var(--radius-pill);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+    .variant-opt.active {
+      background: #fff;
+      color: var(--brand-primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .card-price { font-size: 16px; font-weight: 800; color: var(--brand-primary); }
+    .add-action-btn {
+      min-height: 38px;
+      padding: 0 16px;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: var(--brand-primary);
+      color: #fff;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+      box-shadow: 0 4px 12px rgba(27, 67, 50, 0.2);
+    }
+    .add-action-btn:hover {
+      background: var(--brand-secondary);
+      transform: scale(1.03);
+    }
+
+    .order-ticket {
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 20px;
+      box-shadow: var(--shadow-sm);
+    }
+    .ticket-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ticket-header h2 { font-size: 18px; font-weight: 800; color: var(--brand-primary); }
+    .ticket-clear-btn {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-faint);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .ticket-clear-btn:hover { color: #dc2626; }
+
+    .ticket-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ticket-empty {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-faint);
+      gap: 8px;
+      text-align: center;
+    }
+    .ticket-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-canvas);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    .ticket-item-info { flex: 1; }
+    .ticket-item-name { font-size: 13.5px; font-weight: 750; color: var(--text-main); }
+    .ticket-item-opt { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .ticket-item-price { font-size: 13px; font-weight: 800; color: var(--brand-primary); }
+
+    .ticket-stepper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+    }
+    .step-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: var(--bg-subtle);
+      color: var(--brand-primary);
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .step-qty { font-size: 13px; font-weight: 800; min-width: 16px; text-align: center; }
+
+    .ticket-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .summary-row.total {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--brand-primary);
+      padding-top: 6px;
+      border-top: 1px dashed var(--border);
+    }
+    .pay-btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .pay-btn {
+      min-height: 48px;
+      border-radius: var(--radius-md);
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .pay-btn.qr {
+      background: var(--brand-primary);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(27, 67, 50, 0.25);
+    }
+    .pay-btn.qr:hover { background: var(--brand-secondary); }
+    .pay-btn.cash {
+      background: var(--brand-soft);
+      color: var(--brand-primary);
+    }
+    .pay-btn.cash:hover { background: #c2eed0; }
+
+    .token-inspector-badge {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: var(--brand-primary);
+      color: var(--brand-soft);
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: var(--shadow-md);
+      letter-spacing: 0.05em;
+    }
+
+    @media (max-width: 980px) {
+      .app-layout { grid-template-columns: 1fr; height: auto; overflow: visible; }
+      .nav-rail { display: none; }
+      .order-ticket { position: fixed; bottom: 0; left: 0; right: 0; border-radius: 20px 20px 0 0; z-index: 100; box-shadow: var(--shadow-lg); max-height: 80vh; transform: translateY(calc(100% - 70px)); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+      .order-ticket.open { transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-ribbon">
+    <span class="status-dot"></span>
+    <span><strong>Beelal Coffee × Green Grounds POS Review</strong> • 100% Arabica Specialty Roasts • Live Cloudflare Review Preview</span>
+  </div>
+
+  <div class="app-layout">
+    <aside class="nav-rail">
+      <div>
+        <div class="brand-header">
+          <div class="brand-logo">☕</div>
+          <div class="brand-text">
+            <h1>Beelal Coffee</h1>
+            <p>Green Grounds Edition</p>
+          </div>
+        </div>
+
+        <ul class="category-list">
+          <li><button class="cat-btn active" onclick="filterCat('all', this)"><span>✨ All Menu</span> <span class="cat-badge" id="cnt-all">51</span></button></li>
+          <li><button class="cat-btn" onclick="filterCat('coffee', this)"><span>☕ Coffee</span> <span class="cat-badge">12</span></button></li>
+          <li><button class="cat-btn" onclick="filterCat('noncoffee', this)"><span>🍵 Non-Coffee</span> <span class="cat-badge">9</span></button></li>
+          <li><button class="cat-btn" onclick="filterCat('food', this)"><span>🥪 Food & Toast</span> <span class="cat-badge">13</span></button></li>
+          <li><button class="cat-btn" onclick="filterCat('pasta', this)"><span>🍝 Pasta & Mains</span> <span class="cat-badge">9</span></button></li>
+          <li><button class="cat-btn" onclick="filterCat('special', this)"><span>⭐ Specials</span> <span class="cat-badge">6</span></button></li>
+          <li><button class="cat-btn" onclick="filterCat('friday', this)"><span>🍚 Friday Basmati</span> <span class="cat-badge">2</span></button></li>
+        </ul>
+      </div>
+
+      <div class="pos-footer-info">
+        <p><strong>Store:</strong> beelal_coffee</p>
+        <p><strong>Engine:</strong> POS v2.0</p>
+        <p><strong>Design System:</strong> Green Grounds</p>
+      </div>
+    </aside>
+
+    <main class="menu-canvas">
+      <div class="canvas-header">
+        <div class="canvas-title">
+          <h2 id="catTitleHeader">Specialty Coffee & Beverages</h2>
+          <p>Handcrafted espresso, fresh toasties, and signature barista roasts.</p>
+        </div>
+        <div class="search-box">
+          <span class="search-box-icon">🔍</span>
+          <input type="search" id="searchInput" placeholder="Search coffee, pasta, food..." oninput="onSearch(this.value)">
+        </div>
+      </div>
+
+      <div class="product-grid" id="productGrid"></div>
+    </main>
+
+    <aside class="order-ticket" id="orderTicket">
+      <div class="ticket-header">
+        <div>
+          <h2>Current Order</h2>
+          <p style="font-size:12px; color:var(--text-muted); font-weight:600;">Dine-in / Direct Pickup</p>
+        </div>
+        <button class="ticket-clear-btn" onclick="clearCart()">Clear All</button>
+      </div>
+
+      <div class="ticket-items" id="ticketItems">
+        <div class="ticket-empty">
+          <span style="font-size:32px;">🧾</span>
+          <p style="font-weight:700;">No items added yet</p>
+          <p style="font-size:12px;">Select items from the catalog to build an order.</p>
+        </div>
+      </div>
+
+      <div class="ticket-footer">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="subtotalAmount">RM 0.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Packaging & Service</span>
+          <span>RM 0.00</span>
+        </div>
+        <div class="summary-row total">
+          <span>Total Payable</span>
+          <span id="totalAmount">RM 0.00</span>
+        </div>
+
+        <div class="pay-btn-group">
+          <button class="pay-btn qr" onclick="handlePay('qr')">📱 DuitNow QR</button>
+          <button class="pay-btn cash" onclick="handlePay('cash')">💵 Cash / WA</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="token-inspector-badge">
+    🌿 GREEN GROUNDS TOKENS ACTIVE • WCAG 2.2 AA
+  </div>
+
+  <script>
+    const MENU_DATA = [
+      { id:'c1',  cat:'coffee',    name:'Americano',        desc:'Rich double espresso with purified water', emoji:'☕', hot:6,  cold:8,  frappe:10, tag:'Popular' },
+      { id:'c2',  cat:'coffee',    name:'Latte',            desc:'Velvety microfoam over freshly pulled espresso', emoji:'🥛', hot:8,  cold:10, frappe:12 },
+      { id:'c3',  cat:'coffee',    name:'Cappuccino',       desc:'Equal parts espresso, steamed milk and deep foam', emoji:'☕', hot:8,  cold:10, frappe:12 },
+      { id:'c4',  cat:'coffee',    name:'Spanish Latte',    desc:'Barista favorite with sweet textured condensed milk', emoji:'⭐', hot:8,  cold:10, frappe:12, tag:'Signature' },
+      { id:'c5',  cat:'coffee',    name:'Hazelnut Latte',   desc:'Roasted hazelnut aroma infused into velvety latte', emoji:'🌰', hot:9,  cold:11, frappe:13 },
+      { id:'c6',  cat:'coffee',    name:'Vanilla Latte',    desc:'Madagascan vanilla blend with rich crema', emoji:'🍦', hot:9,  cold:11, frappe:13 },
+      { id:'c7',  cat:'coffee',    name:'Caramel Latte',    desc:'Salted butter caramel drizzle with espresso', emoji:'🍯', hot:9,  cold:11, frappe:13 },
+      { id:'c8',  cat:'coffee',    name:'Caramel Macchiato',desc:'Layered espresso with vanilla syrup and caramel crosshatch', emoji:'✨', hot:10, cold:12, frappe:14 },
+      { id:'c9',  cat:'coffee',    name:'Mocha',            desc:'Dutch dark cocoa blended with espresso and milk', emoji:'🍫', hot:9,  cold:11, frappe:13 },
+      { id:'c10', cat:'coffee',    name:'Caramel Mocha',    desc:'Dark chocolate and rich caramel mocha blend', emoji:'🍫', hot:10, cold:12, frappe:14 },
+      { id:'c11', cat:'coffee',    name:'Butterscotch Latte',desc:'Creamy butterscotch notes paired with dark roast', emoji:'🧈', hot:9,  cold:11, frappe:13 },
+      { id:'c12', cat:'coffee',    name:'Roasted Almond Latte',desc:'Nutty roasted almond infusion with textured milk', emoji:'🥜', hot:9, cold:11, frappe:13 },
+      { id:'n1',  cat:'noncoffee', name:'Matcha Latte',     desc:'Premium Uji green tea with steamed fresh milk', emoji:'🍵', hot:8,  cold:10, frappe:12, tag:'Popular' },
+      { id:'n2',  cat:'noncoffee', name:'Chocolate',        desc:'Indulgent Belgian dark chocolate drink', emoji:'🍫', hot:8,  cold:10, frappe:12 },
+      { id:'n5',  cat:'noncoffee', name:'Strawberry Latte', desc:'Sweet strawberry puree layered with fresh milk', emoji:'🍓', hot:null, cold:11, frappe:13 },
+      { id:'f1',  cat:'food',      name:'Egg Mayo Baguette',desc:'Crispy French baguette loaded with seasoned egg mayo', emoji:'🥖', price:9.00 },
+      { id:'f2',  cat:'food',      name:'Tuna Mayo Baguette',desc:'Flaked tuna with celery and lemon herb mayo', emoji:'🥖', price:10.00 },
+      { id:'f7',  cat:'food',      name:'Club Sandwich with Fries',desc:'Triple-decker chicken breast toast with golden fries', emoji:'🥪', price:15.00, tag:'Chef Pick' },
+      { id:'p1',  cat:'pasta',     name:'Spaghetti Bolognese',desc:'Slow-cooked beef ragu with parmesan reggiano', emoji:'🍝', price:13.00 },
+      { id:'p2',  cat:'pasta',     name:'Spaghetti Carbonara',desc:'Creamy egg yolk and smoked beef pasta', emoji:'🍝', price:13.00, tag:'Popular' },
+      { id:'p3',  cat:'pasta',     name:'Mac & Cheese',     desc:'Classic four-cheese baked macaroni gratin', emoji:'🧀', price:13.00, tag:'Top Seller' },
+      { id:'s1',  cat:'special',   name:'Grilled Chicken Chop',desc:'Marinated chicken thigh with black pepper gravy', emoji:'🍗', price:17.00, tag:'Specialty' },
+      { id:'s3',  cat:'special',   name:'Fish & Chips',     desc:'Crispy battered dory fillet with tartar sauce', emoji:'🐟', price:17.00 }
+    ];
+
+    let currentCat = 'all';
+    let currentSearch = '';
+    let cart = [];
+    let selectedVariants = {};
+
+    function init() {
+      MENU_DATA.forEach(item => {
+        if (item.cold) selectedVariants[item.id] = 'cold';
+        else if (item.hot) selectedVariants[item.id] = 'hot';
+        else selectedVariants[item.id] = 'standard';
+      });
+      renderProducts();
+      renderCart();
+    }
+
+    function filterCat(cat, btn) {
+      currentCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.getElementById('catTitleHeader').textContent = 
+        cat === 'all' ? 'All Catalog & Specialties' :
+        cat === 'coffee' ? 'Specialty Coffee Bar' :
+        cat === 'noncoffee' ? 'Artisanal Non-Coffee' :
+        cat === 'food' ? 'Fresh Baguettes & Toast' :
+        cat === 'pasta' ? 'Italian Pastas & Gratin' :
+        cat === 'special' ? 'Chef Western Specials' : 'Friday Specials';
+      renderProducts();
+    }
+
+    function onSearch(val) {
+      currentSearch = val.toLowerCase().trim();
+      renderProducts();
+    }
+
+    function setVariant(itemId, variant) {
+      selectedVariants[itemId] = variant;
+      renderProducts();
+    }
+
+    function getItemPrice(item) {
+      if (item.price) return item.price;
+      const v = selectedVariants[item.id] || 'cold';
+      return item[v] || item.cold || item.hot || item.frappe || 0;
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById('productGrid');
+      const filtered = MENU_DATA.filter(item => {
+        const matchCat = currentCat === 'all' || item.cat === currentCat;
+        const matchSearch = !currentSearch || item.name.toLowerCase().includes(currentSearch) || (item.desc && item.desc.toLowerCase().includes(currentSearch));
+        return matchCat && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 48px; color:var(--text-faint);">No items found matching your search.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(item => {
+        const hasVariants = item.hot || item.cold || item.frappe;
+        const currentV = selectedVariants[item.id] || (item.cold ? 'cold' : 'hot');
+        const price = getItemPrice(item);
+
+        return `
+          <div class="product-card">
+            <div>
+              <div class="card-top">
+                <div class="card-emoji">${item.emoji}</div>
+                ${item.tag ? `<div class="card-tags"><span class="tag-pill">${item.tag}</span></div>` : ''}
+              </div>
+              <div class="card-info" style="margin-top:10px;">
+                <h3>${item.name}</h3>
+                <p>${item.desc || ''}</p>
+              </div>
+
+              ${hasVariants ? `
+                <div class="variant-selector">
+                  ${item.hot ? `<button class="variant-opt ${currentV==='hot'?'active':''}" onclick="setVariant('${item.id}', 'hot')">HOT 8oz</button>` : ''}
+                  ${item.cold ? `<button class="variant-opt ${currentV==='cold'?'active':''}" onclick="setVariant('${item.id}', 'cold')">COLD 12oz</button>` : ''}
+                  ${item.frappe ? `<button class="variant-opt ${currentV==='frappe'?'active':''}" onclick="setVariant('${item.id}', 'frappe')">FRAPPÉ</button>` : ''}
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="card-footer">
+              <div class="card-price">RM ${price.toFixed(2)}</div>
+              <button class="add-action-btn" onclick="addToCart('${item.id}')">
+                <span>+ Add</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addToCart(itemId) {
+      const item = MENU_DATA.find(i => i.id === itemId);
+      if (!item) return;
+
+      const variant = (item.hot || item.cold || item.frappe) ? (selectedVariants[item.id] || 'cold') : null;
+      const price = getItemPrice(item);
+      const cartKey = `${item.id}-${variant || 'std'}`;
+
+      const existing = cart.find(c => c.key === cartKey);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({
+          key: cartKey,
+          id: item.id,
+          name: item.name,
+          variant: variant ? variant.toUpperCase() : null,
+          price: price,
+          qty: 1
+        });
+      }
+      renderCart();
+    }
+
+    function updateQty(key, delta) {
+      const item = cart.find(c => c.key === key);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) {
+        cart = cart.filter(c => c.key !== key);
+      }
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    function renderCart() {
+      const itemsContainer = document.getElementById('ticketItems');
+      const subtotalEl = document.getElementById('subtotalAmount');
+      const totalEl = document.getElementById('totalAmount');
+
+      if (cart.length === 0) {
+        itemsContainer.innerHTML = `
+          <div class="ticket-empty">
+            <span style="font-size:32px;">🧾</span>
+            <p style="font-weight:700;">No items added yet</p>
+            <p style="font-size:12px;">Select items from the catalog to build an order.</p>
+          </div>
+        `;
+        subtotalEl.textContent = 'RM 0.00';
+        totalEl.textContent = 'RM 0.00';
+        return;
+      }
+
+      let total = 0;
+      itemsContainer.innerHTML = cart.map(item => {
+        const itemTotal = item.price * item.qty;
+        total += itemTotal;
+
+        return `
+          <div class="ticket-item">
+            <div class="ticket-item-info">
+              <div class="ticket-item-name">${item.name}</div>
+              ${item.variant ? `<div class="ticket-item-opt">${item.variant}</div>` : ''}
+              <div class="ticket-item-price">RM ${itemTotal.toFixed(2)}</div>
+            </div>
+            <div class="ticket-stepper">
+              <button class="step-btn" onclick="updateQty('${item.key}', -1)">-</button>
+              <span class="step-qty">${item.qty}</span>
+              <button class="step-btn" onclick="updateQty('${item.key}', 1)">+</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      subtotalEl.textContent = `RM ${total.toFixed(2)}`;
+      totalEl.textContent = `RM ${total.toFixed(2)}`;
+    }
+
+    function handlePay(type) {
+      if (cart.length === 0) {
+        alert('Please add items to cart before proceeding.');
+        return;
+      }
+      const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+      if (type === 'qr') {
+        alert(`[DuitNow QR Pay]\n\nStore: Beelal Coffee\nAccount: 14038010041285 (Bank Islam)\nTotal: RM ${total.toFixed(2)}\n\nScan QR code at the barista counter!`);
+      } else {
+        alert(`[Cash / WhatsApp Dispatch]\n\nTotal: RM ${total.toFixed(2)}\n\nOrder dispatched directly to Beelal Barista.`);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
