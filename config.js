@@ -45,6 +45,19 @@ const APP_CONFIG = {
     ],
   },
 
+  // ── Payment ─────────────────────────────────────────────────────────────────
+  // Fallback values used until the owner sets real ones via Admin → Payment
+  // Settings (saved to Firebase at config/payment_settings, which always wins
+  // once present). QR is in-app: customer scans the store's real bank/e-wallet
+  // QR image, marks "I've Paid", and the owner confirms from the Orders tab.
+  payment: {
+    methods:        ['cash', 'qr'],
+    bank_name:      '',
+    account_name:   '',
+    account_number: '',
+    qr_image_url:   '',
+  },
+
   // ── App Branding ────────────────────────────────────────────────────────────
   brand: {
     appName:   _STORE_NAME,
