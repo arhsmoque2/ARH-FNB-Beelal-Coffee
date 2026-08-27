@@ -66,11 +66,13 @@ and has been deleted from the repo — do not recreate it or resurrect its logic
 
 Always run these commands to verify code changes before committing and after deploying:
 
-### 1. Unified Quality Gate Suite (Oxlint + UI/UX Gate + Infrastructure Doctor)
+### 1. Unified Quality Gate Suite (Oxlint + UI/UX Gate + Playwright Layout Auditor + Infrastructure Doctor)
 ```powershell
 npm run check
 ```
-* Runs automatically in GitHub Actions on all Pull Requests targeting `main` (`.github/workflows/ci.yml`).
+* Runs automatically in GitHub Actions on all Pull Requests targeting `main` (`.github/workflows/ci.yml`), which
+  serves the PR's own checkout on `localhost` and points the layout auditor at it via `TARGET_URL` — so it audits
+  what the PR is about to ship, not whatever is already live in production.
 
 Or run individual sub-gates:
 * **High-Speed Linting (Oxlint)**: `npm run lint` (or `npx oxlint`)
