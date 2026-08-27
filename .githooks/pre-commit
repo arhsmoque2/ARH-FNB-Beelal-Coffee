@@ -1,0 +1,17 @@
+#!/bin/sh
+# Local pre-commit gate — lint + the UI/UX quality gate (Gates 1-6 in
+# _qa/beelal-ui-ux-quality-gate.mjs, including CSS integrity / off-brand
+# color checks). Deliberately excludes `npm run check:infra`: it makes a
+# live network call to Firebase RTDB, which doesn't belong in a fast local
+# hook and isn't related to what any given commit touches — that check
+# still runs at deploy time in .github/workflows/deploy.yml.
+#
+# Installed via `core.hooksPath` — see README.md "Development" section.
+# Skip once with `git commit --no-verify` if you deliberately need to.
+
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+echo "▶ Running pre-commit checks (lint + UI/UX quality gate)..."
+npm run lint
+npm run check:ui
