@@ -103,7 +103,8 @@ async function recordOrderEvent(db, store, payload, source, actor) {
   const stmt = db.prepare(
     `INSERT INTO order_events (store_id, order_id, submitted_at, month, order_total_cents, currency, item_count, source, raw_hash, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(store_id, order_id) DO UPDATE SET reconciled_at = excluded.submitted_at`
+     ON CONFLICT(store_id, order_id) DO UPDATE SET
+       reconciled_at = CASE WHEN excluded.source = 'reconciliation_backfill' THEN excluded.submitted_at ELSE order_events.reconciled_at END`
   );
   await stmt.bind(
     store.id,

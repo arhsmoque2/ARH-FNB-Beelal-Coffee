@@ -1,0 +1,46 @@
+name: Pre-Merge Quality Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  pre-merge-quality-gate:
+    name: Pre-Merge Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium (for layout auditor)
+        run: npx playwright install --with-deps chromium
+
+      - name: Serve this PR's checkout locally
+        run: |
+          python3 -m http.server 8080 --directory . &
+          echo $! > /tmp/static-server.pid
+          npx -y wait-on http://localhost:8080/index-v2.html
+
+      - name: Run Full Quality Gate Suite (Oxlint, UI/UX, Layout Auditor, Infra Doctor)
+        env:
+          # Point the Playwright layout auditor at THIS PR's own checkout, not the
+          # hardcoded live production URL it defaults to — otherwise it audits
+          # whatever is already deployed and can never catch a regression this PR
+          # introduces.
+          TARGET_URL: http://localhost:8080/index-v2.html
+        run: npm run check
+
+      - name: Stop local static server
+        if: always()
+        run: kill "$(cat /tmp/static-server.pid)" 2>/dev/null || true
