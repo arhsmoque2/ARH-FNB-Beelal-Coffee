@@ -24,9 +24,9 @@
  */
 
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Secret',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-Admin-Secret"
 };
 
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB — ~5s 720p at good quality
@@ -42,45 +42,49 @@ export default {
     const url = new URL(request.url);
 
     // Never allow repository/build control files to fall through to static assets.
-    if (url.pathname === '/.git' || url.pathname.startsWith('/.git/') ||
-        url.pathname === '/.wrangler' || url.pathname.startsWith('/.wrangler/')) {
-      return new Response('Not found', { status: 404 });
+    if (
+      url.pathname === "/.git" ||
+      url.pathname.startsWith("/.git/") ||
+      url.pathname === "/.wrangler" ||
+      url.pathname.startsWith("/.wrangler/")
+    ) {
+      return new Response("Not found", { status: 404 });
     }
 
-    if (request.method === 'OPTIONS') {
+    if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
     }
 
-    if (url.pathname === '/api/record-order') {
-      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+    if (url.pathname === "/api/record-order") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       return handleBillingProxy(request, env);
     }
 
-    if (url.pathname === '/api/parse-receipt') {
-      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+    if (url.pathname === "/api/parse-receipt") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       if (!ENABLE_GEMINI_RECEIPT_PARSER) {
-        return json({ error: 'Gemini receipt parsing is deliberately disabled.' }, 410);
+        return json({ error: "Gemini receipt parsing is deliberately disabled." }, 410);
       }
       return handleParseReceipt(request, env);
     }
 
-    if (url.pathname === '/api/upload/receipt') {
-      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+    if (url.pathname === "/api/upload/receipt") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       return handleReceiptUpload(request, env);
     }
 
-    if (url.pathname === '/api/upload/video') {
-      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+    if (url.pathname === "/api/upload/video") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       return handleVideoUpload(request, env);
     }
 
-    if (url.pathname === '/api/upload/image') {
-      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+    if (url.pathname === "/api/upload/image") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       return handleImageUpload(request, env);
     }
 
-    if (url.pathname.startsWith('/media/')) {
-      const key = url.pathname.slice('/media/'.length);
+    if (url.pathname.startsWith("/media/")) {
+      const key = url.pathname.slice("/media/".length);
       return serveMedia(key, request, env, ctx);
     }
 
@@ -89,7 +93,7 @@ export default {
 
   async scheduled(controller, env, ctx) {
     ctx.waitUntil(deleteExpiredReceipts(env));
-  },
+  }
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -97,55 +101,70 @@ export default {
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { ...CORS, "Content-Type": "application/json" }
   });
 }
 
 async function handleBillingProxy(request, env) {
-  if (!env.BILLING_SECRET) return json({ error: 'Billing proxy is not configured.' }, 503);
+  if (!env.BILLING_SECRET) return json({ error: "Billing proxy is not configured." }, 503);
 
   let body;
-  try { body = await request.json(); }
-  catch { return json({ error: 'Request body must be JSON.' }, 400); }
-
-  const required = ['store_slug', 'order_id', 'submitted_at', 'order_total_cents', 'currency', 'item_count'];
-  if (required.some((key) => body?.[key] === undefined || body?.[key] === null)) {
-    return json({ error: 'Incomplete billing event.' }, 400);
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Request body must be JSON." }, 400);
   }
 
-  const billingUrl = env.BILLING_WORKER_URL || 'https://fnb-billing-ledger.arh-homelab.workers.dev';
+  const required = [
+    "store_slug",
+    "order_id",
+    "submitted_at",
+    "order_total_cents",
+    "currency",
+    "item_count"
+  ];
+  if (required.some((key) => body?.[key] === undefined || body?.[key] === null)) {
+    return json({ error: "Incomplete billing event." }, 400);
+  }
+
+  const billingUrl = env.BILLING_WORKER_URL || "https://fnb-billing-ledger.arh-homelab.workers.dev";
   let upstream;
   try {
-    upstream = await fetch(`${billingUrl.replace(/\/$/, '')}/record-order`, {
-      method: 'POST',
+    upstream = await fetch(`${billingUrl.replace(/\/$/, "")}/record-order`, {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${env.BILLING_SECRET}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(body)
     });
-  } catch { return json({ error: 'Billing ledger request failed.' }, 502); }
+  } catch {
+    return json({ error: "Billing ledger request failed." }, 502);
+  }
 
-  if (!upstream.ok) return json({ error: 'Billing ledger rejected the event.' }, 502);
+  if (!upstream.ok) return json({ error: "Billing ledger rejected the event." }, 502);
   return json({ ok: true });
 }
 
 // FUTURE OPTION ONLY — deliberately unreachable while owner-confirmed payment is the policy.
 async function handleParseReceipt(request, env) {
-  if (!env.GEMINI_API_KEY) return json({ error: 'Receipt parser is not configured.' }, 503);
+  if (!env.GEMINI_API_KEY) return json({ error: "Receipt parser is not configured." }, 503);
 
   let body;
-  try { body = await request.json(); }
-  catch { return json({ error: 'Request body must be JSON.' }, 400); }
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Request body must be JSON." }, 400);
+  }
 
-  const imageBase64 = typeof body?.imageBase64 === 'string' ? body.imageBase64 : '';
-  const mimeType = typeof body?.mimeType === 'string' ? body.mimeType : 'image/jpeg';
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  const imageBase64 = typeof body?.imageBase64 === "string" ? body.imageBase64 : "";
+  const mimeType = typeof body?.mimeType === "string" ? body.mimeType : "image/jpeg";
+  const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
   if (!imageBase64 || !allowedMimeTypes.includes(mimeType)) {
-    return json({ error: 'Provide imageBase64 and a supported mimeType.' }, 400);
+    return json({ error: "Provide imageBase64 and a supported mimeType." }, 400);
   }
   if (imageBase64.length > 8 * 1024 * 1024) {
-    return json({ error: 'Receipt is too large. Use an image under 6 MB.' }, 413);
+    return json({ error: "Receipt is too large. Use an image under 6 MB." }, 413);
   }
 
   const prompt = `You are reading a Malaysian e-wallet or bank transfer payment receipt.
@@ -168,61 +187,78 @@ If a field is not visible, use null. Amount must be a number.`;
     upstream = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mimeType, data: imageBase64 } },
-          ] }],
-          generationConfig: { responseMimeType: 'application/json', temperature: 0 },
-        }),
-      },
+          contents: [
+            {
+              parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: imageBase64 } }]
+            }
+          ],
+          generationConfig: { responseMimeType: "application/json", temperature: 0 }
+        })
+      }
     );
-  } catch { return json({ error: 'Receipt parser upstream request failed.' }, 502); }
+  } catch {
+    return json({ error: "Receipt parser upstream request failed." }, 502);
+  }
 
-  if (!upstream.ok) return json({ error: 'Receipt parser upstream rejected the receipt.' }, 502);
+  if (!upstream.ok) return json({ error: "Receipt parser upstream rejected the receipt." }, 502);
 
   let payload;
-  try { payload = await upstream.json(); }
-  catch { return json({ error: 'Receipt parser returned invalid JSON.' }, 502); }
+  try {
+    payload = await upstream.json();
+  } catch {
+    return json({ error: "Receipt parser returned invalid JSON." }, 502);
+  }
 
   const text = payload?.candidates?.[0]?.content?.parts?.find((part) => part.text)?.text;
-  if (!text) return json({ error: 'No readable receipt data was found.' }, 422);
+  if (!text) return json({ error: "No readable receipt data was found." }, 422);
   try {
-    const parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, '').trim());
+    const parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, "").trim());
     return json(parsed);
-  } catch { return json({ error: 'Receipt parser returned an invalid result.' }, 422); }
+  } catch {
+    return json({ error: "Receipt parser returned an invalid result." }, 422);
+  }
 }
 
 async function handleReceiptUpload(request, env) {
-  if (!env.MEDIA_BUCKET) return json({ error: 'Receipt storage is not configured.' }, 503);
-  const contentLength = parseInt(request.headers.get('Content-Length') || '0', 10);
-  if (contentLength > MAX_RECEIPT_BYTES) return json({ error: 'Receipt is too large. Limit is 6 MB.' }, 413);
+  if (!env.MEDIA_BUCKET) return json({ error: "Receipt storage is not configured." }, 503);
+  const contentLength = parseInt(request.headers.get("Content-Length") || "0", 10);
+  if (contentLength > MAX_RECEIPT_BYTES)
+    return json({ error: "Receipt is too large. Limit is 6 MB." }, 413);
 
   let formData;
-  try { formData = await request.formData(); }
-  catch { return json({ error: 'Could not parse receipt upload.' }, 400); }
-  const file = formData.get('receipt');
-  const orderId = String(formData.get('order_id') || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 80);
-  if (!file || typeof file === 'string' || !orderId) return json({ error: 'Receipt and order_id are required.' }, 400);
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-  if (!allowed.includes(file.type)) return json({ error: 'Use a JPG, PNG, WebP, or PDF receipt.' }, 415);
+  try {
+    formData = await request.formData();
+  } catch {
+    return json({ error: "Could not parse receipt upload." }, 400);
+  }
+  const file = formData.get("receipt");
+  const orderId = String(formData.get("order_id") || "")
+    .replace(/[^a-z0-9_-]/gi, "")
+    .slice(0, 80);
+  if (!file || typeof file === "string" || !orderId)
+    return json({ error: "Receipt and order_id are required." }, 400);
+  const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+  if (!allowed.includes(file.type))
+    return json({ error: "Use a JPG, PNG, WebP, or PDF receipt." }, 415);
   const buffer = await file.arrayBuffer();
-  if (buffer.byteLength > MAX_RECEIPT_BYTES) return json({ error: 'Receipt is too large. Limit is 6 MB.' }, 413);
+  if (buffer.byteLength > MAX_RECEIPT_BYTES)
+    return json({ error: "Receipt is too large. Limit is 6 MB." }, 413);
 
   const now = Date.now();
   const expiresAt = now + RECEIPT_RETENTION_MS;
-  let ext = file.type.split('/')[1];
-  if (file.type === 'application/pdf') ext = 'pdf';
-  if (ext === 'jpeg') ext = 'jpg';
-  const key = 'receipts/' + orderId + '/' + now + '.' + ext;
+  let ext = file.type.split("/")[1];
+  if (file.type === "application/pdf") ext = "pdf";
+  if (ext === "jpeg") ext = "jpg";
+  const key = "receipts/" + orderId + "/" + now + "." + ext;
   await env.MEDIA_BUCKET.put(key, buffer, {
-    httpMetadata: { contentType: file.type, cacheControl: 'private, max-age=0, no-store' },
-    customMetadata: { 'order_id': orderId, 'uploaded_at': String(now), 'expires_at': String(expiresAt) },
+    httpMetadata: { contentType: file.type, cacheControl: "private, max-age=0, no-store" },
+    customMetadata: { order_id: orderId, uploaded_at: String(now), expires_at: String(expiresAt) }
   });
   const origin = new URL(request.url).origin;
-  return json({ 'url': origin + '/media/' + key, 'key': key, 'expires_at': expiresAt });
+  return json({ url: origin + "/media/" + key, key: key, expires_at: expiresAt });
 }
 
 async function deleteExpiredReceipts(env) {
@@ -230,7 +266,7 @@ async function deleteExpiredReceipts(env) {
   const now = Date.now();
   let cursor;
   do {
-    const page = await env.MEDIA_BUCKET.list({ prefix: 'receipts/', cursor });
+    const page = await env.MEDIA_BUCKET.list({ prefix: "receipts/", cursor });
     for (const object of page.objects || []) {
       const expiresAt = Number(object.customMetadata?.expires_at || 0);
       if (expiresAt && expiresAt <= now) await env.MEDIA_BUCKET.delete(object.key);
@@ -242,49 +278,58 @@ async function deleteExpiredReceipts(env) {
 // ── Upload handler ─────────────────────────────────────────────────────
 
 async function handleVideoUpload(request, env) {
-  const provided = request.headers.get('X-Admin-Secret') || '';
+  const provided = request.headers.get("X-Admin-Secret") || "";
   if (!env.UPLOAD_SECRET || provided !== env.UPLOAD_SECRET) {
-    return json({ error: 'Unauthorized. Set UPLOAD_SECRET via wrangler secret put.' }, 401);
+    return json({ error: "Unauthorized. Set UPLOAD_SECRET via wrangler secret put." }, 401);
   }
 
   // Fast pre-check on Content-Length before reading body
-  const contentLength = parseInt(request.headers.get('Content-Length') || '0', 10);
+  const contentLength = parseInt(request.headers.get("Content-Length") || "0", 10);
   if (contentLength > MAX_VIDEO_BYTES) {
-    return json({
-      error: `File too large: ${(contentLength / 1024 / 1024).toFixed(1)} MB sent. Limit is 5 MB (≈ 5s 720p).`,
-    }, 413);
+    return json(
+      {
+        error: `File too large: ${(contentLength / 1024 / 1024).toFixed(1)} MB sent. Limit is 5 MB (≈ 5s 720p).`
+      },
+      413
+    );
   }
 
   let formData;
-  try { formData = await request.formData(); }
-  catch { return json({ error: 'Could not parse multipart upload.' }, 400); }
+  try {
+    formData = await request.formData();
+  } catch {
+    return json({ error: "Could not parse multipart upload." }, 400);
+  }
 
-  const file = formData.get('video');
-  if (!file || typeof file === 'string') {
+  const file = formData.get("video");
+  if (!file || typeof file === "string") {
     return json({ error: 'No video file attached. Use field name "video".' }, 400);
   }
 
-  const allowed = ['video/mp4', 'video/webm', 'video/quicktime'];
+  const allowed = ["video/mp4", "video/webm", "video/quicktime"];
   if (!allowed.includes(file.type)) {
     return json({ error: `Unsupported format: ${file.type}. Use MP4 or WebM.` }, 415);
   }
 
   const buffer = await file.arrayBuffer();
   if (buffer.byteLength > MAX_VIDEO_BYTES) {
-    return json({
-      error: `File too large: ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB. Limit is 5 MB (≈ 5s 720p).`,
-    }, 413);
+    return json(
+      {
+        error: `File too large: ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB. Limit is 5 MB (≈ 5s 720p).`
+      },
+      413
+    );
   }
 
-  const rawId = (formData.get('item_id') || 'item').replace(/[^a-z0-9_-]/gi, '').slice(0, 40);
-  const ext   = file.type === 'video/webm' ? 'webm' : 'mp4';
+  const rawId = (formData.get("item_id") || "item").replace(/[^a-z0-9_-]/gi, "").slice(0, 40);
+  const ext = file.type === "video/webm" ? "webm" : "mp4";
   const filename = `clips/${rawId}_${Date.now()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(filename, buffer, {
     httpMetadata: {
       contentType: file.type,
-      cacheControl: 'public, max-age=31536000, immutable',
-    },
+      cacheControl: "public, max-age=31536000, immutable"
+    }
   });
 
   const origin = new URL(request.url).origin;
@@ -294,49 +339,58 @@ async function handleVideoUpload(request, env) {
 // ── Image upload handler ───────────────────────────────────────────────
 
 async function handleImageUpload(request, env) {
-  const provided = request.headers.get('X-Admin-Secret') || '';
+  const provided = request.headers.get("X-Admin-Secret") || "";
   if (!env.UPLOAD_SECRET || provided !== env.UPLOAD_SECRET) {
-    return json({ error: 'Unauthorized. Set UPLOAD_SECRET via wrangler secret put.' }, 401);
+    return json({ error: "Unauthorized. Set UPLOAD_SECRET via wrangler secret put." }, 401);
   }
 
-  const contentLength = parseInt(request.headers.get('Content-Length') || '0', 10);
+  const contentLength = parseInt(request.headers.get("Content-Length") || "0", 10);
   if (contentLength > MAX_IMAGE_BYTES) {
-    return json({
-      error: `File too large: ${(contentLength / 1024 / 1024).toFixed(1)} MB sent. Limit is 2 MB.`,
-    }, 413);
+    return json(
+      {
+        error: `File too large: ${(contentLength / 1024 / 1024).toFixed(1)} MB sent. Limit is 2 MB.`
+      },
+      413
+    );
   }
 
   let formData;
-  try { formData = await request.formData(); }
-  catch { return json({ error: 'Could not parse multipart upload.' }, 400); }
+  try {
+    formData = await request.formData();
+  } catch {
+    return json({ error: "Could not parse multipart upload." }, 400);
+  }
 
-  const file = formData.get('image');
-  if (!file || typeof file === 'string') {
+  const file = formData.get("image");
+  if (!file || typeof file === "string") {
     return json({ error: 'No image file attached. Use field name "image".' }, 400);
   }
 
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   if (!allowed.includes(file.type)) {
     return json({ error: `Unsupported format: ${file.type}. Use JPEG, PNG, or WebP.` }, 415);
   }
 
   const buffer = await file.arrayBuffer();
   if (buffer.byteLength > MAX_IMAGE_BYTES) {
-    return json({
-      error: `File too large: ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB. Limit is 2 MB.`,
-    }, 413);
+    return json(
+      {
+        error: `File too large: ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB. Limit is 2 MB.`
+      },
+      413
+    );
   }
 
-  const rawId    = (formData.get('item_id') || 'img').replace(/[^a-z0-9_-]/gi, '').slice(0, 40);
-  const extMap   = { 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
-  const ext      = extMap[file.type] || 'jpg';
+  const rawId = (formData.get("item_id") || "img").replace(/[^a-z0-9_-]/gi, "").slice(0, 40);
+  const extMap = { "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
+  const ext = extMap[file.type] || "jpg";
   const filename = `images/${rawId}_${Date.now()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(filename, buffer, {
     httpMetadata: {
       contentType: file.type,
-      cacheControl: 'public, max-age=31536000, immutable',
-    },
+      cacheControl: "public, max-age=31536000, immutable"
+    }
   });
 
   const origin = new URL(request.url).origin;
@@ -348,9 +402,9 @@ async function handleImageUpload(request, env) {
 // served from Cloudflare's cache — no R2 Class B reads consumed.
 
 async function serveMedia(key, request, env, ctx) {
-  if (!key) return new Response('Not found', { status: 404 });
+  if (!key) return new Response("Not found", { status: 404 });
 
-  const cache    = caches.default;
+  const cache = caches.default;
   const cacheKey = new Request(request.url, request);
 
   // Return cached response if available
@@ -359,20 +413,23 @@ async function serveMedia(key, request, env, ctx) {
 
   // Fetch from R2
   const obj = await env.MEDIA_BUCKET.get(key);
-  if (!obj) return new Response('Not found', { status: 404 });
+  if (!obj) return new Response("Not found", { status: 404 });
 
-  if (key.startsWith('receipts/')) {
+  if (key.startsWith("receipts/")) {
     const expiresAt = Number(obj.customMetadata?.expires_at || 0);
     if (expiresAt && expiresAt <= Date.now()) {
       ctx.waitUntil(env.MEDIA_BUCKET.delete(key));
-      return new Response('Receipt expired', { status: 410 });
+      return new Response("Receipt expired", { status: 410 });
     }
   }
 
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
-  headers.set('Cache-Control', key.startsWith('receipts/') ? 'private, no-store' : 'public, max-age=31536000, immutable');
-  headers.set('Access-Control-Allow-Origin', '*');
+  headers.set(
+    "Cache-Control",
+    key.startsWith("receipts/") ? "private, no-store" : "public, max-age=31536000, immutable"
+  );
+  headers.set("Access-Control-Allow-Origin", "*");
 
   const response = new Response(obj.body, { headers });
 

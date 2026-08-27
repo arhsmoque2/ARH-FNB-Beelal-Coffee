@@ -20,7 +20,7 @@ Orders confirm/reject for the owner) is **merged into `main` of this repo**
 
 **But this repo may not be what's actually serving
 `https://store-beelal-fnb-pwa.arh-homelab.workers.dev`.** Per `handoff.md`
-§0, that URL follows the *old* fleet's naming convention
+§0, that URL follows the _old_ fleet's naming convention
 (`store-<name>-fnb-pwa`), which is what the old `fnb-pwa` Cloudflare project
 generates for the `store/beelal` branch of the old repo
 (`arhsmoque/arh-fnb-webapp` — note: different GitHub owner, `arhsmoque`, not
@@ -123,7 +123,7 @@ git apply --3way /tmp/qr-payment.diff
 
 If `git apply` fails because the old repo's files have diverged (different
 line numbers/content since the 2026-08-22 fork), don't force it — open both
-files side by side and port the *logic* by hand instead:
+files side by side and port the _logic_ by hand instead:
 
 - The full before/after is also viewable directly at
   https://github.com/arhsmoque2/ARH-FNB-Beelal-Coffee/commit/e10e36fe1785d1c1245ff5e61b9423c6c45ea005

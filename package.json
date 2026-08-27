@@ -5,16 +5,45 @@
   "type": "module",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
-    "lint": "npx -y oxlint@latest",
+    "lint": "oxlint",
+    "check:spelling": "cspell --no-progress \"**/*\"",
+    "check:md": "markdownlint-cli2",
+    "check:knip": "knip",
+    "check:prettier": "prettier --check --ignore-unknown .",
+    "fix:prettier": "prettier --write --ignore-unknown .",
+    "fix:md": "markdownlint-cli2 --fix",
     "check:ui": "node _qa/beelal-ui-ux-quality-gate.mjs",
     "check:infra": "node _qa/infra-doctor.mjs",
     "check:live": "node _qa/beelal-live-healthcheck.mjs",
     "check:layout": "node _qa/beelal-layout-audit.mjs",
     "preview:generate": "node _qa/preview-generator.mjs",
-    "check": "npm run lint && npm run check:ui && npm run check:layout && npm run check:infra",
+    "check": "npm run lint && npm run check:spelling && npm run check:md && npm run check:knip && npm run check:prettier && npm run check:ui && npm run check:layout && npm run check:infra",
     "test": "npm run check"
   },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,json,yaml,yml}": [
+      "prettier --write --ignore-unknown"
+    ],
+    "*.md": [
+      "markdownlint-cli2 --fix",
+      "prettier --write --ignore-unknown"
+    ]
+  },
   "devDependencies": {
-    "playwright": "^1.62.1"
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "cspell": "^10.1.1",
+    "execa": "^9.6.0",
+    "knip": "^6.32.3",
+    "lint-staged": "^17.4.1",
+    "markdownlint-cli2": "^0.23.2",
+    "oxlint": "^1.80.0",
+    "playwright": "^1.62.1",
+    "prettier": "^3.9.6"
   }
 }

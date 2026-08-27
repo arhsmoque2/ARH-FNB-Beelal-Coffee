@@ -5,19 +5,21 @@
  * Reusable ephemeral preview generator incorporating patterns from PinPoint, Annotask, and Redline.js.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
-const repoRoot = process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(import.meta.dirname, '..');
-const outPath = path.join(repoRoot, 'preview.html');
+const repoRoot = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : path.resolve(import.meta.dirname, "..");
+const outPath = path.join(repoRoot, "preview.html");
 
-console.log('\n======================================================');
-console.log('  🎨 [BEELAL UI STUDIO] Generating Ephemeral UI Mockup');
-console.log('  Source Shell: index-v2.html');
-console.log('  Destination : preview.html');
-console.log('======================================================\n');
+console.log("\n======================================================");
+console.log("  🎨 [BEELAL UI STUDIO] Generating Ephemeral UI Mockup");
+console.log("  Source Shell: index-v2.html");
+console.log("  Destination : preview.html");
+console.log("======================================================\n");
 
-const sourceHtml = fs.readFileSync(path.join(repoRoot, 'index-v2.html'), 'utf-8');
+const sourceHtml = fs.readFileSync(path.join(repoRoot, "index-v2.html"), "utf-8");
 
 const modernStyles = `
 /* --- BEELAL MODERN UI ENHANCEMENTS (Injected Ephemeral Preview) --- */
@@ -68,12 +70,16 @@ const modernStyles = `
 }
 `;
 
-const ribbonHtml = '<div class="announcement-ribbon" id="liveAnnouncement"><span class="announcement-dot"></span><span><strong>Beelal Coffee Live Preview</strong> • 100% Arabica Specialty Roasts • Fast WhatsApp & QR Checkout</span></div>';
-const inspectorScript = '<script>(function(){const params=new URLSearchParams(window.location.search);if(params.has("inspect")||params.has("preview")){const b=document.createElement("div");b.className="redline-badge";b.innerHTML="<span>🔍 UI PREVIEW ACTIVE</span> • <span>Tap Target: 44px OK</span>";document.body.appendChild(b);}})();</script>';
+const ribbonHtml =
+  '<div class="announcement-ribbon" id="liveAnnouncement"><span class="announcement-dot"></span><span><strong>Beelal Coffee Live Preview</strong> • 100% Arabica Specialty Roasts • Fast WhatsApp & QR Checkout</span></div>';
+const inspectorScript =
+  '<script>(function(){const params=new URLSearchParams(window.location.search);if(params.has("inspect")||params.has("preview")){const b=document.createElement("div");b.className="redline-badge";b.innerHTML="<span>🔍 UI PREVIEW ACTIVE</span> • <span>Tap Target: 44px OK</span>";document.body.appendChild(b);}})();</script>';
 
-let enhanced = sourceHtml.replace('</style>', modernStyles + '\n</style>');
-enhanced = enhanced.replace('<body>', '<body>\n' + ribbonHtml);
-enhanced = enhanced.replace('</body>', inspectorScript + '\n</body>');
+let enhanced = sourceHtml.replace("</style>", modernStyles + "\n</style>");
+enhanced = enhanced.replace("<body>", "<body>\n" + ribbonHtml);
+enhanced = enhanced.replace("</body>", inspectorScript + "\n</body>");
 
-fs.writeFileSync(outPath, enhanced, 'utf-8');
-console.log('  ✅ [PASS] Generated ephemeral preview: preview.html (' + enhanced.length + ' bytes)\n');
+fs.writeFileSync(outPath, enhanced, "utf-8");
+console.log(
+  "  ✅ [PASS] Generated ephemeral preview: preview.html (" + enhanced.length + " bytes)\n"
+);
