@@ -83,7 +83,7 @@ whole migration" or "just confirm and document what's already in place."
 
 Just document it: update `AGENTS.md`/`README.md` to state explicitly that the CF project
 migration is complete (it currently reads as aspirational, not confirmed), and still work
-through steps 2–3 above as a *verification* pass (confirm secrets/bindings are actually
+through steps 2–3 above as a _verification_ pass (confirm secrets/bindings are actually
 present on the live project, not assumed) rather than a fresh setup.
 
 ### What I could not do from the sandbox and why
@@ -98,12 +98,12 @@ itself next time, instead of needing a local agent for it.
 
 ## 1. What this session fixed (safe, mechanical, done from the sandbox)
 
-| Fix | File | Why |
-|---|---|---|
-| Quality gate no longer silently vacuous | `_qa/beelal-ui-ux-quality-gate.mjs` | Gates 2–4 pointed at `v2/index.html`, which doesn't exist in this repo (files are flat). They were being skipped entirely while the script still printed "All Gates PASSED". Now Gates 2, 3, 4, 5 run against **both** `index-legacy.html` and `index-v2.html`, per-file, instead of guessing which is "the" storefront. |
-| Removed dead gate-gaming code | `index.html` | A hidden `<script style="display:none">` block plus HTML comments referenced `verify-menu-schema-contract.py` / `verify-html-static-contract.py` — Python verifier scripts that don't exist anywhere in this repo (leftover from the parent fleet template). It also stubbed a fake `function sendOrder() { window.open(); }`. Deleted; the file is now just the redirect shim it claims to be. |
-| Stale branding | `observatory.html` | `<title>` said "Woodfire" (a different store's leftover branding). Changed to "Beelal Coffee". |
-| README rewritten | `README.md` | Described the old multi-branch fleet setup (`store/beelal`, `store/therizz`, shared `fnb-pwa` CF project) that no longer applies to this standalone repo. Rewritten to match `AGENTS.md` and current file layout, and now documents the two open items below instead of hiding them. |
+| Fix                                     | File                                | Why                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quality gate no longer silently vacuous | `_qa/beelal-ui-ux-quality-gate.mjs` | Gates 2–4 pointed at `v2/index.html`, which doesn't exist in this repo (files are flat). They were being skipped entirely while the script still printed "All Gates PASSED". Now Gates 2, 3, 4, 5 run against **both** `index-legacy.html` and `index-v2.html`, per-file, instead of guessing which is "the" storefront.                                                                        |
+| Removed dead gate-gaming code           | `index.html`                        | A hidden `<script style="display:none">` block plus HTML comments referenced `verify-menu-schema-contract.py` / `verify-html-static-contract.py` — Python verifier scripts that don't exist anywhere in this repo (leftover from the parent fleet template). It also stubbed a fake `function sendOrder() { window.open(); }`. Deleted; the file is now just the redirect shim it claims to be. |
+| Stale branding                          | `observatory.html`                  | `<title>` said "Woodfire" (a different store's leftover branding). Changed to "Beelal Coffee".                                                                                                                                                                                                                                                                                                  |
+| README rewritten                        | `README.md`                         | Described the old multi-branch fleet setup (`store/beelal`, `store/therizz`, shared `fnb-pwa` CF project) that no longer applies to this standalone repo. Rewritten to match `AGENTS.md` and current file layout, and now documents the two open items below instead of hiding them.                                                                                                            |
 
 Quality gate initially correctly **failed** (14 errors) because `index-legacy.html` was
 missing the modern cart-stepper/UEQ features that `index-v2.html` has — real signal, not a
@@ -125,14 +125,14 @@ This unblocks: the quality gate now runs against `index-v2.html` only and passes
 These are things I identified but could **not** safely fix from this sandbox — each needs
 either a decision only the owner can make, or credentials/access this session doesn't have.
 
-| # | Item | Why I didn't do it | Who/what's needed |
-|---|---|---|---|
-| 1 | ~~Rotate & relocate `config.js` → `billing.secret`~~ | ✅ Done — server-side proxy uses `BILLING_SECRET`, which is provisioned on `beelal-coffee` and encrypted in SOPS. | — |
-| 2 | ~~Wire up `MEDIA_BUCKET` R2 binding~~ | ✅ Done — binding points at `arh-fnb-beelal-media`, which was created and verified. | — |
-| 3 | ~~Resolve live storefront file~~ | ✅ Done — see §2 | — |
-| 4 | Implement payment flow | ✅ Local implementation complete: owner-confirmed receipt lifecycle, Tesseract transcription aid, and 30-day receipt cleanup. | Live smoke test after deployment |
-| 5 | Wire CI to the quality gate | Now safe to add — the gate passes cleanly against the confirmed live file (§2). A GitHub Actions workflow running `node _qa/beelal-ui-ux-quality-gate.mjs` on PRs is a ~10-minute add whenever wanted. | Nothing blocking |
-| 6 | Firebase security rules review | `config.js`/`worker.js` reference read/write patterns but the actual `database.rules.json` (or console-configured rules) isn't in this repo, so I can't audit what's actually enforced server-side. | Export of current Firebase RTDB rules, or console access |
+| #   | Item                                                 | Why I didn't do it                                                                                                                                                                                     | Who/what's needed                                        |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| 1   | ~~Rotate & relocate `config.js` → `billing.secret`~~ | ✅ Done — server-side proxy uses `BILLING_SECRET`, which is provisioned on `beelal-coffee` and encrypted in SOPS.                                                                                      | —                                                        |
+| 2   | ~~Wire up `MEDIA_BUCKET` R2 binding~~                | ✅ Done — binding points at `arh-fnb-beelal-media`, which was created and verified.                                                                                                                    | —                                                        |
+| 3   | ~~Resolve live storefront file~~                     | ✅ Done — see §2                                                                                                                                                                                       | —                                                        |
+| 4   | Implement payment flow                               | ✅ Local implementation complete: owner-confirmed receipt lifecycle, Tesseract transcription aid, and 30-day receipt cleanup.                                                                          | Live smoke test after deployment                         |
+| 5   | Wire CI to the quality gate                          | Now safe to add — the gate passes cleanly against the confirmed live file (§2). A GitHub Actions workflow running `node _qa/beelal-ui-ux-quality-gate.mjs` on PRs is a ~10-minute add whenever wanted. | Nothing blocking                                         |
+| 6   | Firebase security rules review                       | `config.js`/`worker.js` reference read/write patterns but the actual `database.rules.json` (or console-configured rules) isn't in this repo, so I can't audit what's actually enforced server-side.    | Export of current Firebase RTDB rules, or console access |
 
 ## 4. What I'd need supplied directly to this repo for full sandbox independence
 
@@ -157,10 +157,10 @@ system proof, the remaining checks are:
 4. **A CI workflow secret set** (GitHub Actions repo secrets) if/when the quality
    gate gets wired into CI (§3.5) and later a `wrangler deploy` step is added — otherwise CI
    can only ever run the static gate, never verify an actual deploy.
-None of the above lets me bypass asking before destructive/production actions (secret
-rotation, etc.) — I'd still confirm those — but it would let me *verify* my work against the
-real system instead of reasoning from source code alone, and get from "plausible" to "tested"
-without a round-trip through a local machine.
+   None of the above lets me bypass asking before destructive/production actions (secret
+   rotation, etc.) — I'd still confirm those — but it would let me _verify_ my work against the
+   real system instead of reasoning from source code alone, and get from "plausible" to "tested"
+   without a round-trip through a local machine.
 
 ---
 
@@ -178,6 +178,7 @@ original authoring machine and don't apply to this sandboxed repo; treat everyth
 still-valid design.
 
 ### Firebase
+
 - URL: `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`
 - Root: `beelal_coffee`
 - Orders path: `beelal_coffee/orders`
@@ -188,20 +189,23 @@ still-valid design.
 Add `POST /api/parse-receipt` handler. No auth needed (customer-facing).
 
 **Request body:**
+
 ```json
 { "imageBase64": "<base64 string>", "mimeType": "image/jpeg" }
 ```
 
 **What it does:**
+
 - Calls Gemini Vision (`gemini-2.5-flash`) with the image
 - Prompt instructs it to extract: transaction_ref, amount, date, time, bank_or_wallet, to_account, from_account
 - Returns structured JSON
 
 **Response:**
+
 ```json
 {
   "transaction_ref": "TXN20260610143201",
-  "amount": 27.50,
+  "amount": 27.5,
   "date": "2026-06-10",
   "time": "14:32",
   "bank_or_wallet": "Touch 'n Go",
@@ -212,6 +216,7 @@ Add `POST /api/parse-receipt` handler. No auth needed (customer-facing).
 ```
 
 **Gemini prompt to use:**
+
 ```
 You are reading a Malaysian e-wallet or bank transfer payment receipt screenshot.
 Extract ONLY these fields as JSON (no markdown, no explanation):
@@ -230,14 +235,16 @@ If a field is not visible, use null. Amount must be a number.
 
 **Needs secret:** `GEMINI_API_KEY` (see §4.4 above for how this should reach the sandbox).
 Set it on the Worker with:
+
 ```
 npx wrangler secret put GEMINI_API_KEY
 ```
 
 **Add to router in `worker.js`:**
+
 ```js
-if (url.pathname === '/api/parse-receipt') {
-  if (request.method !== 'POST') return json({ error: 'POST only' }, 405);
+if (url.pathname === "/api/parse-receipt") {
+  if (request.method !== "POST") return json({ error: "POST only" }, 405);
   return handleParseReceipt(request, env);
 }
 ```
@@ -247,6 +254,7 @@ if (url.pathname === '/api/parse-receipt') {
 ### Step 2 — `config.js`: Add payment config block
 
 In `APP_CONFIG`, add after `checkout`:
+
 ```js
 payment: {
   methods: ['cash', 'qr', 'bank_transfer'],
@@ -264,11 +272,13 @@ payment: {
 #### 3a. After "Send Order" button, insert a payment method picker step
 
 The existing cart sheet has this flow:
+
 ```
 Cart list → Name/Note fields → [Send Order via WhatsApp]
 ```
 
 Change to:
+
 ```
 Cart list → Name/Note fields → [Place Order] → payment picker sheet
 ```
@@ -276,17 +286,21 @@ Cart list → Name/Note fields → [Place Order] → payment picker sheet
 **Important:** The existing `sendOrder()` calls `window.open(wa.me...)` synchronously (before any await) because iOS Safari blocks popups after async. For Cash method only, still open WhatsApp for order notification. For QR and Bank Transfer, no WhatsApp at order time — WhatsApp opens only when admin confirms.
 
 #### 3b. Payment method picker (new sheet/step)
+
 Three cards stacked:
+
 - 💵 **Cash** — "Pay on pickup or delivery"
 - 📱 **QR Pay** — "Scan with any banking app or e-wallet"
 - 🏦 **Bank Transfer** — "Transfer and upload proof"
 
 #### 3c. Cash flow
+
 - Write order to Firebase with `payment_method: "cash", payment_status: "cash_pending"`
 - Show confirmation: "Order placed! Pay RM XX.XX on collection. We'll prepare your order."
 - Open WhatsApp notification to store: "New cash order from [name] — RM XX.XX"
 
 #### 3d. QR flow
+
 - Read `config/payment_settings/qr_image_url` from Firebase (or fall back to `APP_CONFIG.payment.qr_image_url`)
 - Display QR image full-width with store name and order total above
 - Download button: `<a download="beelal-qr.png" href="{qr_url}">Save QR to phone</a>`
@@ -294,28 +308,36 @@ Three cards stacked:
 - Show waiting screen: "Payment submitted! We'll confirm shortly."
 
 #### 3e. Bank Transfer flow
+
 Step 1 — Show bank details:
+
 ```
 Bank:    {bank_name}
 Account: {account_number}
 Name:    {account_name}
 Amount:  RM {total}
 ```
+
 "Copy account number" button.
 
 Step 2 — Receipt upload:
+
 - `<input type="file" accept="image/*" capture="environment">` (opens camera on mobile)
 - On file select: read as base64, POST to `/api/parse-receipt`
 - Show spinner: "Reading your receipt..."
 - On success: show parsed result for customer to verify:
+
   ```
   ✅ We read: RM 27.50 · TXN20260610143201 · Touch 'n Go
   [Looks right — Submit Proof]  [Re-upload]
   ```
+
 - On parse failure/low confidence: show "Could not read receipt automatically" + still allow manual submission with a note field
 
 Step 3 — On "Submit Proof":
+
 - Write order with:
+
   ```js
   payment_method: "bank_transfer",
   payment_status: "awaiting_confirmation",
@@ -326,10 +348,13 @@ Step 3 — On "Submit Proof":
     parsed_at: Date.now()
   }
   ```
+
 - Show: "Proof submitted! Waiting for confirmation."
 
 #### 3f. Waiting/confirmation screen
+
 Common to QR and Bank Transfer after submission:
+
 ```
 ⏳ Awaiting confirmation
 Your order has been received. The store owner
@@ -338,7 +363,9 @@ will confirm your payment shortly.
 Order: [name] — RM [total]
 [items summary]
 ```
+
 Auto-poll Firebase every 10s for `payment_status === "confirmed"`. On confirmed, show:
+
 ```
 ✅ Order Confirmed!
 [items summary]
@@ -353,6 +380,7 @@ Auto-poll Firebase every 10s for `payment_status === "confirmed"`. On confirmed,
 Modify `loadOrders()` to show for each order:
 
 **Status badge** (colour-coded):
+
 - `cash_pending` → yellow "Cash · Pending"
 - `awaiting_confirmation` → orange "QR/Bank · Awaiting"
 - `confirmed` → green "Confirmed"
@@ -360,6 +388,7 @@ Modify `loadOrders()` to show for each order:
 - (no payment_method) → grey "Legacy order"
 
 **Payment proof block** (only if `payment_proof` exists):
+
 ```
 Ref: TXN20260610143201
 Paid: RM 27.50 · Touch 'n Go · 2026-06-10 14:32
@@ -367,6 +396,7 @@ Paid: RM 27.50 · Touch 'n Go · 2026-06-10 14:32
 ```
 
 **Action buttons** (only if `payment_status === "awaiting_confirmation"`):
+
 - ✅ Confirm → sets `payment_status: "confirmed"` → opens WhatsApp:
   `"✅ Order confirmed, [name]! Your order of RM [total] is being prepared. Thank you!"`
 - ❌ Reject → prompt for reason → sets `payment_status: "rejected"` + stores reason → opens WhatsApp:
@@ -377,6 +407,7 @@ Paid: RM 27.50 · Touch 'n Go · 2026-06-10 14:32
 #### 4b. Payment Settings section (new tab or under Store Info)
 
 Form fields:
+
 - QR Image: file upload → converts to base64 → saves to `config/payment_settings/qr_image_url`
   (or upload via existing image-upload infrastructure already in admin.html)
 - Bank Name (text input)
@@ -389,6 +420,7 @@ Form fields:
 ## Firebase Rules
 
 Add to rules (wherever they're managed):
+
 ```json
 "config": {
   "payment_settings": {
@@ -397,6 +429,7 @@ Add to rules (wherever they're managed):
   }
 }
 ```
+
 Payment settings are public-read (customer needs QR/bank details) but write-protected (admin only via secret or Firebase Auth).
 
 ---

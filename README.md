@@ -10,10 +10,10 @@ package manager, no CI.
 
 ## Live Deployment
 
-| | |
-|---|---|
-| CF project | `beelal-coffee` |
-| Live URL | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
+|                |                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| CF project     | `beelal-coffee`                                                                                 |
+| Live URL       | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev`                                          |
 | Deploy trigger | Push to `main` — Cloudflare Workers builds automatically (Workers Assets, see `wrangler.jsonc`) |
 
 ## Live Storefront
@@ -25,23 +25,24 @@ live app; treat this README and `AGENTS.md` as current over that older note.
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `config.js` | The only file store owners edit — all business/branding settings (menu, theme, contact, Firebase namespace) |
-| `index.html` | Redirect shim → `index-v2.html` |
-| `index-v2.html` | **Live storefront** — customer-facing menu, cart, checkout |
-| `admin.html` | Owner/developer admin panel |
-| `dev-console.html` | Developer diagnostics console |
-| `observatory.html` | Client-side error log viewer |
-| `guide.html` | Owner reference guide (Malay) |
-| `worker.js` | Cloudflare Worker — R2-backed media upload/serve routes, falls through to static assets otherwise |
-| `wrangler.jsonc` | Cloudflare Workers project config for this deployment |
-| `migrate-photos.js` | One-off Firebase photo migration script |
-| `_qa/beelal-ui-ux-quality-gate.mjs` | Static HTML quality gate — run with `node _qa/beelal-ui-ux-quality-gate.mjs` before pushing UI changes |
+| File                                | Purpose                                                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `config.js`                         | The only file store owners edit — all business/branding settings (menu, theme, contact, Firebase namespace) |
+| `index.html`                        | Redirect shim → `index-v2.html`                                                                             |
+| `index-v2.html`                     | **Live storefront** — customer-facing menu, cart, checkout                                                  |
+| `admin.html`                        | Owner/developer admin panel                                                                                 |
+| `dev-console.html`                  | Developer diagnostics console                                                                               |
+| `observatory.html`                  | Client-side error log viewer                                                                                |
+| `guide.html`                        | Owner reference guide (Malay)                                                                               |
+| `worker.js`                         | Cloudflare Worker — R2-backed media upload/serve routes, falls through to static assets otherwise           |
+| `wrangler.jsonc`                    | Cloudflare Workers project config for this deployment                                                       |
+| `migrate-photos.js`                 | One-off Firebase photo migration script                                                                     |
+| `_qa/beelal-ui-ux-quality-gate.mjs` | Static HTML quality gate — run with `node _qa/beelal-ui-ux-quality-gate.mjs` before pushing UI changes      |
 
 ## Infrastructure
 
 ### Cloudflare Workers
+
 - **Project:** `beelal-coffee`, serves static assets from repo root plus the upload/media
   routes in `worker.js`.
 - **Required secret:** `UPLOAD_SECRET` (set via `wrangler secret put UPLOAD_SECRET`) — gates
@@ -51,6 +52,7 @@ live app; treat this README and `AGENTS.md` as current over that older note.
   the binding is added there (or confirmed to already exist via the CF dashboard).
 
 ### Firebase Realtime Database
+
 - **URL:** `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`
   (shared instance — do not create a new project)
 - **Root:** `beelal_coffee` — never change this; it would orphan all live order/menu data.
@@ -58,6 +60,7 @@ live app; treat this README and `AGENTS.md` as current over that older note.
   does not change what live customers see.
 
 ### Billing
+
 - `config.js` keeps only the public billing ledger URL.
 - Billing authorization is server-side through `POST /api/record-order`.
 - Provision `BILLING_SECRET` on the Beelal Worker before enabling ledger writes.
@@ -78,6 +81,7 @@ node _qa/beelal-ui-ux-quality-gate.mjs
 ```
 
 Checks (against `index-v2.html`, plus `index.html`/`admin.html` for syntax balance):
+
 1. `<script>`/`<style>` tag balance across all HTML entrypoints
 2. Mobile viewport, floating-cart positioning, touch-target CSS
 3. Basic a11y (Escape handlers, aria-labels, accessible form inputs, reduced-motion)
@@ -91,12 +95,12 @@ to run it automatically; run it manually before pushing UI changes.
 
 ## Recovery
 
-| Problem | Fix |
-|---|---|
-| Owner forgot PIN | Dev PIN → Security tab → reset Owner PIN |
-| Theme broken | Dev PIN → AI Studio → Factory Reset |
-| Redeploy needed | Push any commit to `main` |
-| Debug errors | Dev PIN → Dev tab → Error Log, or `observatory.html` |
+| Problem          | Fix                                                  |
+| ---------------- | ---------------------------------------------------- |
+| Owner forgot PIN | Dev PIN → Security tab → reset Owner PIN             |
+| Theme broken     | Dev PIN → AI Studio → Factory Reset                  |
+| Redeploy needed  | Push any commit to `main`                            |
+| Debug errors     | Dev PIN → Dev tab → Error Log, or `observatory.html` |
 
 ## Architecture
 

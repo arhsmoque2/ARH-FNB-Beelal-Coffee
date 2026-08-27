@@ -11,46 +11,47 @@ Context file for AI agents. Read this before making any changes to this repo.
 
 **Beelal Coffee** is a small Malaysian coffee shop specialising in medium dark roast 100% Arabica espresso-based drinks, baguette and club sandwiches, pasta, and western-style mains.
 
-| Field | Value |
-|---|---|
-| Store name | Beelal Coffee |
-| Concept | Specialty coffee + light food + pasta |
-| Phone (WhatsApp) | 60122203743 |
-| Hours | 8:00 AM – 10:00 PM daily |
-| Currency | RM |
-| Language | en-MY (Malay / English mix) |
+| Field            | Value                                 |
+| ---------------- | ------------------------------------- |
+| Store name       | Beelal Coffee                         |
+| Concept          | Specialty coffee + light food + pasta |
+| Phone (WhatsApp) | 60122203743                           |
+| Hours            | 8:00 AM – 10:00 PM daily              |
+| Currency         | RM                                    |
+| Language         | en-MY (Malay / English mix)           |
 
 ---
 
 ## Infrastructure
 
-| Field | Value |
-|---|---|
-| Repo | `https://github.com/arhsmoque2/ARH-FNB-Beelal-Coffee` |
-| Branch | `main` (production deployment branch) |
-| Live URL | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev` |
-| CF project | `store-beelal-fnb-pwa` (standalone Cloudflare Workers project) |
-| R2 Bucket | `arh-fnb-beelal-media` (`MEDIA_BUCKET` binding) |
-| Firebase root | `beelal_coffee` |
-| Firebase URL | `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app` |
-| ADR | [`adr/ADR-001`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-001-standalone-repo-cutover-and-live-healthcheck.md), [`adr/ADR-002`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-002-modern-ui-architecture-and-agent-preview-studio.md) |
+| Field         | Value                                                                                                                                                                                                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo          | `https://github.com/arhsmoque2/ARH-FNB-Beelal-Coffee`                                                                                                                                                                                                                       |
+| Branch        | `main` (production deployment branch)                                                                                                                                                                                                                                       |
+| Live URL      | `https://store-beelal-fnb-pwa.arh-homelab.workers.dev`                                                                                                                                                                                                                      |
+| CF project    | `store-beelal-fnb-pwa` (standalone Cloudflare Workers project)                                                                                                                                                                                                              |
+| R2 Bucket     | `arh-fnb-beelal-media` (`MEDIA_BUCKET` binding)                                                                                                                                                                                                                             |
+| Firebase root | `beelal_coffee`                                                                                                                                                                                                                                                             |
+| Firebase URL  | `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`                                                                                                                                                                                              |
+| ADR           | [`adr/ADR-001`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-001-standalone-repo-cutover-and-live-healthcheck.md), [`adr/ADR-002`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/adr/ADR-002-modern-ui-architecture-and-agent-preview-studio.md) |
 
 ---
 
 ## Menu Structure
 
-| Category | ID | Items | Notes |
-|---|---|---|---|
-| Coffee | `coffee` | 12 | HOT / COLD / FRAPPÉ, type: drinks |
-| Non-Coffee | `noncoffee` | 9 | HOT / COLD / FRAPPÉ, type: drinks |
-| Food | `food` | 13 | Baguettes, club sandwiches, appetizers; showAddons: true |
-| Pasta | `pasta` | 9 | Fixed price |
-| Special | `special` | 6 | Chicken chop, fish & chips, tenders |
-| Friday | `friday` | 2 | Basmati rice specials, Friday only |
+| Category   | ID          | Items | Notes                                                    |
+| ---------- | ----------- | ----- | -------------------------------------------------------- |
+| Coffee     | `coffee`    | 12    | HOT / COLD / FRAPPÉ, type: drinks                        |
+| Non-Coffee | `noncoffee` | 9     | HOT / COLD / FRAPPÉ, type: drinks                        |
+| Food       | `food`      | 13    | Baguettes, club sandwiches, appetizers; showAddons: true |
+| Pasta      | `pasta`     | 9     | Fixed price                                              |
+| Special    | `special`   | 6     | Chicken chop, fish & chips, tenders                      |
+| Friday     | `friday`    | 2     | Basmati rice specials, Friday only                       |
 
 **Size legend:** `['HOT 8oz', 'COLD 12oz', 'FRAPPÉ 16oz', 'LARGE +RM4']`
 
 **Food add-ons:**
+
 - Extra Double Shot — RM 4
 - Extra Cheese — RM 2
 
@@ -67,22 +68,31 @@ and has been deleted from the repo — do not recreate it or resurrect its logic
 Always run these commands to verify code changes before committing and after deploying:
 
 ### 1. Unified Quality Gate Suite (Oxlint + UI/UX Gate + Playwright Layout Auditor + Infrastructure Doctor)
+
 ```powershell
 npm run check
 ```
-* Runs automatically in GitHub Actions on all Pull Requests targeting `main` (`.github/workflows/ci.yml`), which
+
+- Runs automatically in GitHub Actions on all Pull Requests targeting `main` (`.github/workflows/ci.yml`), which
   serves the PR's own checkout on `localhost` and points the layout auditor at it via `TARGET_URL` — so it audits
   what the PR is about to ship, not whatever is already live in production.
 
 Or run individual sub-gates:
-* **High-Speed Linting (Oxlint)**: `npm run lint` (or `npx oxlint`)
-* **Mobile & UX Invariants (ARH DevKit)**: `npm run check:ui` (or `node _qa/beelal-ui-ux-quality-gate.mjs`)
-* **Playwright Layout & Overlap Auditor**: `npm run check:layout` (or `node _qa/beelal-layout-audit.mjs`)
-* **Infrastructure Doctor (Cloudflare, D1 & RTDB)**: `npm run check:infra` (or `node _qa/infra-doctor.mjs`)
-* **Ephemeral Preview Studio Generator**: `npm run preview:generate` (or `node _qa/preview-generator.mjs`)
+
+- **High-Speed Linting (Oxlint)**: `npm run lint`
+- **Spell Checking & Dictionaries (CSpell)**: `npm run check:spelling`
+- **Documentation Standards (Markdownlint)**: `npm run check:md`
+- **Dead-Code & Orphan Pruning (Knip)**: `npm run check:knip`
+- **Code Style & Formatting (Prettier)**: `npm run check:prettier`
+- **Mobile & UX Invariants (ARH DevKit)**: `npm run check:ui`
+- **Playwright Layout & Overlap Auditor**: `npm run check:layout`
+- **Infrastructure Doctor (Cloudflare, D1 & RTDB)**: `npm run check:infra`
+- **Ephemeral Preview Studio Generator**: `npm run preview:generate`
 
 ### 2. Post-Deploy Live Healthcheck (Live Web & Firebase RTDB)
+
 Probes all deployed endpoints (`/`, `/index-v2.html`, `/admin.html`, `/config.js`, `/observatory.html`, `/guide.html`, `/dev-console.html`) and validates direct Firebase RTDB connectivity:
+
 ```powershell
 # Run against default live site
 npm run check:live
@@ -92,7 +102,9 @@ node _qa/beelal-live-healthcheck.mjs "https://store-beelal-fnb-pwa.arh-homelab.w
 ```
 
 ### 3. Trigger On-Demand CI / Remote Workflows
+
 Cloud agents and operators can trigger GitHub Actions workflows via `gh`:
+
 ```powershell
 # Trigger pre-merge quality gate manually
 gh workflow run ci.yml --repo arhsmoque2/ARH-FNB-Beelal-Coffee
