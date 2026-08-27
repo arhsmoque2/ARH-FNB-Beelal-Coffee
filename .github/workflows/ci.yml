@@ -1,0 +1,23 @@
+name: Pre-Merge Quality Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  pre-merge-quality-gate:
+    name: Pre-Merge Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Full Quality Gate Suite (Oxlint, UI/UX, Infra Doctor)
+        run: npm run check

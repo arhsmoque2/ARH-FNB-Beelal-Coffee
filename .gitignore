@@ -7,3 +7,6 @@
 # ephemeral mockup previews
 preview.html
 mockup-preview.html
+
+# dependencies
+node_modules/

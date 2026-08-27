@@ -66,14 +66,16 @@ and has been deleted from the repo — do not recreate it or resurrect its logic
 
 Always run these commands to verify code changes before committing and after deploying:
 
-### 1. Unified Pre-Deploy Suite (Oxlint + UI/UX Gate + Infrastructure Doctor)
+### 1. Unified Quality Gate Suite (Oxlint + UI/UX Gate + Infrastructure Doctor)
 ```powershell
 npm run check
 ```
+* Runs automatically in GitHub Actions on all Pull Requests targeting `main` (`.github/workflows/ci.yml`).
 
 Or run individual sub-gates:
 * **High-Speed Linting (Oxlint)**: `npm run lint` (or `npx oxlint`)
 * **Mobile & UX Invariants (ARH DevKit)**: `npm run check:ui` (or `node _qa/beelal-ui-ux-quality-gate.mjs`)
+* **Playwright Layout & Overlap Auditor**: `npm run check:layout` (or `node _qa/beelal-layout-audit.mjs`)
 * **Infrastructure Doctor (Cloudflare, D1 & RTDB)**: `npm run check:infra` (or `node _qa/infra-doctor.mjs`)
 * **Ephemeral Preview Studio Generator**: `npm run preview:generate` (or `node _qa/preview-generator.mjs`)
 
@@ -87,14 +89,20 @@ npm run check:live
 node _qa/beelal-live-healthcheck.mjs "https://store-beelal-fnb-pwa.arh-homelab.workers.dev"
 ```
 
-### 3. Trigger On-Demand CI Health Check (Cloud Agents / GitHub Actions)
-Cloud agents and operators can trigger the remote GitHub Actions healthcheck on-demand via `gh`:
+### 3. Trigger On-Demand CI / Remote Workflows
+Cloud agents and operators can trigger GitHub Actions workflows via `gh`:
 ```powershell
-# Trigger on-demand workflow
+# Trigger pre-merge quality gate manually
+gh workflow run ci.yml --repo arhsmoque2/ARH-FNB-Beelal-Coffee
+
+# Trigger on-demand Playwright visual/layout audit in GitHub Actions
+gh workflow run playwright-ondemand.yml --repo arhsmoque2/ARH-FNB-Beelal-Coffee
+
+# Trigger live healthcheck probe manually
 gh workflow run live-healthcheck.yml --repo arhsmoque2/ARH-FNB-Beelal-Coffee
 
 # Watch run status
-gh run list --repo arhsmoque2/ARH-FNB-Beelal-Coffee --limit 1
+gh run list --repo arhsmoque2/ARH-FNB-Beelal-Coffee --limit 5
 ```
 
 ---

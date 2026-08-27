@@ -8,8 +8,12 @@
     "check:ui": "node _qa/beelal-ui-ux-quality-gate.mjs",
     "check:infra": "node _qa/infra-doctor.mjs",
     "check:live": "node _qa/beelal-live-healthcheck.mjs",
+    "check:layout": "node _qa/beelal-layout-audit.mjs",
     "preview:generate": "node _qa/preview-generator.mjs",
     "check": "npm run lint && npm run check:ui && npm run check:infra",
     "test": "npm run check"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
   }
 }

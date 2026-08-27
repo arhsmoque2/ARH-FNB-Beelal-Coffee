@@ -1,0 +1,35 @@
+name: Playwright Visual & Layout Audit (On-Demand)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to audit for overlaps and dead spaces'
+        required: false
+        default: 'https://store-beelal-fnb-pwa.arh-homelab.workers.dev/index-v2.html'
+  workflow_call:
+    inputs:
+      target_url:
+        description: 'Target URL to audit for overlaps and dead spaces'
+        required: false
+        type: string
+        default: 'https://store-beelal-fnb-pwa.arh-homelab.workers.dev/index-v2.html'
+
+jobs:
+  layout-audit:
+    name: Playwright Layout & Collision Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright Browsers
+        run: npx -y playwright install --with-deps chromium
+
+      - name: Run Playwright Layout & Whitespace Audit
+        run: node _qa/beelal-layout-audit.mjs "${{ inputs.target_url || 'https://store-beelal-fnb-pwa.arh-homelab.workers.dev/index-v2.html' }}"
