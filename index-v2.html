@@ -1813,6 +1813,14 @@
       font-size: 12px;
       letter-spacing: 0.04em;
     }
+    @media (max-width: 430px) {
+      .top-actions #statusChip { display: none; }
+      .brand-sub { display: none; }
+      .brand-title { max-width: calc(100vw - 262px); }
+      .ambience-toggle { min-width: 60px; padding: 0 8px; }
+      .lang-toggle { min-width: 48px !important; font-size: 11px; }
+      .cart-top { min-width: 82px; font-size: 13px; }
+    }
     /* ── MODERN UI ENHANCEMENTS (FWDTools Patterns) ── */
     .announcement-ribbon {
       background: linear-gradient(90deg, #1e1b4b, #312e81, #1e1b4b);
@@ -1837,6 +1845,8 @@
     }
     @keyframes pulse-dot {
       0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
     .redline-badge {
       position: fixed;
       bottom: 20px;
@@ -3745,7 +3755,7 @@
 
     async function recordBillingEvent(orderId, order) {
       const billing = APP_CONFIG.billing;
-      if (!billing || !billing.workerUrl || !billing.secret) return;
+      if (!billing) return;
       const storeSlug = (APP_CONFIG.firebase.root || '').replace(/_/g, '-');
       if (!storeSlug) return;
       const body = {
@@ -3757,12 +3767,11 @@
         item_count: (order.items || []).length,
       };
       try {
-        fetch(billing.workerUrl + '/record-order', {
+        // Same-origin Worker proxy (handleBillingProxy) attaches the private
+        // BILLING_SECRET server-side — the browser never sees it.
+        fetch('/api/record-order', {
           method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + billing.secret,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
           keepalive: true,
         }).catch(() => {});

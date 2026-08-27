@@ -19,5 +19,24 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run Full Quality Gate Suite (Oxlint, UI/UX, Infra Doctor)
+      - name: Install Playwright Chromium (for layout auditor)
+        run: npx -y playwright install --with-deps chromium
+
+      - name: Serve this PR's checkout locally
+        run: |
+          python3 -m http.server 8080 --directory . &
+          echo $! > /tmp/static-server.pid
+          npx -y wait-on http://localhost:8080/index-v2.html
+
+      - name: Run Full Quality Gate Suite (Oxlint, UI/UX, Layout Auditor, Infra Doctor)
+        env:
+          # Point the Playwright layout auditor at THIS PR's own checkout, not the
+          # hardcoded live production URL it defaults to — otherwise it audits
+          # whatever is already deployed and can never catch a regression this PR
+          # introduces.
+          TARGET_URL: http://localhost:8080/index-v2.html
         run: npm run check
+
+      - name: Stop local static server
+        if: always()
+        run: kill "$(cat /tmp/static-server.pid)" 2>/dev/null || true
