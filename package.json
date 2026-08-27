@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "lint": "npx -y oxlint@latest",
     "check:ui": "node _qa/beelal-ui-ux-quality-gate.mjs",
     "check:infra": "node _qa/infra-doctor.mjs",
