@@ -302,6 +302,8 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 .model-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;font-family:var(--fb);font-size:12px;color:var(--text);outline:none;appearance:none;-webkit-appearance:none;transition:border-color 0.2s,box-shadow 0.2s;}
 .model-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,152,42,0.15);}
 .update-badge{position:fixed;right:14px;bottom:18px;z-index:700;background:var(--gold);color:var(--bg);border:none;border-radius:999px;padding:9px 14px;font-family:var(--fb);font-size:12px;font-weight:800;box-shadow:0 8px 26px rgba(0,0,0,0.35);display:none;cursor:pointer;}
+.new-order-badge{position:fixed;right:14px;bottom:66px;z-index:701;background:var(--red2);color:#fff;border:none;border-radius:999px;padding:9px 14px;font-family:var(--fb);font-size:12px;font-weight:800;box-shadow:0 8px 26px rgba(0,0,0,0.4);display:none;cursor:pointer;animation:newOrderPulse 1.6s ease-in-out infinite;}
+@keyframes newOrderPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
 .feedback-row,.release-row{background:var(--card);border:1px solid var(--border2);border-radius:var(--r2);padding:12px;margin-bottom:8px;}
 .feedback-meta,.release-meta{font-size:10px;color:var(--text3);margin-bottom:5px;line-height:1.5;}
 .feedback-title,.release-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;}
@@ -943,6 +945,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 <button class="update-badge" id="updateBadge" onclick="openReleasePanel()">Updates</button>
+<button class="new-order-badge" id="newOrderBadge" onclick="jumpToOrders()">🆕 New order</button>
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -1328,6 +1331,7 @@ let pinBuf = '';
 
 function pinKey(k) {
   if (pinBuf.length >= 4) return;
+  primeAudio(); // create the AudioContext inside this click's user-gesture so later order-alert beeps aren't blocked
   pinBuf += k;
   updateDots();
   if (pinBuf.length === 4) setTimeout(checkPin, 150);
@@ -1356,6 +1360,7 @@ async function unlockApp() {
     document.getElementById('devPinCard').style.display = 'block';
   }
   await safe(loadAll, 'unlockApp');
+  startOrdersPolling();
 }
 
 function logout() {
@@ -1364,6 +1369,7 @@ function logout() {
   document.getElementById('mainApp').classList.remove('visible');
   document.getElementById('pinScreen').classList.remove('hidden');
   chatHistory = [];
+  stopOrdersPolling();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2224,6 +2230,115 @@ async function rejectOrderPayment(orderId) {
     toast('Payment rejected');
     await loadOrders();
   }, 'rejectOrderPayment');
+}
+
+// ════════════════════════════════════════════════════════════
+// LIVE ORDER ALERTS
+// The Orders tab used to only load once on login (or on manual Refresh),
+// so a QR/bank order paid via "I've Paid" could sit unconfirmed
+// indefinitely unless someone happened to reopen the tab. This polls
+// Firebase in the background, badges + beeps + (optionally) fires a
+// system notification the moment a new `awaiting_confirmation` order
+// shows up, and keeps the visible list live while the tab is open.
+// ════════════════════════════════════════════════════════════
+let ordersPollTimer = null;
+let alertedOrderIds = new Set();
+try { alertedOrderIds = new Set(JSON.parse(localStorage.getItem('arh_admin_alerted_orders') || '[]')); } catch {}
+let audioCtx = null;
+
+function primeAudio() {
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+}
+
+function beepAlert() {
+  if (!audioCtx) return;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    [0, 0.18].forEach(delay => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      const t0 = audioCtx.currentTime + delay;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.25, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.15);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.16);
+    });
+  } catch {}
+}
+
+function persistAlertedOrders() {
+  try { localStorage.setItem('arh_admin_alerted_orders', JSON.stringify([...alertedOrderIds].slice(-300))); } catch {}
+}
+
+function updateOrdersBadge(pendingCount) {
+  const badge = document.getElementById('newOrderBadge');
+  if (badge) {
+    if (pendingCount > 0) {
+      badge.textContent = pendingCount === 1 ? '🆕 New order' : `🆕 ${pendingCount} new orders`;
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  document.title = pendingCount > 0 ? `(${pendingCount}) Admin` : 'Admin';
+}
+
+function jumpToOrders() {
+  const btn = document.getElementById('tab-btn-orders');
+  if (btn) showTab('orders', btn);
+}
+
+async function pollOrdersForAlerts() {
+  await safe(async () => {
+    const snap = await fbGet('orders');
+    const orders = snap ? Object.entries(snap).map(([id, o]) => ({ id, ...o })) : [];
+    const pending = orders.filter(o => o.payment_status === 'awaiting_confirmation');
+    updateOrdersBadge(pending.length);
+
+    const fresh = pending.filter(o => !alertedOrderIds.has(o.id));
+    if (fresh.length) {
+      fresh.forEach(o => alertedOrderIds.add(o.id));
+      persistAlertedOrders();
+      beepAlert();
+      const first = fresh[0];
+      toast(fresh.length === 1
+        ? `🆕 New order — ${first.name} · ${CUR} ${Number(first.total || 0).toFixed(2)}`
+        : `🆕 ${fresh.length} new orders awaiting confirmation`);
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try {
+          new Notification('New order — confirm payment', {
+            body: fresh.length === 1
+              ? `${first.name} — ${CUR} ${Number(first.total || 0).toFixed(2)} (Ref ${first.payment_ref || '—'})`
+              : `${fresh.length} orders awaiting confirmation`,
+          });
+        } catch {}
+      }
+    }
+
+    const ordersTab = document.getElementById('tab-orders');
+    if (ordersTab && ordersTab.classList.contains('active')) await loadOrders();
+  }, 'pollOrdersForAlerts');
+}
+
+function startOrdersPolling() {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    try { Notification.requestPermission(); } catch {}
+  }
+  pollOrdersForAlerts();
+  if (ordersPollTimer) clearInterval(ordersPollTimer);
+  ordersPollTimer = setInterval(pollOrdersForAlerts, 20000);
+}
+
+function stopOrdersPolling() {
+  if (ordersPollTimer) { clearInterval(ordersPollTimer); ordersPollTimer = null; }
+  const badge = document.getElementById('newOrderBadge');
+  if (badge) badge.style.display = 'none';
+  document.title = 'Admin';
 }
 
 async function loadSalesDashboard() {
