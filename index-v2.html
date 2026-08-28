@@ -3891,6 +3891,32 @@
         ts: Date.now(),
       };
 
+      // Notify the store the moment payment is claimed — same mechanism as the
+      // cash flow (the customer's own WhatsApp app sends it). Previously QR
+      // orders wrote to Firebase only, so the store owner had zero signal that
+      // an order had arrived unless they happened to have the admin Orders tab
+      // open and refreshed. Opened before any `await` so it isn't blocked by
+      // iOS Safari's post-await popup restriction.
+      const phone = storeConfig.phone || APP_CONFIG.store.phone;
+      let waMsg = `🍵 *QR Order – ${storeConfig.name || APP_CONFIG.store.name}*\n`;
+      waMsg += `👤 ${name}\n💳 Paid via QR · Ref *${qrPayRef}*\n\n*Items:*\n`;
+      cart.forEach((item, index) => {
+        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}${a.price ? ` (+${CUR}${a.price})` : ''}`).join(', ');
+        const optionAndAddons = [item.option, addonsStr].filter(Boolean).join('; ');
+        const qtyPrefix = (item.qty && item.qty > 1) ? `${item.qty}x ` : '';
+        waMsg += `${index + 1}. ${qtyPrefix}${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} — ${money(item.price)}\n`;
+      });
+      waMsg += `\n💰 *Total: ${money(total)}*`;
+      if (note) waMsg += `\n\n📝 ${note}`;
+      waMsg += `\n\n_via ${APP_CONFIG.brand.appName} menu — please confirm payment in admin_`;
+
+      const waWindow = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}`, "_blank");
+      if (!waWindow && navigator.clipboard) {
+        navigator.clipboard.writeText(waMsg).then(() => {
+          alert("WhatsApp couldn't open automatically, but your order has been copied to your clipboard! Please paste and send it so we can confirm your payment.");
+        }).catch(() => {});
+      }
+
       try {
         await fbPut('orders/' + orderId, orderPayload);
       } catch {}
@@ -3923,6 +3949,9 @@
 
     function startQrPayStatusPoll(orderId) {
       if (qrPayPollInterval) clearInterval(qrPayPollInterval);
+      const pollStartedAt = Date.now();
+      const SLOW_CONFIRM_MS = 3 * 60 * 1000; // 3 min — nudge the customer instead of leaving a silent spinner forever
+      let slowNoticeShown = false;
       const check = async () => {
         try {
           const order = await fbGet('orders/' + orderId);
@@ -3939,6 +3968,17 @@
             document.getElementById('qrAwaitText').textContent = order?.payment_reject_reason
               ? `We couldn't verify this payment: ${order.payment_reject_reason}. Please contact us.`
               : "We couldn't verify this payment. Please contact us on WhatsApp.";
+          } else if (!slowNoticeShown && Date.now() - pollStartedAt > SLOW_CONFIRM_MS) {
+            // Still awaiting_confirmation after a while — give the customer an
+            // escape hatch instead of an indefinite spinner. Keep polling in
+            // case the owner confirms it right after.
+            slowNoticeShown = true;
+            const phone = storeConfig.phone || APP_CONFIG.store.phone;
+            const waText = encodeURIComponent(`Hi, following up on my order (Ref: ${qrPayRef}) — it's still awaiting confirmation.`);
+            const textEl = document.getElementById('qrAwaitText');
+            if (textEl) {
+              textEl.innerHTML = `Taking longer than usual to confirm. <a href="https://wa.me/${phone}?text=${waText}" target="_blank" rel="noopener" style="color:var(--brand); font-weight:700;">Message us on WhatsApp &rarr;</a>`;
+            }
           }
         } catch {}
       };
