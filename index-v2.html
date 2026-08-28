@@ -2086,6 +2086,14 @@
         </div>
         <div id="qrBankDetails"></div>
         <div class="qr-hint">Scan the QR above with your banking app or e-wallet, pay the exact amount, then tap "I've Paid" below.</div>
+        <div class="qr-receipt-row" style="margin:10px 0; padding:10px 12px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);">
+          <label for="qrReceiptInput" style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--ink); cursor:pointer;">
+            📎 Attach payment screenshot <span style="font-weight:400; color:var(--muted);">(optional)</span>
+          </label>
+          <input type="file" id="qrReceiptInput" accept="image/*,application/pdf" capture="environment" style="margin-top:6px; font-size:12px; max-width:100%;" onchange="handleReceiptFileSelect(this)">
+          <div id="qrReceiptStatus" style="margin-top:6px; font-size:11px; color:var(--muted);"></div>
+          <img id="qrReceiptPreview" alt="Receipt preview" style="display:none; margin-top:8px; max-width:120px; max-height:120px; border-radius:8px; border:1px solid var(--line);">
+        </div>
         <button class="send-btn" type="button" onclick="confirmQrPayment(this)">I've Paid</button>
         <button class="btn-cash-instead" type="button" onclick="closeQrPay(); openCart();">&larr; Back to cart</button>
       </div>
@@ -2251,6 +2259,8 @@
     let qrPayOrderId = null;
     let qrPayRef = '';
     let qrPayPollInterval = null;
+    let pendingReceiptBlob = null;
+    let pdfjsLoadPromise = null;
 
     // ── i18n ─────────────────────────────────────────────────────────────────
     const STRINGS = {
@@ -3791,6 +3801,7 @@
         document.getElementById('consentGate').style.display = 'none';
       }
 
+      resetReceiptAttachment();
       const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
       qrPayRef = 'BC-' + Date.now().toString(36).toUpperCase();
 
@@ -3846,6 +3857,7 @@
 
     function closeQrPay() {
       if (qrPayPollInterval) { clearInterval(qrPayPollInterval); qrPayPollInterval = null; }
+      resetReceiptAttachment();
       const closeSheet = () => {
         document.getElementById('qrPaySheet').classList.remove('open');
         document.body.classList.remove('sheet-open');
@@ -3855,6 +3867,124 @@
       } else {
         closeSheet();
       }
+    }
+
+    // ── Receipt attach (optional, QR pay only) ─────────────────────────────────
+    // Receipts are compressed to a small WebP screenshot client-side before
+    // upload — this keeps R2 storage light and gives the owner one consistent
+    // <img>-friendly format regardless of whether the customer picked a photo
+    // or a PDF export from their banking app. See ARCHITECTURE.md — receipts
+    // are transcription assistance only; they never change payment_status.
+    function loadPdfJs() {
+      if (pdfjsLoadPromise) return pdfjsLoadPromise;
+      pdfjsLoadPromise = new Promise((resolve, reject) => {
+        if (window.pdfjsLib) { resolve(); return; }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+        script.onload = () => {
+          try {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+            resolve();
+          } catch (e) { reject(e); }
+        };
+        script.onerror = () => reject(new Error('pdf.js failed to load'));
+        document.head.appendChild(script);
+      });
+      return pdfjsLoadPromise;
+    }
+
+    // Older iOS Safari can silently fail canvas.toBlob('image/webp', …) (resolves
+    // null) — fall back to JPEG so those devices still get a compressed upload.
+    function canvasToBlob(canvas, quality) {
+      return new Promise(resolve => {
+        canvas.toBlob(webpBlob => {
+          if (webpBlob) { resolve(webpBlob); return; }
+          canvas.toBlob(resolve, 'image/jpeg', quality);
+        }, 'image/webp', quality);
+      });
+    }
+
+    async function compressImageFile(file, maxDim = 1600, quality = 0.75) {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return canvasToBlob(canvas, quality);
+    }
+
+    async function renderPdfFirstPageToBlob(file, maxDim = 1600, quality = 0.75) {
+      await loadPdfJs();
+      const buf = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+      const page = await pdf.getPage(1);
+      const unscaled = page.getViewport({ scale: 1 });
+      const scale = Math.min(2, maxDim / Math.max(unscaled.width, unscaled.height));
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      return canvasToBlob(canvas, quality);
+    }
+
+    async function handleReceiptFileSelect(input) {
+      const file = input.files && input.files[0];
+      const statusEl = document.getElementById('qrReceiptStatus');
+      const previewEl = document.getElementById('qrReceiptPreview');
+      pendingReceiptBlob = null;
+      if (!file) { if (statusEl) statusEl.textContent = ''; return; }
+      if (statusEl) statusEl.textContent = 'Processing…';
+      try {
+        let blob;
+        if (file.type === 'application/pdf') {
+          blob = await renderPdfFirstPageToBlob(file);
+        } else if (file.type.startsWith('image/')) {
+          blob = await compressImageFile(file);
+        } else {
+          if (statusEl) statusEl.textContent = 'Please use an image or PDF.';
+          input.value = '';
+          return;
+        }
+        if (!blob) throw new Error('compression produced no data');
+        pendingReceiptBlob = blob;
+        const kb = Math.max(1, Math.round(blob.size / 1024));
+        if (statusEl) statusEl.textContent = `✅ Attached (${kb} KB) — sent with your order`;
+        if (previewEl) {
+          previewEl.src = URL.createObjectURL(blob);
+          previewEl.style.display = '';
+        }
+      } catch {
+        pendingReceiptBlob = null;
+        if (statusEl) statusEl.textContent = "Couldn't read that file — you can still pay without it.";
+        input.value = '';
+      }
+    }
+
+    async function uploadPendingReceipt(orderId) {
+      if (!pendingReceiptBlob) return null;
+      try {
+        const fd = new FormData();
+        fd.append('receipt', pendingReceiptBlob, 'receipt.webp');
+        fd.append('order_id', orderId);
+        const res = await fetch('/api/upload/receipt', { method: 'POST', body: fd });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data && data.url ? data.url : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function resetReceiptAttachment() {
+      pendingReceiptBlob = null;
+      const input = document.getElementById('qrReceiptInput');
+      const statusEl = document.getElementById('qrReceiptStatus');
+      const previewEl = document.getElementById('qrReceiptPreview');
+      if (input) input.value = '';
+      if (statusEl) statusEl.textContent = '';
+      if (previewEl) { previewEl.style.display = 'none'; previewEl.src = ''; }
     }
 
     async function confirmQrPayment(btn) {
@@ -3917,10 +4047,14 @@
         }).catch(() => {});
       }
 
+      const receiptUrl = await uploadPendingReceipt(orderId);
+      if (receiptUrl) orderPayload.receipt_url = receiptUrl;
+
       try {
         await fbPut('orders/' + orderId, orderPayload);
       } catch {}
 
+      resetReceiptAttachment();
       qrPayOrderId = orderId;
       lastOrderContext = {
         order_id: orderId,

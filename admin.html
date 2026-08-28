@@ -2202,12 +2202,14 @@ async function loadOrders() {
       const refHtml = o.payment_ref
         ? `<div style="margin-top:4px;font-size:11px;color:var(--text3)">Ref: ${escapeHtml(o.payment_ref)}</div>`
         : '';
+      const receiptHtml = buildReceiptHtml(o);
       r.innerHTML = `
         <div class="order-top"><span class="order-name">👤 ${escapeHtml(o.name)}${badgeHtml}</span><span class="order-total">${CUR} ${Number(o.total).toFixed(2)}</span></div>
         <div class="order-time">${t}</div>
         <div class="order-items">${itemsStr}</div>
         ${refHtml}
         ${o.note?`<div style="margin-top:4px;font-size:11px;color:var(--text3);font-style:italic">📝 ${escapeHtml(o.note)}</div>`:''}
+        ${receiptHtml}
         ${actionsHtml}`;
       el.appendChild(r);
     });
@@ -2233,6 +2235,111 @@ async function rejectOrderPayment(orderId) {
 }
 
 // ════════════════════════════════════════════════════════════
+// RECEIPT REVIEW — local OCR transcription aid
+// Per ARCHITECTURE.md: OCR is a transcription aid only. It never touches
+// payment_status — only the existing Confirm/Reject buttons do that. The
+// owner reviews the original receipt photo, may correct the OCR-guessed
+// fields, and saves them to `payment_proof` as a record.
+// ════════════════════════════════════════════════════════════
+let tesseractLoadPromise = null;
+const receiptOcrCache = {};
+
+function loadTesseract() {
+  if (tesseractLoadPromise) return tesseractLoadPromise;
+  tesseractLoadPromise = new Promise((resolve, reject) => {
+    if (window.Tesseract) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Tesseract.js failed to load'));
+    document.head.appendChild(script);
+  });
+  return tesseractLoadPromise;
+}
+
+function guessReceiptFields(text) {
+  const amountMatch = text.match(/RM\s*([\d]{1,5}(?:[.,]\d{2}))/i) || text.match(/\b(\d{1,5}\.\d{2})\b/);
+  const refMatch =
+    text.match(/(?:reference|ref|txn|trace|transaction)\s*(?:no\.?|id|#|:)?\s*[:\-]?\s*([A-Z0-9]{6,})/i) ||
+    text.match(/\b([A-Z0-9]{8,})\b/);
+  return {
+    amount: amountMatch ? amountMatch[1].replace(',', '.') : '',
+    transaction_ref: refMatch ? refMatch[1] : '',
+  };
+}
+
+function buildReceiptHtml(o) {
+  if (!o.receipt_url) return '';
+  const proof = o.payment_proof || {};
+  const cached = receiptOcrCache[o.id] || {};
+  const refVal = escapeHtml(String(proof.transaction_ref ?? cached.transaction_ref ?? ''));
+  const amtVal = escapeHtml(String(proof.amount ?? cached.amount ?? ''));
+  const rawText = cached.raw_text ?? proof.ocr_raw_text ?? '';
+  const hasReading = !!(rawText || proof.transaction_ref || proof.amount);
+  return `
+    <div style="margin-top:8px;padding:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2)">
+      <a href="${escapeHtml(o.receipt_url)}" target="_blank" rel="noopener">
+        <img src="${escapeHtml(o.receipt_url)}" alt="Receipt" style="max-width:110px;max-height:110px;border-radius:8px;border:1px solid var(--border2);display:block">
+      </a>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="runReceiptOcr('${o.id}','${escapeHtml(o.receipt_url)}',this)">🔍 Read receipt (OCR)</button>
+      <div id="ocrBox-${o.id}" style="margin-top:8px;${hasReading ? '' : 'display:none'}">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <input id="ocrRef-${o.id}" placeholder="Transaction ref" value="${refVal}" style="flex:1;min-width:120px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text)">
+          <input id="ocrAmt-${o.id}" placeholder="Amount" value="${amtVal}" style="width:90px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--text)">
+        </div>
+        <textarea id="ocrRaw-${o.id}" readonly style="width:100%;min-height:44px;font-size:10px;color:var(--text3);background:var(--card);border:1px solid var(--border2);border-radius:6px;padding:6px;font-family:monospace">${escapeHtml(rawText)}</textarea>
+        <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="saveReceiptReading('${o.id}')">💾 Save reading</button>
+      </div>
+    </div>`;
+}
+
+async function runReceiptOcr(orderId, url, btn) {
+  const box = document.getElementById(`ocrBox-${orderId}`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Reading…'; }
+  try {
+    await loadTesseract();
+    const { data } = await window.Tesseract.recognize(url, 'eng');
+    const text = ((data && data.text) || '').trim();
+    const guess = guessReceiptFields(text);
+    receiptOcrCache[orderId] = { raw_text: text, transaction_ref: guess.transaction_ref, amount: guess.amount };
+    if (box) {
+      box.style.display = '';
+      const refInput = document.getElementById(`ocrRef-${orderId}`);
+      const amtInput = document.getElementById(`ocrAmt-${orderId}`);
+      const rawEl = document.getElementById(`ocrRaw-${orderId}`);
+      if (refInput && !refInput.value) refInput.value = guess.transaction_ref;
+      if (amtInput && !amtInput.value) amtInput.value = guess.amount;
+      if (rawEl) rawEl.value = text;
+    }
+    toast(text ? 'Receipt read — check & correct the fields below' : 'Could not read any text from this receipt');
+  } catch {
+    toast("Couldn't run OCR — read the receipt image manually");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 Read receipt (OCR)'; }
+  }
+}
+
+async function saveReceiptReading(orderId) {
+  const refInput = document.getElementById(`ocrRef-${orderId}`);
+  const amtInput = document.getElementById(`ocrAmt-${orderId}`);
+  const rawEl = document.getElementById(`ocrRaw-${orderId}`);
+  const transaction_ref = (refInput?.value || '').trim();
+  const amountStr = (amtInput?.value || '').trim();
+  const ocr_raw_text = rawEl?.value || '';
+  await safe(async () => {
+    await fbSet(`orders/${orderId}/payment_proof`, {
+      transaction_ref,
+      amount: amountStr && !Number.isNaN(Number(amountStr)) ? Number(amountStr) : amountStr,
+      ocr_raw_text,
+      corrected_by: currentRole || 'owner',
+      corrected_at: Date.now(),
+    });
+    receiptOcrCache[orderId] = { raw_text: ocr_raw_text, transaction_ref, amount: amountStr };
+    toast('Receipt reading saved ✓');
+  }, 'saveReceiptReading');
+}
+
+// ════════════════════════════════════════════════════════════
 // LIVE ORDER ALERTS
 // The Orders tab used to only load once on login (or on manual Refresh),
 // so a QR/bank order paid via "I've Paid" could sit unconfirmed
@@ -2242,6 +2349,7 @@ async function rejectOrderPayment(orderId) {
 // shows up, and keeps the visible list live while the tab is open.
 // ════════════════════════════════════════════════════════════
 let ordersPollTimer = null;
+let lastOrdersSnapshotKey = '';
 let alertedOrderIds = new Set();
 try { alertedOrderIds = new Set(JSON.parse(localStorage.getItem('arh_admin_alerted_orders') || '[]')); } catch {}
 let audioCtx = null;
@@ -2320,8 +2428,15 @@ async function pollOrdersForAlerts() {
       }
     }
 
+    // Only re-render the visible list when the order set actually changed —
+    // a full re-render on every tick would wipe out an in-progress OCR
+    // reading (unsaved ref/amount edits) the owner is mid-typing.
+    const snapshotKey = orders.map(o => `${o.id}:${o.payment_status}`).sort().join('|');
     const ordersTab = document.getElementById('tab-orders');
-    if (ordersTab && ordersTab.classList.contains('active')) await loadOrders();
+    if (ordersTab && ordersTab.classList.contains('active') && snapshotKey !== lastOrdersSnapshotKey) {
+      lastOrdersSnapshotKey = snapshotKey;
+      await loadOrders();
+    }
   }, 'pollOrdersForAlerts');
 }
 
