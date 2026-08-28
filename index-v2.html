@@ -794,6 +794,8 @@
       inset: 0;
       z-index: 80;
       background: rgba(32, 16, 15, .45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: none;
       align-items: flex-end;
       justify-content: center;
@@ -1759,19 +1761,20 @@
       .lang-toggle { min-width: 48px !important; font-size: 11px; }
       .cart-top { min-width: 82px; font-size: 13px; }
     }
-    /* ── MODERN UI ENHANCEMENTS ── */
+    /* ── MODERN UI ENHANCEMENTS & 2026 TACTILE MOTION ── */
     .announcement-ribbon {
-      background: linear-gradient(90deg, var(--brand), var(--brand2), var(--brand));
-      color: var(--paper);
+      background: #180e0a;
+      color: #f7f1e8;
       padding: 8px 16px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
       text-align: center;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      letter-spacing: 0.01em;
     }
     .announcement-dot {
       width: 8px;
@@ -1790,18 +1793,149 @@
       bottom: 20px;
       left: 20px;
       z-index: 9999;
-      background: #0f172a;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       color: #38bdf8;
-      border: 1px solid #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
       padding: 8px 14px;
       border-radius: 999px;
       font-family: monospace;
       font-size: 11px;
       font-weight: 700;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+
+    /* ── Tactile Button & Stepper Feedback ── */
+    .add-btn, .choice-btn, .solid-btn, .cart-qty-btn {
+      transition: transform 0.14s cubic-bezier(0.2, 0, 0, 1), background-color 0.2s ease, border-color 0.2s ease;
+      will-change: transform;
+    }
+    .add-btn:active, .choice-btn:active, .solid-btn:active, .cart-qty-btn:active {
+      transform: scale(0.96);
+    }
+    .btn-added {
+      background: #15803d !important;
+      border-color: #15803d !important;
+      color: #ffffff !important;
+      transform: scale(1.02);
+    }
+    .cart-qty-num.pop {
+      animation: num-pop 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes num-pop {
+      0% { transform: scale(0.85); opacity: 0.7; }
+      50% { transform: scale(1.22); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .floating-cart.pulse {
+      animation: cart-dock-pulse 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes cart-dock-pulse {
+      0% { transform: scale(0.97); }
+      50% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── Compositor Scroll-Driven Reveal ── */
+    @supports (animation-timeline: view()) {
+      @keyframes reveal-card {
+        from { opacity: 0.15; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .item-card {
+        animation: reveal-card linear both;
+        animation-timeline: view();
+        animation-range: entry 5% cover 22%;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .item-card {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .add-btn, .choice-btn, .solid-btn, .cart-qty-btn, .cart-qty-num, .floating-cart {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* ── Skeleton Loading Grid ── */
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 16px 0;
+    }
+    .skeleton-card {
+      min-height: 156px;
+      border-radius: var(--radius);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 14px;
+    }
+    .skeleton-shimmer {
+      background: linear-gradient(
+        90deg,
+        rgba(226, 232, 240, 0.4) 0%,
+        rgba(255, 255, 255, 0.85) 50%,
+        rgba(226, 232, 240, 0.4) 100%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── PWA Toast & One-Tap Copy ── */
+    .pwa-toast {
+      position: fixed;
+      bottom: 84px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0, 0, 1);
+    }
+    .pwa-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .qr-copy-btn {
+      background: transparent;
+      border: 1px dashed var(--line);
+      color: var(--muted);
+      border-radius: var(--radius);
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .qr-copy-btn:hover, .qr-copy-btn:active {
+      background: var(--paper);
+      color: var(--ink);
     }
   </style>
 </head>
@@ -1948,7 +2082,9 @@
         <div class="qr-box" id="qrPayBox"></div>
         <div class="qr-ref-row">
           Order ref: <strong id="qrPayRefLabel">—</strong>
+          <button class="qr-copy-btn" id="qrCopyRefBtn" type="button" onclick="copyDuitNowAccount(document.getElementById('qrPayRefLabel').textContent, 'Order Ref')">📋 Copy Ref</button>
         </div>
+        <div id="qrBankDetails"></div>
         <div class="qr-hint">Scan the QR above with your banking app or e-wallet, pay the exact amount, then tap "I've Paid" below.</div>
         <button class="send-btn" type="button" onclick="confirmQrPayment(this)">I've Paid</button>
         <button class="btn-cash-instead" type="button" onclick="closeQrPay(); openCart();">&larr; Back to cart</button>
@@ -2029,6 +2165,41 @@
   </div>
 
   <script>
+    function triggerHaptic(duration = 12) {
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        try { navigator.vibrate(duration); } catch (_) {}
+      }
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById("pwaToast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "pwaToast";
+        toast.className = "pwa-toast";
+        toast.setAttribute("role", "status");
+        toast.setAttribute("aria-live", "polite");
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.classList.add("visible");
+      setTimeout(() => { toast.classList.remove("visible"); }, 2400);
+    }
+
+    function copyDuitNowAccount(text, label) {
+      if (!text || text === "—") return;
+      if (!navigator.clipboard) {
+        alert(`${label}: ${text}`);
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`✓ Copied ${label} to clipboard!`);
+        triggerHaptic(18);
+      }).catch(() => {
+        alert(`${label}: ${text}`);
+      });
+    }
+
     let FB_URL = APP_CONFIG.firebase.url;
     let FB_ROOT = APP_CONFIG.firebase.root;
     const CUR = APP_CONFIG.store.currency || "RM";
@@ -2305,14 +2476,38 @@
       const _reg = await (window.__registryReady || Promise.resolve({ active: false }));
       if (_reg.active) {
         if (!_reg.ok) {
-          document.getElementById("loader").textContent =
-            _reg.reason === "unreachable" ? "Could not reach store registry. Please retry." : "Store not found. Check the link.";
+          const ldr = document.getElementById("loader");
+          if (ldr) {
+            ldr.textContent =
+              _reg.reason === "unreachable" ? "Could not reach store registry. Please retry." : "Store not found. Check the link.";
+          }
           return;
         }
         FB_ROOT = _reg.entry.root;
         if (_reg.entry.url) FB_URL = _reg.entry.url;
       }
       if (await checkMaintenance()) return;
+
+      let _skeletonTimer = setTimeout(() => {
+        const space = document.getElementById("menuSpace");
+        if (space && !space.hasChildNodes()) {
+          space.innerHTML = `
+            <div class="skeleton-grid" id="menuSkeleton" aria-hidden="true">
+              ${Array(4).fill(0).map(() => `
+                <div class="skeleton-card">
+                  <div class="skeleton-shimmer" style="width:84px; height:84px; border-radius:8px;"></div>
+                  <div style="display:flex; flex-direction:column; gap:8px; flex:1;">
+                    <div class="skeleton-shimmer" style="height:18px; width:70%;"></div>
+                    <div class="skeleton-shimmer" style="height:14px; width:88%;"></div>
+                    <div class="skeleton-shimmer" style="height:24px; width:40%; margin-top:auto;"></div>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          `;
+        }
+      }, 280);
+
       const [cfgR, themeR, itemsR, catsR, sumR, picksR, infoR, payR] = await Promise.all([
         fbGetSafe("config/store"),
         fbGetSafe("config/theme"),
@@ -2323,6 +2518,8 @@
         fbGetSafe("config/store_info"),
         fbGetSafe("config/payment_settings")
       ]);
+
+      if (_skeletonTimer) clearTimeout(_skeletonTimer);
 
       paymentConfig = { ...DEFAULT_CONFIG.payment, ...(payR.ok && payR.data ? payR.data : {}) };
       storeConfig = cfgR.data ? { ...DEFAULT_CONFIG.store, ...cfgR.data } : { ...DEFAULT_CONFIG.store };
@@ -2362,7 +2559,8 @@
       renderMenu();
       updateCart();
       checkPendingItemReviews();
-      document.getElementById("loader").classList.add("hidden");
+      const ldr = document.getElementById("loader");
+      if (ldr) ldr.classList.add("hidden");
 
       setInterval(() => pollStoreStatus().catch(() => {}), 30000);
       document.addEventListener("visibilitychange", () => {
@@ -2733,12 +2931,12 @@
         </div>
       `;
       card.querySelectorAll("button[data-item]").forEach(btn => {
-        btn.addEventListener("click", () => addToCart(btn.dataset.item, Number(btn.dataset.option)));
+        btn.addEventListener("click", () => addToCart(btn.dataset.item, Number(btn.dataset.option), btn));
       });
       return card;
     }
 
-    function addToCart(itemId, optionIndex) {
+    function addToCart(itemId, optionIndex, triggeredBtn) {
       const item = menuData.items.find(i => i.id === itemId);
       if (!item || item.avail === false || storeConfig.isOpen === false) return;
       const option = itemOptions(item)[optionIndex] || itemOptions(item)[0];
@@ -2764,6 +2962,18 @@
             addons: []
           });
         }
+
+        if (triggeredBtn) {
+          const origText = triggeredBtn.textContent;
+          triggeredBtn.classList.add("btn-added");
+          triggeredBtn.textContent = "Added ✓";
+          setTimeout(() => {
+            triggeredBtn.classList.remove("btn-added");
+            triggeredBtn.textContent = origText;
+          }, 350);
+        }
+        triggerHaptic(12);
+
         updateCart();
         _updatePhotoCartStrip();
       }
@@ -2885,6 +3095,13 @@
         updateCart();
         renderCart();
         _updatePhotoCartStrip();
+        const qtyEl = document.getElementById("qty_" + uid);
+        if (qtyEl) {
+          qtyEl.classList.remove("pop");
+          void qtyEl.offsetWidth;
+          qtyEl.classList.add("pop");
+        }
+        triggerHaptic(10);
       }
     }
 
@@ -3079,30 +3296,62 @@
       }, { once: true });
     }
 
+    let _prevCartCount = 0;
     function updateCart() {
       const totalCount = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
       const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
       const label = typeof t('itemCount') === 'function' ? t('itemCount')(totalCount) : `${totalCount} item${totalCount === 1 ? '' : 's'}`;
-      document.getElementById("topCartCount").textContent = totalCount;
-      document.getElementById("floatingCartLabel").textContent = label;
-      document.getElementById("floatingCartTotal").textContent = money(total);
-      document.getElementById("cartTotal").textContent = money(total);
-      document.getElementById("floatingCart").classList.toggle("visible", totalCount > 0);
+      const topCountEl = document.getElementById("topCartCount");
+      if (topCountEl) topCountEl.textContent = totalCount;
+      const floatingLabel = document.getElementById("floatingCartLabel");
+      if (floatingLabel) floatingLabel.textContent = label;
+      const floatingTotal = document.getElementById("floatingCartTotal");
+      if (floatingTotal) floatingTotal.textContent = money(total);
+      const cartTotal = document.getElementById("cartTotal");
+      if (cartTotal) cartTotal.textContent = money(total);
+
+      const floatingCart = document.getElementById("floatingCart");
+      if (floatingCart) {
+        floatingCart.classList.toggle("visible", totalCount > 0);
+        if (totalCount > _prevCartCount && totalCount > 0) {
+          floatingCart.classList.remove("pulse");
+          void floatingCart.offsetWidth;
+          floatingCart.classList.add("pulse");
+        }
+      }
+      _prevCartCount = totalCount;
+
       const payDisabled = !totalCount || storeConfig.isOpen === false;
-      document.getElementById("payCashBtn").disabled = payDisabled;
-      document.getElementById("payQrBtn").disabled = payDisabled;
+      const payCashBtn = document.getElementById("payCashBtn");
+      if (payCashBtn) payCashBtn.disabled = payDisabled;
+      const payQrBtn = document.getElementById("payQrBtn");
+      if (payQrBtn) payQrBtn.disabled = payDisabled;
       const banner = document.getElementById('reviewPromptBanner');
       if (banner) banner.style.bottom = totalCount > 0 ? '90px' : '20px';
     }
 
     function openCart() {
       renderCart();
-      document.getElementById("cartSheet").classList.add("open");
-      document.body.classList.add("sheet-open");
+      const exec = () => {
+        document.getElementById("cartSheet").classList.add("open");
+        document.body.classList.add("sheet-open");
+      };
+      if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.startViewTransition(exec);
+      } else {
+        exec();
+      }
     }
     function closeCart() {
-      document.getElementById("cartSheet").classList.remove("open");
-      document.body.classList.remove("sheet-open");
+      const exec = () => {
+        document.getElementById("cartSheet").classList.remove("open");
+        document.body.classList.remove("sheet-open");
+      };
+      if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.startViewTransition(exec);
+      } else {
+        exec();
+      }
     }
     function handleSheetBackdrop(event) {
       if (event.target.id === "cartSheet") closeCart();
@@ -3127,7 +3376,7 @@
             </div>
             <div class="cart-qty-stepper">
               <button class="cart-qty-btn" type="button" onclick="changeCartQty('${esc(item.uid)}', -1)" aria-label="Decrease ${esc(item.name)}">&minus;</button>
-              <span class="cart-qty-num">${itemQty}</span>
+              <span class="cart-qty-num" id="qty_${esc(item.uid)}">${itemQty}</span>
               <button class="cart-qty-btn add" type="button" onclick="changeCartQty('${esc(item.uid)}', 1)" aria-label="Increase ${esc(item.name)}">+</button>
             </div>
             <strong>${money(lineTotal)}</strong>
@@ -3564,16 +3813,48 @@
       document.getElementById('qrPayView').style.display = '';
       document.getElementById('qrAwaitView').style.display = 'none';
 
+      const bankDetailsBox = document.getElementById('qrBankDetails');
+      if (bankDetailsBox) {
+        if (paymentConfig.account_number) {
+          bankDetailsBox.innerHTML = `
+            <div style="margin:10px 0; padding:12px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); font-size:12px;">
+              <div style="font-weight:700; color:var(--ink);">${esc(paymentConfig.bank_name || 'Bank Transfer')}</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; gap:8px;">
+                <span style="font-family:monospace; font-size:13px; font-weight:700; color:var(--brand);">${esc(paymentConfig.account_number)}</span>
+                <button class="qr-copy-btn" type="button" onclick="copyDuitNowAccount('${esc(paymentConfig.account_number)}', '${esc(paymentConfig.bank_name || 'Account')}')">📋 Copy Account</button>
+              </div>
+              ${paymentConfig.account_name ? `<div style="color:var(--muted); font-size:11px; margin-top:4px;">Account: ${esc(paymentConfig.account_name)}</div>` : ''}
+            </div>
+          `;
+        } else {
+          bankDetailsBox.innerHTML = '';
+        }
+      }
+
       closeCart();
-      const sheet = document.getElementById('qrPaySheet');
-      sheet.classList.add('open');
-      document.body.classList.add('sheet-open');
+      const openSheet = () => {
+        const sheet = document.getElementById('qrPaySheet');
+        sheet.classList.add('open');
+        document.body.classList.add('sheet-open');
+      };
+      if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.startViewTransition(openSheet);
+      } else {
+        openSheet();
+      }
     }
 
     function closeQrPay() {
       if (qrPayPollInterval) { clearInterval(qrPayPollInterval); qrPayPollInterval = null; }
-      document.getElementById('qrPaySheet').classList.remove('open');
-      document.body.classList.remove('sheet-open');
+      const closeSheet = () => {
+        document.getElementById('qrPaySheet').classList.remove('open');
+        document.body.classList.remove('sheet-open');
+      };
+      if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.startViewTransition(closeSheet);
+      } else {
+        closeSheet();
+      }
     }
 
     async function confirmQrPayment(btn) {
@@ -3726,10 +4007,12 @@
     })();
 
     init().catch(() => {
-      document.getElementById("loader").textContent = "Could not load menu. Please refresh.";
+      const ldr = document.getElementById("loader");
+      if (ldr) ldr.textContent = "Could not load menu. Please refresh.";
     });
   </script>
   <div id="debugPanel" class="debug-panel" style="display:none"></div>
+  <div id="pwaToast" class="pwa-toast" role="status" aria-live="polite"></div>
 </body>
 </html>
 
