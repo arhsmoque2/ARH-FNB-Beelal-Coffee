@@ -27,21 +27,22 @@ const modernStyles = `
   --radius-card: 18px;
   --glass-bg: rgba(255, 255, 255, 0.88);
   --glass-border: rgba(255, 255, 255, 0.6);
-  --accent-glow: rgba(79, 70, 229, 0.15);
+  --accent-glow: rgba(120, 29, 29, 0.15);
 }
 
 .announcement-ribbon {
-  background: linear-gradient(90deg, #1e1b4b, #312e81, #1e1b4b);
-  color: #e0e7ff;
+  background: #180e0a;
+  color: #f7f1e8;
   padding: 8px 16px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   text-align: center;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.01em;
 }
 .announcement-dot {
   width: 8px;
@@ -55,15 +56,17 @@ const modernStyles = `
   bottom: 20px;
   left: 20px;
   z-index: 9999;
-  background: #0f172a;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: #38bdf8;
-  border: 1px solid #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
   padding: 8px 14px;
   border-radius: 999px;
   font-family: monospace;
   font-size: 11px;
   font-weight: 700;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   gap: 8px;
