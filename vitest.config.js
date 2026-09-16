@@ -8,7 +8,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json", "lcov", "html"],
       reportsDirectory: "./coverage",
-      include: ["worker.js", "billing-ledger/src/index.js"],
+      include: ["worker.js", "billing-ledger/src/index.js", "src/pure/**/*.js"],
       exclude: ["_qa/**", "node_modules/**", "**/*.config.*"],
       thresholds: {
         lines: 80,
