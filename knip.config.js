@@ -5,6 +5,7 @@ export default {
     "worker.js",
     "migrate-photos.js",
     "billing-ledger/src/index.js",
+    "src/pure/**/*.js",
     "_qa/**/*.mjs",
     "scripts/**/*.js"
   ],

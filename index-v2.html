@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;800;900&family=Poppins:wght@400;500;600;700;800;900&family=Nunito:wght@400;500;600;700;800;900&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="/config.js"></script>
+  <script type="module" src="/src/pure/cart-engine.js"></script>
   <script>
     if (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.store && APP_CONFIG.store.banner && APP_CONFIG.store.banner.image_url) {
       const link = document.createElement('link');
@@ -2986,21 +2987,25 @@
       if (hasAddons) {
         openAddonsSheet(item, option);
       } else {
-        const existing = cart.find(c => c.id === item.id && c.option === option.label && (!c.addons || c.addons.length === 0));
-        if (existing) {
-          existing.qty = (existing.qty || 1) + 1;
-          existing.price = (existing.unitPrice || option.price) * existing.qty;
+        if (window.CartEngine) {
+          cart = window.CartEngine.addItemToCart(cart, item, option, []);
         } else {
-          cart.push({
-            uid: Date.now() + "_" + Math.random().toString(36).slice(2, 7),
-            id: item.id,
-            name: item.name,
-            option: option.label,
-            unitPrice: option.price,
-            price: option.price,
-            qty: 1,
-            addons: []
-          });
+          const existing = cart.find(c => c.id === item.id && c.option === option.label && (!c.addons || c.addons.length === 0));
+          if (existing) {
+            existing.qty = (existing.qty || 1) + 1;
+            existing.price = (existing.unitPrice || option.price) * existing.qty;
+          } else {
+            cart.push({
+              uid: Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+              id: item.id,
+              name: item.name,
+              option: option.label,
+              unitPrice: option.price,
+              price: option.price,
+              qty: 1,
+              addons: []
+            });
+          }
         }
 
         if (triggeredBtn) {
@@ -3079,27 +3084,31 @@
       
       closeAddonsSheet();
       
-      const unitPrice = option.price + addonTotal;
-      const existing = cart.find(c =>
-        c.id === item.id &&
-        c.option === option.label &&
-        JSON.stringify(c.addons || []) === JSON.stringify(selectedAddons)
-      );
-
-      if (existing) {
-        existing.qty = (existing.qty || 1) + 1;
-        existing.price = (existing.unitPrice || unitPrice) * existing.qty;
+      if (window.CartEngine) {
+        cart = window.CartEngine.addItemToCart(cart, item, option, selectedAddons);
       } else {
-        cart.push({
-          uid: Date.now() + "_" + Math.random().toString(36).slice(2, 7),
-          id: item.id,
-          name: item.name,
-          option: option.label,
-          unitPrice: unitPrice,
-          price: unitPrice,
-          qty: 1,
-          addons: selectedAddons
-        });
+        const unitPrice = option.price + addonTotal;
+        const existing = cart.find(c =>
+          c.id === item.id &&
+          c.option === option.label &&
+          JSON.stringify(c.addons || []) === JSON.stringify(selectedAddons)
+        );
+
+        if (existing) {
+          existing.qty = (existing.qty || 1) + 1;
+          existing.price = (existing.unitPrice || unitPrice) * existing.qty;
+        } else {
+          cart.push({
+            uid: Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+            id: item.id,
+            name: item.name,
+            option: option.label,
+            unitPrice: unitPrice,
+            price: unitPrice,
+            qty: 1,
+            addons: selectedAddons
+          });
+        }
       }
 
       updateCart();
@@ -3125,6 +3134,22 @@
     }
 
     function changeCartQty(uid, delta) {
+      if (window.CartEngine) {
+        const itemBefore = cart.find(i => i.uid === uid);
+        if (!itemBefore) return;
+        cart = window.CartEngine.changeCartItemQty(cart, uid, delta);
+        updateCart();
+        renderCart();
+        _updatePhotoCartStrip();
+        const qtyEl = document.getElementById("qty_" + uid);
+        if (qtyEl) {
+          qtyEl.classList.remove("pop");
+          void qtyEl.offsetWidth;
+          qtyEl.classList.add("pop");
+        }
+        triggerHaptic(10);
+        return;
+      }
       const item = cart.find(i => i.uid === uid);
       if (!item) return;
       item.qty = (item.qty || 1) + delta;
@@ -3146,7 +3171,7 @@
     }
 
     function removeCart(uid) {
-      cart = cart.filter(item => item.uid !== uid);
+      cart = window.CartEngine ? window.CartEngine.removeCartItem(cart, uid) : cart.filter(item => item.uid !== uid);
       updateCart();
       renderCart();
       _updatePhotoCartStrip();
@@ -3338,8 +3363,12 @@
 
     let _prevCartCount = 0;
     function updateCart() {
-      const totalCount = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
-      const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
+      const { totalCount, total } = window.CartEngine
+        ? window.CartEngine.calcCartTotals(cart)
+        : {
+            totalCount: cart.reduce((sum, item) => sum + (item.qty || 1), 0),
+            total: cart.reduce((sum, item) => sum + (item.price || 0), 0)
+          };
       const label = typeof t('itemCount') === 'function' ? t('itemCount')(totalCount) : `${totalCount} item${totalCount === 1 ? '' : 's'}`;
       const topCountEl = document.getElementById("topCartCount");
       if (topCountEl) topCountEl.textContent = totalCount;
@@ -3755,44 +3784,71 @@
 
       const name = document.getElementById("custName").value.trim() || "Customer";
       const note = document.getElementById("custNote").value.trim();
-      const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
-      const totalCount = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
       const phone = storeConfig.phone || APP_CONFIG.store.phone;
-      let msg = `🍵 *Order – ${storeConfig.name || APP_CONFIG.store.name}*\n`;
-      msg += `👤 ${name}\n\n*Items:*\n`;
-      cart.forEach((item, index) => {
-        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}${a.price ? ` (+${CUR}${a.price})` : ''}`).join(', ');
-        const optionAndAddons = [item.option, addonsStr].filter(Boolean).join('; ');
-        const qtyPrefix = (item.qty && item.qty > 1) ? `${item.qty}x ` : '';
-        msg += `${index + 1}. ${qtyPrefix}${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} — ${money(item.price)}\n`;
-      });
-      msg += `\n💰 *Total: ${money(total)}*`;
-      if (note) msg += `\n\n📝 ${note}`;
-      msg += `\n\n_via ${APP_CONFIG.brand.appName} menu_`;
-
+      const appName = APP_CONFIG.brand?.appName || "Beelal Coffee";
+      const storeName = storeConfig.name || APP_CONFIG.store?.name || "Beelal Coffee";
+      const { total, totalCount } = window.CartEngine
+        ? window.CartEngine.calcCartTotals(cart)
+        : {
+            total: cart.reduce((sum, item) => sum + (item.price || 0), 0),
+            totalCount: cart.reduce((sum, item) => sum + (item.qty || 1), 0)
+          };
       const orderId = 'ord_' + Date.now();
-      const orderPayload = {
-        name,
-        items: cart.map(i => ({
-          name: i.name,
-          size: i.option || 'Regular',
-          qty: i.qty || 1,
-          price: i.price,
-          unitPrice: i.unitPrice || i.price,
-          addons: i.addons || []
-        })),
-        total,
-        note,
-        payment_method: 'cash',
-        payment_status: 'cash_pending',
-        consent: {
-          privacy_agreed: true,
-          privacy_notice_version: '2026-06-11-community-order-v2',
-          signed: true,
-          consented_at: Date.now(),
-        },
-        ts: Date.now(),
-      };
+      const msg = window.CartEngine
+        ? window.CartEngine.formatWhatsAppOrder({
+            cart,
+            storeName,
+            customerName: name,
+            note,
+            isQr: false,
+            appName,
+            currency: CUR
+          })
+        : (() => {
+            let m = `🍵 *Order – ${storeName}*\n`;
+            m += `👤 ${name}\n\n*Items:*\n`;
+            cart.forEach((item, index) => {
+              const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}${a.price ? ` (+${CUR}${a.price})` : ''}`).join(', ');
+              const optionAndAddons = [item.option, addonsStr].filter(Boolean).join('; ');
+              const qtyPrefix = (item.qty && item.qty > 1) ? `${item.qty}x ` : '';
+              m += `${index + 1}. ${qtyPrefix}${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} — ${money(item.price)}\n`;
+            });
+            m += `\n💰 *Total: ${money(total)}*`;
+            if (note) m += `\n\n📝 ${note}`;
+            m += `\n\n_via ${appName} menu_`;
+            return m;
+          })();
+      const orderPayload = window.CartEngine
+        ? window.CartEngine.buildOrderPayload({
+            cart,
+            customerName: name,
+            note,
+            paymentMethod: 'cash',
+            orderId,
+            timestamp: Date.now()
+          })
+        : {
+            name,
+            items: cart.map(i => ({
+              name: i.name,
+              size: i.option || 'Regular',
+              qty: i.qty || 1,
+              price: i.price,
+              unitPrice: i.unitPrice || i.price,
+              addons: i.addons || []
+            })),
+            total,
+            note,
+            payment_method: 'cash',
+            payment_status: 'cash_pending',
+            consent: {
+              privacy_agreed: true,
+              privacy_notice_version: '2026-06-11-community-order-v2',
+              signed: true,
+              consented_at: Date.now(),
+            },
+            ts: Date.now(),
+          };
 
       const waWindow = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
       if (!waWindow) {
@@ -4065,33 +4121,50 @@
 
       const name = document.getElementById("custName").value.trim() || "Customer";
       const note = document.getElementById("custNote").value.trim();
-      const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
-      const totalCount = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+      const phone = storeConfig.phone || APP_CONFIG.store.phone;
+      const appName = APP_CONFIG.brand?.appName || "Beelal Coffee";
+      const storeName = storeConfig.name || APP_CONFIG.store?.name || "Beelal Coffee";
+      const { total, totalCount } = window.CartEngine
+        ? window.CartEngine.calcCartTotals(cart)
+        : {
+            total: cart.reduce((sum, item) => sum + (item.price || 0), 0),
+            totalCount: cart.reduce((sum, item) => sum + (item.qty || 1), 0)
+          };
       const orderId = 'ord_' + Date.now();
 
-      const orderPayload = {
-        name,
-        items: cart.map(i => ({
-          name: i.name,
-          size: i.option || 'Regular',
-          qty: i.qty || 1,
-          price: i.price,
-          unitPrice: i.unitPrice || i.price,
-          addons: i.addons || []
-        })),
-        total,
-        note,
-        payment_method: 'qr',
-        payment_status: 'awaiting_confirmation',
-        payment_ref: qrPayRef,
-        consent: {
-          privacy_agreed: true,
-          privacy_notice_version: '2026-06-11-community-order-v2',
-          signed: true,
-          consented_at: Date.now(),
-        },
-        ts: Date.now(),
-      };
+      const orderPayload = window.CartEngine
+        ? window.CartEngine.buildOrderPayload({
+            cart,
+            customerName: name,
+            note,
+            paymentMethod: 'qr',
+            qrRef: qrPayRef,
+            orderId,
+            timestamp: Date.now()
+          })
+        : {
+            name,
+            items: cart.map(i => ({
+              name: i.name,
+              size: i.option || 'Regular',
+              qty: i.qty || 1,
+              price: i.price,
+              unitPrice: i.unitPrice || i.price,
+              addons: i.addons || []
+            })),
+            total,
+            note,
+            payment_method: 'qr',
+            payment_status: 'awaiting_confirmation',
+            payment_ref: qrPayRef,
+            consent: {
+              privacy_agreed: true,
+              privacy_notice_version: '2026-06-11-community-order-v2',
+              signed: true,
+              consented_at: Date.now(),
+            },
+            ts: Date.now(),
+          };
 
       // Notify the store the moment payment is claimed — same mechanism as the
       // cash flow (the customer's own WhatsApp app sends it). Previously QR
@@ -4099,18 +4172,31 @@
       // an order had arrived unless they happened to have the admin Orders tab
       // open and refreshed. Opened before any `await` so it isn't blocked by
       // iOS Safari's post-await popup restriction.
-      const phone = storeConfig.phone || APP_CONFIG.store.phone;
-      let waMsg = `🍵 *QR Order – ${storeConfig.name || APP_CONFIG.store.name}*\n`;
-      waMsg += `👤 ${name}\n💳 Paid via QR · Ref *${qrPayRef}*\n\n*Items:*\n`;
-      cart.forEach((item, index) => {
-        const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}${a.price ? ` (+${CUR}${a.price})` : ''}`).join(', ');
-        const optionAndAddons = [item.option, addonsStr].filter(Boolean).join('; ');
-        const qtyPrefix = (item.qty && item.qty > 1) ? `${item.qty}x ` : '';
-        waMsg += `${index + 1}. ${qtyPrefix}${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} — ${money(item.price)}\n`;
-      });
-      waMsg += `\n💰 *Total: ${money(total)}*`;
-      if (note) waMsg += `\n\n📝 ${note}`;
-      waMsg += `\n\n_via ${APP_CONFIG.brand.appName} menu — please confirm payment in admin_`;
+      let waMsg = window.CartEngine
+        ? window.CartEngine.formatWhatsAppOrder({
+            cart,
+            storeName,
+            customerName: name,
+            note,
+            isQr: true,
+            qrRef: qrPayRef,
+            appName,
+            currency: CUR
+          })
+        : (() => {
+            let m = `🍵 *QR Order – ${storeName}*\n`;
+            m += `👤 ${name}\n💳 Paid via QR · Ref *${qrPayRef}*\n\n*Items:*\n`;
+            cart.forEach((item, index) => {
+              const addonsStr = (item.addons || []).map(a => `${a.name}: ${a.value}${a.price ? ` (+${CUR}${a.price})` : ''}`).join(', ');
+              const optionAndAddons = [item.option, addonsStr].filter(Boolean).join('; ');
+              const qtyPrefix = (item.qty && item.qty > 1) ? `${item.qty}x ` : '';
+              m += `${index + 1}. ${qtyPrefix}${item.name}${optionAndAddons ? ` (${optionAndAddons})` : ""} — ${money(item.price)}\n`;
+            });
+            m += `\n💰 *Total: ${money(total)}*`;
+            if (note) m += `\n\n📝 ${note}`;
+            m += `\n\n_via ${appName} menu — please confirm payment in admin_`;
+            return m;
+          })();
 
       const waWindow = window.open(`https://wa.me/${phone}?text=${encodeURIComponent(waMsg)}`, "_blank");
       if (!waWindow && navigator.clipboard) {

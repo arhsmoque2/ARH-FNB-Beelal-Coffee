@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import CartEngine from "../src/pure/cart-engine.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -303,11 +304,67 @@ for (const storefront of STOREFRONT_HTML_FILES) {
     }
   ];
 
-  const calcTotalCount = testCart.reduce((sum, i) => sum + (i.qty || 1), 0);
-  const calcTotalPrice = testCart.reduce((sum, i) => sum + (i.price || 0), 0);
+  const totals = CartEngine.calcCartTotals(testCart);
+  if (totals.totalCount !== 3 || totals.total !== 22.9) {
+    console.error(
+      "  ❌ CartEngine.calcCartTotals failed: expected 3 items / RM 22.90, got " +
+        totals.totalCount +
+        " / " +
+        totals.total
+    );
+    gate5Pass = false;
+    totalErrors++;
+  }
 
-  if (calcTotalCount !== 3 || calcTotalPrice !== 22.9) {
-    console.error("  ❌ Simulated cart calculations failed");
+  // Verify stepper decrement <= 0 purges item and leaves no negative quantities
+  const decremented = CartEngine.changeCartItemQty(testCart, "1", -2);
+  if (decremented.length !== 1 || decremented[0].uid !== "2") {
+    console.error(
+      "  ❌ CartEngine.changeCartItemQty invariant failed: item not purged upon decrement to 0"
+    );
+    gate5Pass = false;
+    totalErrors++;
+  }
+
+  // Verify WhatsApp order string construction
+  const waMsg = CartEngine.formatWhatsAppOrder({
+    cart: testCart,
+    storeName: "Beelal Coffee",
+    customerName: "Ahmad",
+    note: "Extra hot"
+  });
+  if (
+    !waMsg.includes("🍵 *Order – Beelal Coffee*") ||
+    !waMsg.includes("👤 Ahmad") ||
+    !waMsg.includes("💰 *Total: RM 22.90*") ||
+    !waMsg.includes("📝 Extra hot")
+  ) {
+    console.error(
+      "  ❌ CartEngine.formatWhatsAppOrder invariant failed: string structure mismatch"
+    );
+    gate5Pass = false;
+    totalErrors++;
+  }
+
+  // Verify order payload validation
+  const validOrder = CartEngine.validateOrderPayload({
+    name: "Ahmad",
+    items: testCart,
+    total: 22.9,
+    payment_method: "cash",
+    consent: { privacy_agreed: true }
+  });
+  const invalidOrder = CartEngine.validateOrderPayload({
+    name: "",
+    items: [],
+    total: -5,
+    payment_method: "invalid",
+    consent: { privacy_agreed: false }
+  });
+  if (!validOrder.valid || invalidOrder.valid) {
+    console.error(
+      "  ❌ CartEngine.validateOrderPayload invariant failed: schema validation failed"
+    );
     gate5Pass = false;
     totalErrors++;
   }
