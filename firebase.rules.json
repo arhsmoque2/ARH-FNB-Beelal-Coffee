@@ -1,0 +1,64 @@
+{
+  "rules": {
+    "beelal_coffee": {
+      "menu": {
+        ".read": true,
+        ".write": false
+      },
+      "config": {
+        "store": {
+          ".read": true,
+          ".write": false
+        },
+        "theme": {
+          ".read": true,
+          ".write": false
+        },
+        "theme_master": {
+          ".read": true,
+          ".write": false
+        },
+        "theme_last_saved": {
+          ".read": true,
+          ".write": false
+        },
+        "store_info": {
+          ".read": true,
+          ".write": false
+        },
+        "payment_settings": {
+          ".read": true,
+          ".write": false
+        },
+        "pins": {
+          ".read": false,
+          ".write": false
+        },
+        "dev": {
+          ".read": false,
+          ".write": false
+        }
+      },
+      "orders": {
+        ".read": false,
+        ".write": false
+      },
+      "feedback": {
+        ".read": false,
+        ".write": false
+      },
+      "meta": {
+        ".read": true,
+        ".write": false
+      },
+      "error_log": {
+        ".read": false,
+        ".write": true
+      },
+      "telemetry": {
+        ".read": false,
+        ".write": true
+      }
+    }
+  }
+}

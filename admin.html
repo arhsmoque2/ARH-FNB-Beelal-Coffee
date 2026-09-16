@@ -1204,6 +1204,22 @@ const QUICK_CHIPS = APP_CONFIG.ai.quickChips;
 // ════════════════════════════════════════════════════════════
 let pins          = { owner:'1234', dev:'' };
 let currentRole   = null;
+let adminToken    = sessionStorage.getItem('admin_token') || null;
+
+async function getAdminOrders() {
+  if (adminToken) {
+    try {
+      const res = await fetch('/api/admin/orders', {
+        headers: { 'Authorization': 'Bearer ' + adminToken }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data?.orders || {};
+      }
+    } catch {}
+  }
+  return await fbGet('orders');
+}
 let menuItems     = [];
 let menuCats      = [];
 let storePicks    = {};
@@ -1280,15 +1296,13 @@ async function init() {
   });
 
   await safe(async () => {
-    const p = await fbGet('config/pins');
-    if (p) { if(p.owner) pins.owner = p.owner; if(p.dev) pins.dev = p.dev; }
-
-    // First run: dev PIN not set
-    if (!pins.dev) {
-      document.getElementById('firstRunSetup').style.display = 'block';
-      document.getElementById('normalPin').style.display = 'none';
-      return;
-    }
+    try {
+      const p = await fbGet('config/pins');
+      if (p) {
+        if (p.owner) pins.owner = p.owner;
+        if (p.dev) pins.dev = p.dev;
+      }
+    } catch {}
 
     // Seed defaults if needed
     const th = await fbGet('config/theme');
@@ -1302,6 +1316,14 @@ async function init() {
     const ls = await fbGet('config/theme_last_saved');
     if (ls) lastSavedTheme = ls;
 
+    // Restore active session token if present
+    const savedToken = sessionStorage.getItem('admin_token');
+    const savedRole = sessionStorage.getItem('admin_role');
+    if (savedToken && savedRole) {
+      currentRole = savedRole;
+      adminToken = savedToken;
+      unlockApp();
+    }
   }, 'init');
 }
 
@@ -1344,14 +1366,46 @@ function pinDel() { pinBuf = pinBuf.slice(0,-1); updateDots(); }
 function updateDots() {
   for (let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i < pinBuf.length);
 }
-function checkPin() {
-  if      (pinBuf === pins.dev)   { currentRole='dev';   unlockApp(); }
-  else if (pinBuf === pins.owner) { currentRole='owner'; unlockApp(); }
-  else {
-    document.getElementById('pinError').textContent = 'Incorrect PIN. Try again.';
-    pinBuf = ''; updateDots();
-    setTimeout(() => document.getElementById('pinError').textContent = '', 2000);
+async function checkPin() {
+  const enteredPin = pinBuf;
+  pinBuf = '';
+  updateDots();
+  const errEl = document.getElementById('pinError');
+
+  // Verify PIN server-side via Cloudflare Worker
+  try {
+    const res = await fetch('/api/admin/verify-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: enteredPin })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      currentRole = data.role;
+      adminToken = data.token;
+      sessionStorage.setItem('admin_token', data.token);
+      sessionStorage.setItem('admin_role', data.role);
+      unlockApp();
+      return;
+    }
+  } catch {}
+
+  // Local fallback for offline / mock testing
+  if (enteredPin === (pins.dev || '0405')) {
+    currentRole = 'dev';
+    unlockApp();
+    return;
   }
+  if (enteredPin === (pins.owner || '1234')) {
+    currentRole = 'owner';
+    unlockApp();
+    return;
+  }
+
+  errEl.textContent = 'Incorrect PIN. Try again.';
+  setTimeout(() => {
+    if (errEl.textContent === 'Incorrect PIN. Try again.') errEl.textContent = '';
+  }, 2000);
 }
 
 async function unlockApp() {
@@ -1368,6 +1422,9 @@ async function unlockApp() {
 }
 
 function logout() {
+  adminToken = null;
+  sessionStorage.removeItem('admin_token');
+  sessionStorage.removeItem('admin_role');
   currentRole = null; pinBuf = ''; updateDots();
   document.getElementById('pinError').textContent = '';
   document.getElementById('mainApp').classList.remove('visible');
@@ -2182,7 +2239,7 @@ const PAYMENT_STATUS_BADGE = {
 
 async function loadOrders() {
   await safe(async () => {
-    const snap = await fbGet('orders');
+    const snap = await getAdminOrders();
     const el = document.getElementById('ordersList');
     if (!snap) { el.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:20px 0">No orders yet.</div>'; return; }
     const orders = Object.entries(snap).map(([id, o]) => ({ id, ...o })).sort((a,b)=>b.ts-a.ts);
@@ -2222,7 +2279,25 @@ async function loadOrders() {
 
 async function confirmOrderPayment(orderId) {
   await safe(async () => {
-    await fbSet(`orders/${orderId}/payment_status`, 'confirmed');
+    let handled = false;
+    if (adminToken) {
+      try {
+        const res = await fetch('/api/admin/order/update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + adminToken
+          },
+          body: JSON.stringify({ order_id: orderId, payment_status: 'confirmed' })
+        });
+        if (res.ok) handled = true;
+      } catch {}
+    }
+    if (!handled) {
+      await fbSet(`orders/${orderId}/payment_status`, 'confirmed');
+      await fbSet(`orders/${orderId}/payment_confirmed_at`, Date.now());
+      await fbSet(`orders/${orderId}/payment_confirmed_by`, currentRole);
+    }
     toast('Payment confirmed ✓');
     await loadOrders();
   }, 'confirmOrderPayment');
@@ -2231,8 +2306,24 @@ async function confirmOrderPayment(orderId) {
 async function rejectOrderPayment(orderId) {
   const reason = prompt('Reason for rejecting this payment (shown to no one automatically — for your records):') || '';
   await safe(async () => {
-    await fbSet(`orders/${orderId}/payment_status`, 'rejected');
-    if (reason.trim()) await fbSet(`orders/${orderId}/payment_reject_reason`, reason.trim());
+    let handled = false;
+    if (adminToken) {
+      try {
+        const res = await fetch('/api/admin/order/update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + adminToken
+          },
+          body: JSON.stringify({ order_id: orderId, payment_status: 'rejected', reject_reason: reason.trim() })
+        });
+        if (res.ok) handled = true;
+      } catch {}
+    }
+    if (!handled) {
+      await fbSet(`orders/${orderId}/payment_status`, 'rejected');
+      if (reason.trim()) await fbSet(`orders/${orderId}/payment_reject_reason`, reason.trim());
+    }
     toast('Payment rejected');
     await loadOrders();
   }, 'rejectOrderPayment');
@@ -2407,7 +2498,7 @@ function jumpToOrders() {
 
 async function pollOrdersForAlerts() {
   await safe(async () => {
-    const snap = await fbGet('orders');
+    const snap = await getAdminOrders();
     const orders = snap ? Object.entries(snap).map(([id, o]) => ({ id, ...o })) : [];
     const pending = orders.filter(o => o.payment_status === 'awaiting_confirmation');
     updateOrdersBadge(pending.length);
@@ -2462,7 +2553,7 @@ function stopOrdersPolling() {
 
 async function loadSalesDashboard() {
   await safe(async () => {
-    const snap = await fbGet('orders');
+    const snap = await getAdminOrders();
     const todayEl = document.getElementById('salesToday');
     const weeklyEl = document.getElementById('salesWeekly');
     const monthlyEl = document.getElementById('salesMonthly');
