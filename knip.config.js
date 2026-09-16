@@ -9,5 +9,6 @@ export default {
     "scripts/**/*.js"
   ],
   project: ["**/*.{js,mjs,cjs}"],
+  ignore: ["coverage/**"],
   ignoreDependencies: ["@commitlint/cli", "lint-staged"]
 };

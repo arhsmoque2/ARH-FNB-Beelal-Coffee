@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": "arh-fnb-beelal-coffee",
+  "version": "2.0.0",
+  "last_audited": "2026-08-28T16:09:00+08:00",
+  "risk_matrix": {
+    "tier_1_mission_critical": {
+      "target_branch_coverage": "95-100%",
+      "required_test_types": ["Unit", "Integration", "Contract", "Edge Miniflare D1"],
+      "files": [
+        {
+          "path": "worker.js",
+          "fan_in": 8,
+          "complexity": "High",
+          "domain": "API Controller, D1 Database Mutations, Order Pricing, Admin Authentication",
+          "current_coverage": "0% (No unit test suite)"
+        },
+        {
+          "path": "billing-ledger/src/index.js",
+          "fan_in": 5,
+          "complexity": "High",
+          "domain": "Financial Ledger, Settlement Calculations, Store Billing Transactions",
+          "current_coverage": "0% (No unit test suite)"
+        }
+      ]
+    },
+    "tier_2_business_logic": {
+      "target_branch_coverage": "80-90%",
+      "required_test_types": ["Unit", "Integration"],
+      "files": [
+        {
+          "path": "_qa/infra-doctor.mjs",
+          "fan_in": 2,
+          "complexity": "Medium",
+          "domain": "Infrastructure Diagnostics & Zero Trust Auditing",
+          "current_coverage": "100% (Executed during npm test)"
+        },
+        {
+          "path": "_qa/beelal-ui-ux-quality-gate.mjs",
+          "fan_in": 3,
+          "complexity": "Medium",
+          "domain": "HTML Brand Asset & Primitive Integrity Gate",
+          "current_coverage": "100% (Executed during npm test)"
+        },
+        {
+          "path": "_qa/beelal-layout-audit.mjs",
+          "fan_in": 2,
+          "complexity": "Medium",
+          "domain": "DOM Viewport & Flex Layout Occlusion Proof",
+          "current_coverage": "100% (Executed during npm test)"
+        }
+      ]
+    },
+    "tier_3_ui_and_views": {
+      "target_line_coverage": "50-70%",
+      "required_test_types": ["Component", "Visual Snapshot", "Playwright E2E"],
+      "files": [
+        {
+          "path": "index-v2.html",
+          "domain": "Customer Storefront UI & Checkout Flow",
+          "current_coverage": "Static HTML DOM Gate Only"
+        },
+        {
+          "path": "admin.html",
+          "domain": "Merchant Management Cockpit UI",
+          "current_coverage": "Static HTML DOM Gate Only"
+        },
+        {
+          "path": "preview.html",
+          "domain": "Live Menu Preview Shell",
+          "current_coverage": "Static HTML DOM Gate Only"
+        },
+        {
+          "path": "dev-console.html",
+          "domain": "Developer Sandbox & Quick Tester",
+          "current_coverage": "Static HTML DOM Gate Only"
+        }
+      ]
+    },
+    "tier_4_excluded": {
+      "target_coverage": "0% (Static Lints Only)",
+      "required_test_types": ["oxlint", "cspell", "markdownlint", "prettier"],
+      "files": [
+        "config.js",
+        "wrangler.jsonc",
+        "billing-ledger/wrangler.jsonc",
+        "commitlint.config.mjs",
+        "knip.config.js"
+      ]
+    }
+  }
+}

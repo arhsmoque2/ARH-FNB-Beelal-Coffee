@@ -2,6 +2,7 @@
  * Cloudflare Worker — fnb-pwa
  *
  * Routes:
+ *   POST /api/chat           — proxy AI theme studio requests to OpenRouter
  *   POST /api/upload/video   — validate & store video to R2, return URL
  *   POST /api/upload/image   — validate & store image to R2, return URL
  *   POST /api/parse-receipt  — deliberately disabled Gemini receipt parser
@@ -15,6 +16,7 @@
  *   Per store — 150 MB soft cap tracked in Firebase by admin; Worker enforces per-file only
  *
  * Required Worker secrets (wrangler secret put):
+ *   OPENROUTER_API_KEY — bearer token for OpenRouter AI chat completions proxy
  *   UPLOAD_SECRET   — random string used only by protected admin upload routes
  *   BILLING_SECRET  — private bearer token for the billing ledger proxy
  *   GEMINI_API_KEY  — reserved for the deliberately disabled parser path
@@ -53,6 +55,11 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === "/api/chat") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+      return handleChatProxy(request, env);
     }
 
     if (url.pathname === "/api/record-order") {
@@ -103,6 +110,85 @@ function json(data, status = 200) {
     status,
     headers: { ...CORS, "Content-Type": "application/json" }
   });
+}
+
+async function handleChatProxy(request, env) {
+  const apiKey = env.OPENROUTER_API_KEY;
+  if (!apiKey) return json({ error: "AI chat proxy is not configured." }, 503);
+
+  const origin = request.headers.get("origin");
+  if (origin) {
+    try {
+      const originHost = new URL(origin).hostname.toLowerCase();
+      const isAllowed =
+        originHost === "localhost" ||
+        originHost === "127.0.0.1" ||
+        originHost === "store-beelal-fnb-pwa.arh-homelab.workers.dev" ||
+        originHost.endsWith(".workers.dev");
+      if (!isAllowed) {
+        return json({ error: "Unauthorized origin." }, 403);
+      }
+    } catch {
+      return json({ error: "Invalid origin header." }, 403);
+    }
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Request body must be JSON." }, 400);
+  }
+
+  if (!Array.isArray(body?.messages) || body.messages.length === 0) {
+    return json({ error: "Messages array is required." }, 400);
+  }
+
+  const bodyText = JSON.stringify(body.messages);
+  if (bodyText.length > 128 * 1024) {
+    return json({ error: "Messages payload exceeds 128 KB limit." }, 413);
+  }
+
+  const model =
+    typeof body.model === "string" && body.model.trim()
+      ? body.model.trim()
+      : "deepseek/deepseek-v4-flash:free";
+
+  let upstream;
+  try {
+    upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://store-beelal-fnb-pwa.arh-homelab.workers.dev",
+        "X-Title": "Beelal Coffee Admin Studio"
+      },
+      body: JSON.stringify({
+        model,
+        messages: body.messages,
+        temperature: typeof body.temperature === "number" ? body.temperature : 0.7,
+        max_tokens: typeof body.max_tokens === "number" ? Math.min(body.max_tokens, 4000) : 1500
+      })
+    });
+  } catch (err) {
+    return json({ error: `Upstream OpenRouter request failed: ${err.message}` }, 502);
+  }
+
+  if (!upstream.ok) {
+    let errText = "";
+    try {
+      errText = await upstream.text();
+    } catch {}
+    return json({ error: `OpenRouter error (${upstream.status}): ${errText}` }, 502);
+  }
+
+  try {
+    const data = await upstream.json();
+    return json(data);
+  } catch {
+    return json({ error: "Invalid JSON received from OpenRouter." }, 502);
+  }
 }
 
 async function handleBillingProxy(request, env) {
