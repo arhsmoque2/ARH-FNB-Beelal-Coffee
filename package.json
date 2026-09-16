@@ -17,7 +17,8 @@
     "check:live": "node _qa/beelal-live-healthcheck.mjs",
     "check:layout": "node _qa/beelal-layout-audit.mjs",
     "preview:generate": "node _qa/preview-generator.mjs",
-    "check": "npm run lint && npm run check:spelling && npm run check:md && npm run check:knip && npm run check:prettier && npm run check:ui && npm run check:layout && npm run check:infra",
+    "test:unit": "vitest run --coverage",
+    "check": "npm run lint && npm run check:spelling && npm run check:md && npm run check:knip && npm run check:prettier && npm run check:ui && npm run check:layout && npm run check:infra && npm run test:unit",
     "test": "npm run check"
   },
   "commitlint": {
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
+    "@vitest/coverage-v8": "^4.1.11",
     "cspell": "^10.1.1",
     "execa": "^9.6.0",
     "knip": "^6.32.3",
@@ -44,6 +46,7 @@
     "markdownlint-cli2": "^0.23.2",
     "oxlint": "^1.80.0",
     "playwright": "^1.62.1",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "vitest": "^4.1.11"
   }
 }
