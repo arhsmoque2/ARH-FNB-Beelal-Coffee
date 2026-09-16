@@ -939,7 +939,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <button class="update-badge" id="updateBadge" onclick="openReleasePanel()">Updates</button>
 
 <script>
@@ -1049,6 +1049,12 @@ function showErrOverlay(msg) {
 function handleErrOk() {
   try { window.close(); } catch {}
   document.getElementById('errOverlay').classList.remove('show');
+}
+
+function parsePrice(val) {
+  if (val === '' || val === null || val === undefined) return null;
+  const num = parseFloat(val);
+  return Number.isFinite(num) ? num : null;
 }
 
 // Safe async wrapper
@@ -1755,13 +1761,13 @@ async function addItem() {
       desc:      document.getElementById('nDesc').value.trim(),
       emoji:     document.getElementById('nEmoji').value.trim()||'🍽️',
       img_url:   document.getElementById('nImg').value.trim(),
-      hot:       parseFloat(document.getElementById('nHot').value)||null,
+      hot:       parsePrice(document.getElementById('nHot').value),
       hot_oz:    document.getElementById('nHotOz').value.trim()||null,
-      cold:      parseFloat(document.getElementById('nCold').value)||null,
+      cold:      parsePrice(document.getElementById('nCold').value),
       cold_oz:   document.getElementById('nColdOz').value.trim()||null,
-      frappe:    parseFloat(document.getElementById('nFrappe').value)||null,
+      frappe:    parsePrice(document.getElementById('nFrappe').value),
       frappe_oz: document.getElementById('nFrappeOz').value.trim()||null,
-      price:     parseFloat(document.getElementById('nPrice').value)||null,
+      price:     parsePrice(document.getElementById('nPrice').value),
       addons:    [],
       avail:     true
     };
@@ -1978,14 +1984,14 @@ async function saveEdit() {
     item.emoji   = document.getElementById('eEmoji').value.trim();
     item.img_url = document.getElementById('eImg').value.trim();
     if (isDrink) {
-      item.hot       = parseFloat(document.getElementById('eHot').value)||null;
+      item.hot       = parsePrice(document.getElementById('eHot').value);
       item.hot_oz    = document.getElementById('eHotOz').value.trim()||null;
-      item.cold      = parseFloat(document.getElementById('eCold').value)||null;
+      item.cold      = parsePrice(document.getElementById('eCold').value);
       item.cold_oz   = document.getElementById('eColdOz').value.trim()||null;
-      item.frappe    = parseFloat(document.getElementById('eFrappe').value)||null;
+      item.frappe    = parsePrice(document.getElementById('eFrappe').value);
       item.frappe_oz = document.getElementById('eFrappeOz').value.trim()||null;
     } else {
-      item.price  = parseFloat(document.getElementById('ePrice').value)||null;
+      item.price  = parsePrice(document.getElementById('ePrice').value);
     }
     item.addons = collectAddons();
     await fbSet('menu/items/'+item.id, item);
@@ -2101,7 +2107,7 @@ function updateCatDropdown() {
 let editingAddons = []; // working copy while modal open
 
 function renderAddonsEditor(addons) {
-  editingAddons = JSON.parse(JSON.stringify(addons || []));
+  editingAddons = structuredClone(addons || []);
   refreshAddonsEditor();
 }
 
@@ -3284,11 +3290,16 @@ async function sendChat() {
       const { theme, store, menu_availability } = parsed.changes;
 
       if (theme && Object.keys(theme).length) {
-        // Validate hex values
+        // Strictly validate theme tokens against injection
         const validated = {};
-        Object.entries(theme).forEach(([k,v]) => {
-          if (typeof v === 'string' && (v.startsWith('#') ? /^#[0-9a-fA-F]{6}$/.test(v) : true)) {
-            validated[k] = v;
+        const COLOR_KEYS = new Set(['bg', 'bg2', 'bg3', 'surface', 'primary', 'accent', 'accent2', 'text', 'text2', 'text3']);
+        const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
+        Object.entries(theme).forEach(([k, v]) => {
+          if (typeof v !== 'string') return;
+          if (COLOR_KEYS.has(k)) {
+            if (HEX_REGEX.test(v)) validated[k] = v;
+          } else if (k === 'font_display' || k === 'font_body') {
+            if (/^[a-zA-Z0-9\s,'"-]+$/.test(v) && v.length < 80) validated[k] = v;
           }
         });
         const updated = { ...currentTheme, ...validated };
@@ -3731,10 +3742,10 @@ async function importSelectedItems() {
         desc:   row.dataset.desc,
         emoji:  row.dataset.emoji,
         isDrink,
-        hot:    isDrink ? parseFloat(document.getElementById('hot_'+rid)?.value)||null   : null,
-        cold:   isDrink ? parseFloat(document.getElementById('cold_'+rid)?.value)||null  : null,
-        frappe: isDrink ? parseFloat(document.getElementById('frappe_'+rid)?.value)||null: null,
-        price: !isDrink ? parseFloat(document.getElementById('price_'+rid)?.value)||null : null,
+        hot:    isDrink ? parsePrice(document.getElementById('hot_'+rid)?.value)   : null,
+        cold:   isDrink ? parsePrice(document.getElementById('cold_'+rid)?.value)  : null,
+        frappe: isDrink ? parsePrice(document.getElementById('frappe_'+rid)?.value): null,
+        price: !isDrink ? parsePrice(document.getElementById('price_'+rid)?.value) : null,
       });
     }
 

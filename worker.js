@@ -116,6 +116,23 @@ async function handleChatProxy(request, env) {
   const apiKey = env.OPENROUTER_API_KEY;
   if (!apiKey) return json({ error: "AI chat proxy is not configured." }, 503);
 
+  const origin = request.headers.get("origin");
+  if (origin) {
+    try {
+      const originHost = new URL(origin).hostname.toLowerCase();
+      const isAllowed =
+        originHost === "localhost" ||
+        originHost === "127.0.0.1" ||
+        originHost === "store-beelal-fnb-pwa.arh-homelab.workers.dev" ||
+        originHost.endsWith(".workers.dev");
+      if (!isAllowed) {
+        return json({ error: "Unauthorized origin." }, 403);
+      }
+    } catch {
+      return json({ error: "Invalid origin header." }, 403);
+    }
+  }
+
   let body;
   try {
     body = await request.json();

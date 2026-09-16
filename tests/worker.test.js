@@ -873,4 +873,50 @@ describe("POST /api/chat — AI chat proxy", () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it("rejects unauthorized cross-origin requests with 403", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://evil-attacker.com"
+        },
+        body: JSON.stringify({ messages: [{ role: "user", content: "hello" }] })
+      }),
+      makeEnv({ OPENROUTER_API_KEY: "sk-or-test" }),
+      makeCtx()
+    );
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toContain("Unauthorized origin");
+  });
+
+  it("allows trusted worker/local origins", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ choices: [{ message: { content: "OK" } }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: "https://store-beelal-fnb-pwa.arh-homelab.workers.dev"
+          },
+          body: JSON.stringify({ messages: [{ role: "user", content: "hello" }] })
+        }),
+        makeEnv({ OPENROUTER_API_KEY: "sk-or-test" }),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

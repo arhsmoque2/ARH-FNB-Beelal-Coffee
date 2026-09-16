@@ -1734,7 +1734,7 @@
         background-size: cover;
         background-position: 61% center;
       }
-      h1 { font-size: clamp(44px, 17vw, 68px); }
+      h1 { font-size: clamp(34px, 11vw, 50px); }
       .hero.hero-has-bg h1 { max-width: 7ch; }
       .hero.hero-has-bg .lede { max-width: 92%; font-size: 16px; }
       .control-grid { grid-template-columns: 1fr; }
@@ -2239,6 +2239,36 @@
     let paymentConfig = { ...DEFAULT_CONFIG.payment };
     let menuData = { categories: [], items: [] };
     let cart = [];
+
+    function loadPersistedCart() {
+      try {
+        const saved = localStorage.getItem("beelal_fnb_cart_v1");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length) {
+            cart = parsed;
+          }
+        }
+      } catch {}
+    }
+
+    function persistCart() {
+      try {
+        if (cart && cart.length) {
+          localStorage.setItem("beelal_fnb_cart_v1", JSON.stringify(cart));
+        } else {
+          localStorage.removeItem("beelal_fnb_cart_v1");
+        }
+      } catch {}
+    }
+
+    function clearCart() {
+      cart = [];
+      persistCart();
+      updateCart();
+      renderCart();
+    }
+
     let activeCategory = "all";
     let query = "";
     let availableOnly = false;
@@ -2556,6 +2586,7 @@
       renderShell();
       renderNavigation();
       renderMenu();
+      loadPersistedCart();
       updateCart();
       checkPendingItemReviews();
       const ldr = document.getElementById("loader");
@@ -2777,7 +2808,7 @@
       const space = document.getElementById("menuSpace");
       const items = currentItems();
       if (!items.length) {
-        space.innerHTML = `<div class="empty-state">No matching rooms or facilities found.</div>`;
+        space.innerHTML = `<div class="empty-state">No items match your search.</div>`;
         return;
       }
 
@@ -2862,7 +2893,7 @@
       const safeName = item.name.replace(/'/g, "\\'");
       const safeId = item.id.replace(/'/g, "\\'");
       const media = item.img_url
-        ? `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openPhoto('${safeImg}','${safeName}','${safeId}')" onkeydown="if(event.key==='Enter'||event.key===' ')openPhoto('${safeImg}','${safeName}','${safeId}')"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy"></div>`
+        ? `<div class="item-media has-image" role="button" tabindex="0" aria-label="View photo of ${esc(item.name)}" onclick="openPhoto('${safeImg}','${safeName}','${safeId}')" onkeydown="if(event.key==='Enter'||event.key===' ')openPhoto('${safeImg}','${safeName}','${safeId}')"><img src="${esc(item.img_url)}" alt="${esc(item.name)}" loading="lazy" decoding="async"></div>`
         : `<div class="item-media">${esc(item.emoji || "R")}</div>`;
 
       // Price section
@@ -3327,6 +3358,7 @@
       if (payQrBtn) payQrBtn.disabled = payDisabled;
       const banner = document.getElementById('reviewPromptBanner');
       if (banner) banner.style.bottom = totalCount > 0 ? '90px' : '20px';
+      persistCart();
     }
 
     function openCart() {
@@ -3690,8 +3722,9 @@
     function _hasConsented() { return APP_CONFIG.checkout?.consentOnce !== false && localStorage.getItem(_consentKey()) === '1'; }
     function _markConsented() { localStorage.setItem(_consentKey(), '1'); }
 
+    let _isSubmittingOrder = false;
     function sendOrder() {
-      if (!cart.length || storeConfig.isOpen === false) return;
+      if (_isSubmittingOrder || !cart.length || storeConfig.isOpen === false) return;
       if (!_hasConsented()) {
         const agreed = document.getElementById('privacyAgree').checked;
         const consentError = document.getElementById('consentError');
@@ -3702,6 +3735,14 @@
         _markConsented();
         document.getElementById('consentGate').style.display = 'none';
       }
+
+      _isSubmittingOrder = true;
+      const cashBtn = document.getElementById("payCashBtn");
+      if (cashBtn) {
+        cashBtn.disabled = true;
+        cashBtn.textContent = "Opening WhatsApp...";
+      }
+
       const name = document.getElementById("custName").value.trim() || "Customer";
       const note = document.getElementById("custNote").value.trim();
       const total = cart.reduce((sum, item) => sum + (item.price || 0), 0);
@@ -3769,6 +3810,17 @@
 
       logOrder(orderId, orderPayload);
       recordBillingEvent(orderId, orderPayload);
+      clearCart();
+      closeCart();
+
+      setTimeout(() => {
+        _isSubmittingOrder = false;
+        if (cashBtn) {
+          cashBtn.disabled = false;
+          cashBtn.textContent = t('sendBtn') || "Send WhatsApp order";
+        }
+      }, 1500);
+
       setTimeout(openFeedbackModal, 700);
     }
 
@@ -3856,8 +3908,10 @@
       }
     }
 
+    let _isSubmittingQr = false;
     async function confirmQrPayment(btn) {
-      if (!cart.length) return;
+      if (_isSubmittingQr || !cart.length) return;
+      _isSubmittingQr = true;
       if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
       const name = document.getElementById("custName").value.trim() || "Customer";
@@ -3892,32 +3946,34 @@
 
       try {
         await fbPut('orders/' + orderId, orderPayload);
-      } catch {}
+        qrPayOrderId = orderId;
+        lastOrderContext = {
+          order_id: orderId,
+          order_ts: orderPayload.ts,
+          order_total: total,
+          item_count: totalCount,
+          customer_name: name,
+          items: [...new Map(cart.map(i => [i.id, { id: i.id, name: i.name }])).values()],
+          reviewed: false,
+        };
+        localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
+        recordBillingEvent(orderId, orderPayload);
 
-      qrPayOrderId = orderId;
-      lastOrderContext = {
-        order_id: orderId,
-        order_ts: orderPayload.ts,
-        order_total: total,
-        item_count: totalCount,
-        customer_name: name,
-        items: [...new Map(cart.map(i => [i.id, { id: i.id, name: i.name }])).values()],
-        reviewed: false,
-      };
-      localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
-      recordBillingEvent(orderId, orderPayload);
+        clearCart();
 
-      cart = [];
-      updateCart();
-      renderCart();
+        if (btn) { btn.disabled = true; btn.textContent = "Payment Submitted"; }
 
-      if (btn) { btn.disabled = false; btn.textContent = "I've Paid"; }
+        document.getElementById('qrAwaitSummary').textContent = `${name} — ${money(total)} · Ref ${qrPayRef}`;
+        document.getElementById('qrPayView').style.display = 'none';
+        document.getElementById('qrAwaitView').style.display = '';
 
-      document.getElementById('qrAwaitSummary').textContent = `${name} — ${money(total)} · Ref ${qrPayRef}`;
-      document.getElementById('qrPayView').style.display = 'none';
-      document.getElementById('qrAwaitView').style.display = '';
-
-      startQrPayStatusPoll(orderId);
+        startQrPayStatusPoll(orderId);
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = "I've Paid"; }
+        alert("Failed to submit payment. Please check your connection and try again.");
+      } finally {
+        _isSubmittingQr = false;
+      }
     }
 
     function startQrPayStatusPoll(orderId) {
