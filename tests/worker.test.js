@@ -920,3 +920,485 @@ describe("POST /api/chat — AI chat proxy", () => {
     }
   });
 });
+
+// ── Phase 1: Admin Auth & PIN Security ───────────────────────────────────────
+
+describe("Admin PIN Authentication — POST /api/admin/verify-pin", () => {
+  it("rejects non-POST methods with 405", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", { method: "GET" }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(405);
+  });
+
+  it("rejects invalid JSON with 400", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "not-json"
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("Request body must be JSON");
+  });
+
+  it("rejects non-4-digit PIN with 400", async () => {
+    for (const badPin of ["", "12", "12345", "abcd", null]) {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/admin/verify-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: badPin })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("PIN must be 4 digits");
+    }
+  });
+
+  it("returns 401 on incorrect PIN", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "9999" })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toContain("Incorrect PIN");
+  });
+
+  it("authenticates dev role with default dev PIN (0405) and returns HMAC session token", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "0405" })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ok).toBe(true);
+    expect(data.role).toBe("dev");
+    expect(typeof data.token).toBe("string");
+    expect(data.token).toContain(".");
+    expect(data.expires_at).toBeGreaterThan(Date.now());
+  });
+
+  it("authenticates owner role with default owner PIN (1234)", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "1234" })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.ok).toBe(true);
+    expect(data.role).toBe("owner");
+    expect(typeof data.token).toBe("string");
+  });
+
+  it("honors custom PINs configured via environment secrets", async () => {
+    const env = makeEnv({
+      ADMIN_DEV_PIN: "7777",
+      ADMIN_OWNER_PIN: "8888"
+    });
+
+    const resDev = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "7777" })
+      }),
+      env,
+      makeCtx()
+    );
+    expect(resDev.status).toBe(200);
+    const devData = await resDev.json();
+    expect(devData.role).toBe("dev");
+
+    const resOwner = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "8888" })
+      }),
+      env,
+      makeCtx()
+    );
+    expect(resOwner.status).toBe(200);
+    const ownerData = await resOwner.json();
+    expect(ownerData.role).toBe("owner");
+  });
+});
+
+// ── Phase 1: Protected Admin Orders API ──────────────────────────────────────
+
+describe("Protected Admin Orders API — GET /api/admin/orders & POST /api/admin/order/update-status", () => {
+  async function getValidToken(role = "dev") {
+    const pin = role === "dev" ? "0405" : "1234";
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    const data = await res.json();
+    return data.token;
+  }
+
+  it("rejects unauthorized calls to GET /api/admin/orders without token", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/orders", { method: "GET" }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects forged or tampered admin tokens", async () => {
+    const validToken = await getValidToken();
+    const tampered = validToken.slice(0, -4) + "0000";
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/orders", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${tampered}` }
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("retrieves orders for authorized admin session via Bearer header", async () => {
+    const token = await getValidToken();
+    const originalFetch = globalThis.fetch;
+    const mockOrders = {
+      ord_123: { name: "Ahmad", total: 15.5, payment_status: "awaiting_confirmation" }
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockOrders), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/admin/orders", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.orders.ord_123.name).toBe("Ahmad");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("updates order payment status to confirmed with confirmation audit", async () => {
+    const token = await getValidToken("owner");
+    const originalFetch = globalThis.fetch;
+    let capturedBody = null;
+    globalThis.fetch = vi.fn().mockImplementation((_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    });
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/admin/order/update-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            order_id: "ord_12345",
+            payment_status: "confirmed"
+          })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.payment_status).toBe("confirmed");
+      expect(capturedBody.payment_status).toBe("confirmed");
+      expect(capturedBody.payment_confirmed_by).toBe("owner");
+      expect(capturedBody.payment_confirmed_at).toBeTypeOf("number");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("updates order payment status to rejected with reject reason", async () => {
+    const token = await getValidToken("dev");
+    const originalFetch = globalThis.fetch;
+    let capturedBody = null;
+    globalThis.fetch = vi.fn().mockImplementation((_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    });
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/admin/order/update-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-token": token
+          },
+          body: JSON.stringify({
+            order_id: "ord_12345",
+            payment_status: "rejected",
+            reject_reason: "Payment receipt unreadable"
+          })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      expect(capturedBody.payment_status).toBe("rejected");
+      expect(capturedBody.payment_reject_reason).toBe("Payment receipt unreadable");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+// ── Phase 1: Customer Order Dispatch ─────────────────────────────────────────
+
+describe("Customer Order Dispatch — POST /api/order", () => {
+  it("rejects non-POST methods with 405", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/order", { method: "GET" }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(405);
+  });
+
+  it("rejects missing customer name with 400", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "  ",
+          items: [{ name: "Latte", price: 10, qty: 1 }],
+          total: 10
+        })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("Valid customer name");
+  });
+
+  it("rejects empty items array with 400", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Ahmad",
+          items: [],
+          total: 0
+        })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("at least one item");
+  });
+
+  it("rejects negative item prices or invalid quantities", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Ahmad",
+          items: [{ name: "Latte", price: -5, qty: 1 }],
+          total: -5
+        })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("successfully creates valid cash order, writes to RTDB, and returns order_id", async () => {
+    const originalFetch = globalThis.fetch;
+    let writtenBody = null;
+    globalThis.fetch = vi.fn().mockImplementation((url, options) => {
+      if (options?.method === "PUT") {
+        writtenBody = JSON.parse(options.body);
+        return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    });
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: " Siti ",
+            items: [
+              { name: "Iced Latte", size: "12oz", qty: 2, price: 24, unitPrice: 12 },
+              { name: "Butter Croissant", size: "Standard", qty: 1, price: 8, unitPrice: 8 }
+            ],
+            total: 32,
+            note: "Less ice please",
+            payment_method: "cash"
+          })
+        }),
+        makeEnv({ BILLING_SECRET: "test-billing" }),
+        makeCtx()
+      );
+      expect(res.status).toBe(201);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.order_id).toMatch(/^ord_/);
+      expect(writtenBody.name).toBe("Siti");
+      expect(writtenBody.payment_method).toBe("cash");
+      expect(writtenBody.payment_status).toBe("cash_pending");
+      expect(writtenBody.items.length).toBe(2);
+      expect(writtenBody.total).toBe(32);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("successfully creates valid QR order with receipt_url and awaiting_confirmation", async () => {
+    const originalFetch = globalThis.fetch;
+    let writtenBody = null;
+    globalThis.fetch = vi.fn().mockImplementation((url, options) => {
+      if (options?.method === "PUT") {
+        writtenBody = JSON.parse(options.body);
+      }
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    });
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_id: "ord_1789000000000",
+            name: "Hafiz",
+            items: [{ name: "Espresso", price: 7, qty: 1 }],
+            total: 7,
+            payment_method: "qr",
+            payment_ref: "REF-9999",
+            receipt_url: "https://example.com/media/receipts/test.webp"
+          })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(201);
+      expect(writtenBody.payment_method).toBe("qr");
+      expect(writtenBody.payment_status).toBe("awaiting_confirmation");
+      expect(writtenBody.payment_ref).toBe("REF-9999");
+      expect(writtenBody.receipt_url).toBe("https://example.com/media/receipts/test.webp");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+// ── Phase 1: Customer Order Status Polling ───────────────────────────────────
+
+describe("Customer Order Status Polling — GET /api/order/status/:id", () => {
+  it("rejects invalid order ID with 400", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/order/status/$$bad??id", { method: "GET" }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when order status not found", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(null), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/order/status/ord_not_found", { method: "GET" }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(404);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns 200 with payment_status when found", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify("confirmed"), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/order/status/ord_12345", { method: "GET" }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.order_id).toBe("ord_12345");
+      expect(data.payment_status).toBe("confirmed");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});

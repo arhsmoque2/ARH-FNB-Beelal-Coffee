@@ -3818,8 +3818,27 @@
       };
       localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
 
-      logOrder(orderId, orderPayload);
-      recordBillingEvent(orderId, orderPayload);
+      // Dispatch via Worker Data Boundary (/api/order)
+      try {
+        fetch('/api/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload)
+        })
+          .then(res => {
+            if (!res.ok) {
+              logOrder(orderId, orderPayload);
+              recordBillingEvent(orderId, orderPayload);
+            }
+          })
+          .catch(() => {
+            logOrder(orderId, orderPayload);
+            recordBillingEvent(orderId, orderPayload);
+          });
+      } catch {
+        logOrder(orderId, orderPayload);
+        recordBillingEvent(orderId, orderPayload);
+      }
       clearCart();
       closeCart();
 
@@ -4104,7 +4123,21 @@
       if (receiptUrl) orderPayload.receipt_url = receiptUrl;
 
       try {
-        await fbPut('orders/' + orderId, orderPayload);
+        let orderSaved = false;
+        try {
+          const res = await fetch('/api/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
+          });
+          if (res.ok) orderSaved = true;
+        } catch {}
+
+        if (!orderSaved) {
+          await fbPut('orders/' + orderId, orderPayload);
+          recordBillingEvent(orderId, orderPayload);
+        }
+
         qrPayOrderId = orderId;
         lastOrderContext = {
           order_id: orderId,
@@ -4116,7 +4149,6 @@
           reviewed: false,
         };
         localStorage.setItem('arh_last_order_context', JSON.stringify(lastOrderContext));
-        recordBillingEvent(orderId, orderPayload);
 
         resetReceiptAttachment();
         clearCart();
@@ -4143,7 +4175,17 @@
       let slowNoticeShown = false;
       const check = async () => {
         try {
-          const order = await fbGet('orders/' + orderId);
+          let order = null;
+          try {
+            const statusRes = await fetch('/api/order/status/' + encodeURIComponent(orderId));
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              if (statusData && statusData.payment_status) {
+                order = { payment_status: statusData.payment_status };
+              }
+            }
+          } catch {}
+          if (!order) order = await fbGet('orders/' + orderId);
           const status = order?.payment_status;
           if (status === 'confirmed') {
             clearInterval(qrPayPollInterval); qrPayPollInterval = null;

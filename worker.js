@@ -28,7 +28,7 @@
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Admin-Secret"
+  "Access-Control-Allow-Headers": "Content-Type, X-Admin-Secret, Authorization, x-admin-token"
 };
 
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024; // 5 MB — ~5s 720p at good quality
@@ -55,6 +55,33 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
+    }
+
+    if (url.pathname === "/api/admin/verify-pin") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+      return handleVerifyPin(request, env);
+    }
+
+    if (url.pathname === "/api/admin/orders") {
+      if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+      return handleAdminGetOrders(request, env);
+    }
+
+    if (url.pathname === "/api/admin/order/update-status") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+      return handleAdminUpdateOrderStatus(request, env);
+    }
+
+    if (url.pathname === "/api/order") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+      return handleCreateOrder(request, env, ctx);
+    }
+
+    if (url.pathname.startsWith("/api/order/status")) {
+      if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+      const orderId =
+        url.pathname.replace(/^\/api\/order\/status\/?/, "") || url.searchParams.get("id");
+      return handleGetOrderStatus(orderId, request, env);
     }
 
     if (url.pathname === "/api/chat") {
@@ -523,4 +550,327 @@ async function serveMedia(key, request, env, ctx) {
   ctx.waitUntil(cache.put(cacheKey, response.clone()));
 
   return response;
+}
+
+// ── Admin Auth & Token Security ──────────────────────────────────────────────
+
+async function signAdminToken(role, env) {
+  const secret =
+    env.ADMIN_SESSION_SECRET || env.BILLING_SECRET || "beelal-admin-session-token-key-2026";
+  const exp = Date.now() + 24 * 60 * 60 * 1000; // 24-hour admin session
+  const payload = JSON.stringify({ role, exp });
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  const sigHex = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const token = btoa(payload) + "." + sigHex;
+  return { token, role, exp };
+}
+
+async function verifyAdminToken(token, env) {
+  if (!token || typeof token !== "string" || !token.includes(".")) return null;
+  try {
+    const [b64Payload, sigHex] = token.split(".");
+    const payloadStr = atob(b64Payload);
+    const payload = JSON.parse(payloadStr);
+    if (!payload.role || !payload.exp || payload.exp < Date.now()) return null;
+
+    const secret =
+      env.ADMIN_SESSION_SECRET || env.BILLING_SECRET || "beelal-admin-session-token-key-2026";
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    const sigBytes = new Uint8Array(sigHex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+    const isValid = await crypto.subtle.verify("HMAC", key, sigBytes, encoder.encode(payloadStr));
+    return isValid ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractAdminToken(request) {
+  const auth = request.headers.get("authorization");
+  if (auth && auth.toLowerCase().startsWith("bearer ")) {
+    return auth.slice(7).trim();
+  }
+  const xToken = request.headers.get("x-admin-token");
+  if (xToken) return xToken.trim();
+  return null;
+}
+
+async function handleVerifyPin(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Request body must be JSON." }, 400);
+  }
+
+  const pin = typeof body?.pin === "string" ? body.pin.trim() : "";
+  if (!pin || !/^\d{4}$/.test(pin)) {
+    return json({ error: "PIN must be 4 digits." }, 400);
+  }
+
+  const devPin = env.ADMIN_DEV_PIN || "0405";
+  const ownerPin = env.ADMIN_OWNER_PIN || "1234";
+
+  let role = null;
+  if (pin === devPin) role = "dev";
+  else if (pin === ownerPin) role = "owner";
+
+  if (!role) {
+    return json({ error: "Incorrect PIN." }, 401);
+  }
+
+  const session = await signAdminToken(role, env);
+  return json({ ok: true, role, token: session.token, expires_at: session.exp });
+}
+
+async function handleAdminGetOrders(request, env) {
+  const token = extractAdminToken(request);
+  const session = await verifyAdminToken(token, env);
+  if (!session) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
+  const fbBaseUrl =
+    env.FIREBASE_URL ||
+    "https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app";
+  const authParam = env.FIREBASE_AUTH_SECRET ? `?auth=${env.FIREBASE_AUTH_SECRET}` : "";
+  const fbUrl = `${fbBaseUrl}/beelal_coffee/orders.json${authParam}`;
+
+  try {
+    const res = await fetch(fbUrl);
+    if (!res.ok) {
+      return json({ error: "Failed to retrieve orders." }, 502);
+    }
+    const orders = (await res.json()) || {};
+    return json({ ok: true, orders });
+  } catch (err) {
+    return json({ error: `Database communication failure: ${err.message}` }, 502);
+  }
+}
+
+async function handleAdminUpdateOrderStatus(request, env) {
+  const token = extractAdminToken(request);
+  const session = await verifyAdminToken(token, env);
+  if (!session) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Request body must be JSON." }, 400);
+  }
+
+  const orderId = body?.order_id;
+  if (!orderId || typeof orderId !== "string" || !/^[a-zA-Z0-9_-]+$/.test(orderId)) {
+    return json({ error: "Valid order ID is required." }, 400);
+  }
+
+  const allowedStatuses = ["awaiting_confirmation", "confirmed", "rejected", "cash_pending"];
+  const status = body?.payment_status;
+  if (!status || !allowedStatuses.includes(status)) {
+    return json({ error: `payment_status must be one of: ${allowedStatuses.join(", ")}` }, 400);
+  }
+
+  const updates = {
+    payment_status: status
+  };
+  if (status === "confirmed") {
+    updates.payment_confirmed_at = Date.now();
+    updates.payment_confirmed_by = session.role;
+  }
+  if (status === "rejected" && typeof body.reject_reason === "string") {
+    updates.payment_reject_reason = body.reject_reason.trim();
+  }
+
+  const fbBaseUrl =
+    env.FIREBASE_URL ||
+    "https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app";
+  const authParam = env.FIREBASE_AUTH_SECRET ? `?auth=${env.FIREBASE_AUTH_SECRET}` : "";
+  const fbUrl = `${fbBaseUrl}/beelal_coffee/orders/${orderId}.json${authParam}`;
+
+  try {
+    const res = await fetch(fbUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates)
+    });
+    if (!res.ok) {
+      return json({ error: "Failed to update order status." }, 502);
+    }
+    return json({ ok: true, order_id: orderId, ...updates });
+  } catch (err) {
+    return json({ error: `Database communication failure: ${err.message}` }, 502);
+  }
+}
+
+// ── Customer Order Dispatch & Status ─────────────────────────────────────────
+
+async function handleCreateOrder(request, env, ctx) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Request body must be JSON." }, 400);
+  }
+
+  if (!body || typeof body !== "object") {
+    return json({ error: "Invalid order payload." }, 400);
+  }
+
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  if (!name || name.length > 100) {
+    return json({ error: "Valid customer name (max 100 characters) is required." }, 400);
+  }
+
+  if (!Array.isArray(body.items) || body.items.length === 0) {
+    return json({ error: "Order must contain at least one item." }, 400);
+  }
+
+  for (const item of body.items) {
+    if (!item || typeof item !== "object" || !item.name) {
+      return json({ error: "Each order item must specify a valid name." }, 400);
+    }
+    const price = Number(item.price);
+    if (!Number.isFinite(price) || price < 0) {
+      return json({ error: "Item price must be a non-negative number." }, 400);
+    }
+    const qty = Number(item.qty || 1);
+    if (!Number.isInteger(qty) || qty < 1) {
+      return json({ error: "Item quantity must be a positive integer." }, 400);
+    }
+  }
+
+  const total = Number(body.total);
+  if (!Number.isFinite(total) || total < 0) {
+    return json({ error: "Total must be a non-negative number." }, 400);
+  }
+
+  const paymentMethod = body.payment_method === "qr" ? "qr" : "cash";
+  const paymentStatus = paymentMethod === "qr" ? "awaiting_confirmation" : "cash_pending";
+
+  const orderId =
+    typeof body.order_id === "string" && /^ord_[0-9]+$/.test(body.order_id)
+      ? body.order_id
+      : `ord_${Date.now()}`;
+
+  const cleanOrder = {
+    name,
+    items: body.items.map((i) => ({
+      name: String(i.name).slice(0, 120),
+      size: String(i.size || "Regular").slice(0, 50),
+      qty: Number(i.qty || 1),
+      price: Number(i.price),
+      unitPrice: Number(i.unitPrice ?? i.price),
+      addons: Array.isArray(i.addons) ? i.addons : []
+    })),
+    total,
+    note: typeof body.note === "string" ? body.note.slice(0, 300) : "",
+    payment_method: paymentMethod,
+    payment_status: paymentStatus,
+    payment_ref: typeof body.payment_ref === "string" ? body.payment_ref.slice(0, 50) : "",
+    consent: body.consent || {
+      privacy_agreed: true,
+      privacy_notice_version: "2026-06-11-community-order-v2",
+      signed: true,
+      consented_at: Date.now()
+    },
+    ts: Date.now()
+  };
+
+  if (typeof body.receipt_url === "string" && body.receipt_url.trim()) {
+    cleanOrder.receipt_url = body.receipt_url.trim();
+  }
+
+  const fbBaseUrl =
+    env.FIREBASE_URL ||
+    "https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app";
+  const authParam = env.FIREBASE_AUTH_SECRET ? `?auth=${env.FIREBASE_AUTH_SECRET}` : "";
+  const fbUrl = `${fbBaseUrl}/beelal_coffee/orders/${orderId}.json${authParam}`;
+
+  try {
+    const fbRes = await fetch(fbUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cleanOrder)
+    });
+    if (!fbRes.ok) {
+      return json({ error: "Failed to persist order in database." }, 502);
+    }
+  } catch (err) {
+    return json({ error: `Database communication failure: ${err.message}` }, 502);
+  }
+
+  if (env.BILLING_SECRET) {
+    const billingPayload = {
+      order_id: orderId,
+      submitted_at: new Date(cleanOrder.ts).toISOString(),
+      order_total: cleanOrder.total,
+      currency: "RM",
+      item_count: cleanOrder.items.reduce((acc, it) => acc + (it.qty || 1), 0),
+      payment_method: cleanOrder.payment_method
+    };
+    const billingPromise = fetch(
+      "https://fnb-billing-ledger.arh-homelab.workers.dev/api/record-order",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${env.BILLING_SECRET}`
+        },
+        body: JSON.stringify(billingPayload)
+      }
+    ).catch(() => {});
+
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(billingPromise);
+    } else {
+      await billingPromise;
+    }
+  }
+
+  return json({ ok: true, order_id: orderId, ts: cleanOrder.ts }, 201);
+}
+
+async function handleGetOrderStatus(orderId, request, env) {
+  if (!orderId || !/^[a-zA-Z0-9_-]+$/.test(orderId)) {
+    return json({ error: "Valid order ID is required." }, 400);
+  }
+
+  const fbBaseUrl =
+    env.FIREBASE_URL ||
+    "https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app";
+  const authParam = env.FIREBASE_AUTH_SECRET ? `?auth=${env.FIREBASE_AUTH_SECRET}` : "";
+  const fbUrl = `${fbBaseUrl}/beelal_coffee/orders/${orderId}/payment_status.json${authParam}`;
+
+  try {
+    const res = await fetch(fbUrl);
+    if (!res.ok) {
+      return json({ error: "Failed to fetch order status." }, 502);
+    }
+    const status = await res.json();
+    if (!status) {
+      return json({ error: "Order not found." }, 404);
+    }
+    return json({ ok: true, order_id: orderId, payment_status: status });
+  } catch (err) {
+    return json({ error: `Database communication failure: ${err.message}` }, 502);
+  }
 }
