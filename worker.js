@@ -131,8 +131,7 @@ export default {
     ) {
       const v2Url = new URL("/index-v2.html", request.url);
       v2Url.search = url.search;
-      v2Url.hash = url.hash;
-      return env.ASSETS.fetch(new Request(v2Url, request));
+      return env.ASSETS.fetch(v2Url);
     }
 
     return env.ASSETS.fetch(request);
