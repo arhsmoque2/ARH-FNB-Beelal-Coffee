@@ -440,6 +440,224 @@ async function handleHealth(env) {
   });
 }
 
+function dateFromTimestamp(ts) {
+  const ms = Number(ts) < 10000000000 ? Number(ts) * 1000 : Number(ts);
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+function formatCents(cents, currency = "RM") {
+  const n = (Number(cents) || 0) / 100;
+  return `${currency} ${n.toFixed(2)}`;
+}
+
+function requireSecretOrAdmin(request, env) {
+  return requireSecret(request, env) || requireAdmin(request, env);
+}
+
+async function computeDailyRollup(db, storeSlug, dateStr, env) {
+  const store = await getStoreBySlug(db, storeSlug);
+  if (!store) throw new Error(`Unknown store slug: ${storeSlug}`);
+
+  const startMs = new Date(`${dateStr}T00:00:00.000Z`).getTime();
+  const endMs = startMs + 86400000 - 1;
+
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS order_count,
+              COALESCE(SUM(order_total_cents), 0) AS gross_revenue_cents,
+              COALESCE(MAX(currency), 'RM') AS currency
+       FROM order_events
+       WHERE store_id = ? AND submitted_at >= ? AND submitted_at <= ?`
+    )
+    .bind(store.id, startMs, endMs)
+    .first();
+
+  const orderCount = row?.order_count || 0;
+  const grossRevenueCents = row?.gross_revenue_cents || 0;
+  const currency = row?.currency || env?.CURRENCY_DEFAULT || "RM";
+  const feePerOrder = parseInt(env?.FEE_PER_ORDER_CENTS || "50", 10);
+  const feeCents = orderCount * feePerOrder;
+  const now = Math.floor(Date.now() / 1000);
+
+  await db
+    .prepare(
+      `INSERT INTO billing_daily_rollups (rollup_date, store_slug, gross_revenue_cents, order_count, fee_cents, currency, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(store_slug, rollup_date) DO UPDATE SET
+         gross_revenue_cents = excluded.gross_revenue_cents,
+         order_count = excluded.order_count,
+         fee_cents = excluded.fee_cents,
+         currency = excluded.currency,
+         created_at = excluded.created_at`
+    )
+    .bind(dateStr, storeSlug, grossRevenueCents, orderCount, feeCents, currency, now)
+    .run();
+
+  return {
+    rollup_date: dateStr,
+    store_slug: storeSlug,
+    gross_revenue_cents: grossRevenueCents,
+    order_count: orderCount,
+    fee_cents: feeCents,
+    currency
+  };
+}
+
+async function handleSummary(request, env, url) {
+  if (!requireSecretOrAdmin(request, env)) {
+    return envelope({
+      status: "blocked",
+      component: "fnb-billing-ledger.summary",
+      summary: "Missing or invalid billing secret or admin token.",
+      errors: [
+        {
+          message: "Authorization header must match FNB_BILLING_SECRET or FNB_DEV_ADMIN_TOKEN.",
+          code: "auth_missing",
+          remediation: "Set Authorization: Bearer <FNB_BILLING_SECRET>."
+        }
+      ],
+      cors: true
+    });
+  }
+
+  const parts = url.pathname.split("/").filter(Boolean);
+  const storeSlug = parts[1];
+  if (!storeSlug) {
+    return envelope({
+      status: "failure",
+      component: "fnb-billing-ledger.summary",
+      summary: "URL must be /summary/:store_slug.",
+      errors: [
+        {
+          message: "Missing store_slug.",
+          code: "url_error",
+          remediation: "Use /summary/beelal_coffee."
+        }
+      ],
+      cors: true
+    });
+  }
+
+  const store = await getStoreBySlug(env.DB, storeSlug);
+  if (!store) {
+    return envelope({
+      status: "failure",
+      component: "fnb-billing-ledger.summary",
+      summary: `Unknown store slug: ${storeSlug}`,
+      errors: [
+        {
+          message: "Store not registered.",
+          code: "unknown_store",
+          remediation: "Register the store first."
+        }
+      ],
+      cors: true
+    });
+  }
+
+  const now = Date.now();
+  const todayStr = dateFromTimestamp(now);
+  const currency = env.CURRENCY_DEFAULT || "RM";
+
+  let todayRollup = await env.DB.prepare(
+    "SELECT * FROM billing_daily_rollups WHERE store_slug = ? AND rollup_date = ?"
+  )
+    .bind(storeSlug, todayStr)
+    .first();
+
+  if (!todayRollup) {
+    try {
+      todayRollup = await computeDailyRollup(env.DB, storeSlug, todayStr, env);
+    } catch {
+      todayRollup = {
+        rollup_date: todayStr,
+        gross_revenue_cents: 0,
+        order_count: 0,
+        fee_cents: 0,
+        currency
+      };
+    }
+  }
+
+  const sevenDaysAgoMs = now - 7 * 86400000;
+  const weeklyRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS order_count,
+              COALESCE(SUM(order_total_cents), 0) AS gross_revenue_cents
+       FROM order_events
+       WHERE store_id = ? AND submitted_at >= ?`
+  )
+    .bind(store.id, sevenDaysAgoMs)
+    .first();
+
+  const weeklyOrders = weeklyRow?.order_count || 0;
+  const weeklyRevenue = weeklyRow?.gross_revenue_cents || 0;
+  const feePerOrder = parseInt(env.FEE_PER_ORDER_CENTS || "50", 10);
+  const weeklyFee = weeklyOrders * feePerOrder;
+
+  const currentMonth = monthFromTimestamp(now);
+  const monthlyRow = await env.DB.prepare(
+    "SELECT * FROM monthly_usage WHERE store_id = ? AND month = ?"
+  )
+    .bind(store.id, currentMonth)
+    .first();
+
+  const monthlyOrders = monthlyRow?.billable_orders || 0;
+  const monthlyRevenue = monthlyRow?.submitted_sales_cents || 0;
+  const monthlyFee = monthlyRow?.fee_cents || monthlyOrders * feePerOrder;
+
+  const recentRollups = await env.DB.prepare(
+    "SELECT * FROM billing_daily_rollups WHERE store_slug = ? ORDER BY rollup_date DESC LIMIT 14"
+  )
+    .bind(storeSlug)
+    .all();
+
+  return envelope({
+    status: "success",
+    component: "fnb-billing-ledger.summary",
+    summary: `Billing summary for ${storeSlug}.`,
+    data: {
+      store_slug: storeSlug,
+      store_name: store.name,
+      currency,
+      today: {
+        date: todayStr,
+        gross_revenue_cents: todayRollup.gross_revenue_cents || 0,
+        gross_revenue_formatted: formatCents(todayRollup.gross_revenue_cents || 0, currency),
+        order_count: todayRollup.order_count || 0,
+        fee_cents: todayRollup.fee_cents || 0,
+        fee_formatted: formatCents(todayRollup.fee_cents || 0, currency)
+      },
+      weekly: {
+        start_date: dateFromTimestamp(sevenDaysAgoMs),
+        end_date: todayStr,
+        gross_revenue_cents: weeklyRevenue,
+        gross_revenue_formatted: formatCents(weeklyRevenue, currency),
+        order_count: weeklyOrders,
+        fee_cents: weeklyFee,
+        fee_formatted: formatCents(weeklyFee, currency)
+      },
+      monthly: {
+        month: currentMonth,
+        gross_revenue_cents: monthlyRevenue,
+        gross_revenue_formatted: formatCents(monthlyRevenue, currency),
+        order_count: monthlyOrders,
+        fee_cents: monthlyFee,
+        fee_formatted: formatCents(monthlyFee, currency)
+      },
+      recent_rollups: (recentRollups.results || []).map((r) => ({
+        ...r,
+        gross_revenue_formatted: formatCents(r.gross_revenue_cents, r.currency || currency),
+        fee_formatted: formatCents(r.fee_cents, r.currency || currency)
+      }))
+    },
+    cors: true
+  });
+}
+
+export { computeDailyRollup, dateFromTimestamp, formatCents, requireSecretOrAdmin };
+
 export default {
   async fetch(request, env, _ctx) {
     const url = new URL(request.url);
@@ -454,6 +672,10 @@ export default {
 
     if (url.pathname === "/record-order" && request.method === "POST") {
       return handleRecordOrder(request, env);
+    }
+
+    if (url.pathname.startsWith("/summary/") && request.method === "GET") {
+      return handleSummary(request, env, url);
     }
 
     if (url.pathname.startsWith("/usage/") && request.method === "GET") {
@@ -480,5 +702,53 @@ export default {
         }
       ]
     });
+  },
+
+  async scheduled(controller, env, _ctx) {
+    const now = Date.now();
+    const todayStr = dateFromTimestamp(now);
+    const yesterdayStr = dateFromTimestamp(now - 86400000);
+    const currentMonth = monthFromTimestamp(now);
+
+    let stores = [];
+    try {
+      const rows = await env.DB.prepare("SELECT * FROM stores WHERE status = 'active'").all();
+      stores = rows.results || [];
+    } catch (e) {
+      console.error("Scheduled cron: Failed to fetch stores", e);
+      return { ok: false, error: e.message };
+    }
+
+    const processed = [];
+    for (const store of stores) {
+      try {
+        const yRollup = await computeDailyRollup(env.DB, store.slug, yesterdayStr, env);
+        const tRollup = await computeDailyRollup(env.DB, store.slug, todayStr, env);
+        const usage = await regenerateMonthlyUsage(env.DB, store.id, currentMonth, env);
+        processed.push({ store_slug: store.slug, yRollup, tRollup, usage });
+      } catch (err) {
+        console.error(`Scheduled cron error for ${store.slug}:`, err);
+      }
+    }
+
+    try {
+      await env.DB.prepare(
+        "INSERT INTO developer_audit_log (actor, action, store_id, details, created_at) VALUES (?, ?, ?, ?, ?)"
+      )
+        .bind(
+          "system_cron",
+          "scheduled_rollup_cron",
+          null,
+          JSON.stringify({
+            cron: controller?.cron || "scheduled",
+            processed_count: processed.length,
+            target_dates: [yesterdayStr, todayStr]
+          }),
+          Math.floor(Date.now() / 1000)
+        )
+        .run();
+    } catch {}
+
+    return { ok: true, processed_count: processed.length };
   }
 };

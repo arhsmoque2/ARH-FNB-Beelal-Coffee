@@ -7,6 +7,7 @@ function makeEnv(overrides = {}) {
   return {
     UPLOAD_SECRET: "test-admin-secret",
     BILLING_SECRET: "test-billing-secret",
+    ADMIN_SESSION_SECRET: "test-admin-session-secret",
     ASSETS: {
       fetch: vi
         .fn()
@@ -1677,6 +1678,109 @@ describe("Customer Order Status Polling — GET /api/order/status/:id", () => {
       expect(data.total).toBe(18.5);
       expect(data.payment_ref).toBe("REF999");
       expect(data.preparing_at).toBe(1718000060000);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+// ── Admin Billing Summary Proxy ──────────────────────────────────────────────
+
+describe("GET /api/billing/summary — admin billing ledger summary proxy", () => {
+  async function getAdminToken() {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "0405" })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    const data = await res.json();
+    return data.token;
+  }
+
+  it("rejects unauthenticated calls without admin token with 401", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/billing/summary", { method: "GET" }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 503 when BILLING_SECRET is not configured", async () => {
+    const token = await getAdminToken();
+    const env = makeEnv({ BILLING_SECRET: "" });
+    const res = await worker.fetch(
+      new Request("https://example.com/api/billing/summary", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      env,
+      makeCtx()
+    );
+    expect(res.status).toBe(503);
+  });
+
+  it("proxies request to billing ledger and returns summary data", async () => {
+    const token = await getAdminToken();
+    const originalFetch = globalThis.fetch;
+    const mockSummary = {
+      status: "success",
+      data: {
+        store_slug: "beelal_coffee",
+        currency: "RM",
+        today: { gross_revenue_formatted: "RM 145.00", order_count: 8 },
+        weekly: { gross_revenue_formatted: "RM 950.00", order_count: 52 },
+        monthly: { gross_revenue_formatted: "RM 3,800.00", order_count: 210 }
+      }
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockSummary), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/billing/summary", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.store_slug).toBe("beelal_coffee");
+      expect(json.today.order_count).toBe(8);
+      expect(json.today.gross_revenue_formatted).toBe("RM 145.00");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns 502 when billing ledger upstream fails", async () => {
+    const token = await getAdminToken();
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error("Upstream connection refused"));
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/billing/summary", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(502);
+      const json = await res.json();
+      expect(json.error).toMatch(/communication failure/i);
     } finally {
       globalThis.fetch = originalFetch;
     }

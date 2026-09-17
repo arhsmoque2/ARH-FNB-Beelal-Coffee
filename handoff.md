@@ -28,7 +28,7 @@ Run these commands from the repository root:
 # 1. Verify environment health & bindings
 node _qa/infra-doctor.mjs
 
-# 2. Run unit & regression test suite (153 tests across 4 files)
+# 2. Run unit & regression test suite (166 tests across 4 files)
 npm run test:unit
 
 # 3. Run full quality gate (lint, cspell, markdownlint, knip, prettier, UI gates, layout audit, infra doctor, unit tests)
@@ -71,6 +71,23 @@ In the current development cycle (PR `feat/admin-auth-and-order-fulfillment`), t
   - **Step 3 (Ready 🔔):** Order packed and waiting at counter (66% progress).
   - **Step 4 (Picked Up ✅):** Completed order (100% progress). Polling automatically ceases upon completion.
 
+### Option D: Billing Ledger Automation & Transaction Rollups
+
+- **Scheduled Aggregate Cron:** Implemented `scheduled(controller, env, ctx)` in [`billing-ledger/src/index.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/billing-ledger/src/index.js) running daily midnight cron triggers configured in [`billing-ledger/wrangler.jsonc`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/billing-ledger/wrangler.jsonc).
+- **D1 Daily Rollups Table:** Added `billing_daily_rollups` table (`rollup_date`, `store_slug`, `gross_revenue_cents`, `order_count`, `fee_cents`, `currency`, `created_at`) with index `idx_rollups_store_date` in [`billing-ledger/schema.sql`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/billing-ledger/schema.sql).
+- **Summary Edge Endpoint:** Implemented `GET /summary/:store_slug` computing live daily totals, 7-day rolling volume, monthly billable usage, and formatted recent rollups.
+- **Admin Worker Proxy:** Added protected endpoint `GET /api/billing/summary` in [`worker.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/worker.js) requiring admin Bearer token verification before proxying to D1 billing ledger.
+- **Admin Settlement Dashboard Panel:** Added "Penyelesaian & Bil" tab in [`admin.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/admin.html) rendering live GMV cards and transaction rollups table without exposing customer PII.
+- **Automated Verification:** Added 9 unit tests in [`tests/billing-ledger.test.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/tests/billing-ledger.test.js) and 4 tests in [`tests/worker.test.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/tests/worker.test.js) (bringing total test suite to 166 green tests).
+
+### Visual Brand Integrity, Blue Theme Flash Elimination & Animated Coffee Loader
+
+- **Root Cause Identified:** `:root` variables in [`index-v2.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/index-v2.html) and `defaultTheme` in [`config.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/config.js) contained generic Tailwind indigo/violet defaults (`#4f46e5`, `#ec4899`, `rgba(99, 102, 241, 0.08)`). Prior to Firebase network resolution, visitors experienced a flash of blue layout.
+- **Canonical Palette Alignment:** Aligned `:root` CSS custom properties and `defaultTheme` with Beelal Coffee's warm espresso and amber identity (`--brand: #2c1a0e`, `--brand2: #c8962a`, `--bg: #fef7ee`).
+- **Zero-Flash Local Theme Cache:** Injected an immediate synchronous `<script>` in `<head>` restoring cached theme properties from `localStorage` before the first DOM paint.
+- **Playwright Gate Enforced:** Added CHECK 0 in [`_qa/beelal-layout-audit.mjs`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/_qa/beelal-layout-audit.mjs) verifying that computed `--brand`, `--brand2`, and `--bg` never contain off-brand indigo or blue hues across Mobile, Tablet, and Desktop matrices.
+- **Animated Coffee Icon Loading Screen:** Added an on-brand loading screen (`#loader`) in [`index-v2.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/index-v2.html) displaying the official Beelal Coffee monogram logo surrounded by a spinning dual-ring motion, gentle breathing pulse, animated brew subtitle, and smooth transition on initialization.
+
 ---
 
 ## 3. Architecture & API Contract Reference
@@ -87,6 +104,7 @@ In the current development cycle (PR `feat/admin-auth-and-order-fulfillment`), t
 | `POST` | `/api/chat`                      | Bearer Token          | Proxies AI theme assistance requests to OpenRouter                                  |
 | `POST` | `/api/upload/receipt`            | Public (Rate-limited) | Stores customer transfer receipts in R2 for 30-day verification                     |
 | `POST` | `/api/record-order`              | Server-to-server      | Relays order transaction metadata to D1 billing ledger                              |
+| `GET`  | `/api/billing/summary`           | Bearer Token          | Proxies GMV, order volume, and D1 transaction rollups to admin dashboard            |
 
 ### Firebase RTDB Schema: `/beelal_coffee/orders/{orderId}`
 
@@ -128,9 +146,9 @@ Gate 6 in [`_qa/beelal-ui-ux-quality-gate.mjs`](file:///D:/ARH-GITHUB/arhsmoque2
 
 ---
 
-## 4. Remaining Roadmap: Options C & D (Next Takeover Point)
+## 4. Remaining Roadmap: Option C (Next Takeover Point)
 
-Incoming agents should proceed with the following priorities:
+Incoming agents should proceed with the following priority:
 
 ### 🎯 Option C: Multi-Tenant Architecture & Store Registry Isolation
 
@@ -146,24 +164,6 @@ While this repository is the dedicated standalone instance for Beelal Coffee, th
    - Prevent cross-tenant data leakage by enforcing tenant-scoped HMAC session tokens (embed `store_slug` inside token payload and verify during request handling).
 3. **Verification & Tests:**
    - Add unit tests in [`tests/worker.test.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/tests/worker.test.js) validating that tokens issued for Store A cannot access Store B orders.
-
----
-
-### 🎯 Option D: Billing Ledger Automation & Transaction Rollups
-
-#### Context & Objectives
-
-The repository contains an edge microservice at [`billing-ledger/`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/billing-ledger) backed by Cloudflare D1 (`fnb-billing-ledger-db`). Order submissions already dispatch fire-and-forget billing events via `fetch('/api/record-order')` (authenticated with `BILLING_SECRET`).
-The goal of Option D is automating billing reconciliation and rollups:
-
-1. **Scheduled Aggregate Cron:**
-   - Implement `scheduled(controller, env, ctx)` handler in `billing-ledger/src/index.js` to compute daily, weekly, and monthly gross merchandise value (GMV), order counts, and fee rollups.
-   - Store aggregate summaries in a new D1 table `billing_daily_rollups` (`rollup_date`, `store_slug`, `gross_revenue_cents`, `order_count`, `currency`, `created_at`).
-2. **Admin Billing Dashboard Panel:**
-   - Add a lightweight read-only "Billing & Settlement" tab or modal in [`admin.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/admin.html) querying `/api/billing/summary` (protected by admin session token).
-   - Display today's revenue, weekly total, and order volume without exposing raw customer records.
-3. **Verification & Tests:**
-   - Add unit tests in [`tests/billing-ledger.test.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/tests/billing-ledger.test.js) covering aggregation maths, zero-order days, and currency isolation.
 
 ---
 

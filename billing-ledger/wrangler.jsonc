@@ -15,5 +15,8 @@
   "vars": {
     "CURRENCY_DEFAULT": "RM",
     "FEE_PER_ORDER_CENTS": "50"
+  },
+  "triggers": {
+    "crons": ["0 0 * * *"]
   }
 }

@@ -69,6 +69,25 @@ async function runAudit() {
       // Wait 1.5s for initial client render & image layout settling
       await page.waitForTimeout(1500);
 
+      // --- CHECK 0: Brand Color Integrity (No off-brand indigo or blue flash) ---
+      const brandColors = await page.evaluate(() => {
+        const root = document.documentElement;
+        const style = window.getComputedStyle(root);
+        return {
+          brand: style.getPropertyValue("--brand").trim(),
+          brand2: style.getPropertyValue("--brand2").trim(),
+          bg: style.getPropertyValue("--bg").trim()
+        };
+      });
+      const offBrandRegex =
+        /#(4f46e5|6366f1|818cf8|a5b4fc|c7d2fe|e0e7ff|312e81|1e1b4b|3730a3|4338ca|ec4899|f472b6|db2777|fbcfe8)\b/i;
+      for (const [key, val] of Object.entries(brandColors)) {
+        if (offBrandRegex.test(val)) {
+          console.error(`  ❌ [Brand Integrity] Off-brand color detected for ${key}: ${val}`);
+          totalErrors++;
+        }
+      }
+
       // --- CHECK 1: Interactive Element Overlap Detection (AABB Collision) ---
       const overlaps = await page.evaluate(() => {
         const selector =

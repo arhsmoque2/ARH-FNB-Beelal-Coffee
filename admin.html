@@ -411,6 +411,7 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div class="tab-btn active" id="tab-btn-store" onclick="showTab('store',this)">Kedai</div>
     <div class="tab-btn" id="tab-btn-menu" onclick="showTab('menu',this)">Menu</div>
     <div class="tab-btn" id="tab-btn-orders" onclick="showTab('orders',this)">Pesanan</div>
+    <div class="tab-btn" id="tab-btn-billing" onclick="showTab('billing',this)">Penyelesaian & Bil</div>
     <div class="tab-btn" id="tab-btn-feedback" onclick="showTab('feedback',this)">Maklum Balas</div>
     <div class="tab-btn" id="tab-btn-security" onclick="showTab('security',this)">Keselamatan</div>
     <div class="tab-btn" id="tab-btn-studio" onclick="showTab('studio',this)">Studio Tema</div>
@@ -588,6 +589,18 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
     <div class="sec-sub">Latest 1000 stored — oldest overwritten automatically</div>
     <div id="ordersList"><div style="color:var(--text2);font-size:13px;padding:20px 0">Loading...</div></div>
+  </div>
+
+  <!-- BILLING TAB -->
+  <div class="tab-panel" id="tab-billing">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="sec-title">Billing & Settlement</div>
+      <button class="btn btn-secondary btn-sm" onclick="loadBillingDashboard()">↻ Refresh</button>
+    </div>
+    <div class="sec-sub">Immutable transaction rollups & micro-settlement accounting (Cloudflare D1)</div>
+    <div id="billingSummaryContainer">
+      <div style="color:var(--text2);font-size:13px;padding:20px 0">Loading settlement metrics...</div>
+    </div>
   </div>
 
   <!-- FEEDBACK TAB -->
@@ -1458,6 +1471,99 @@ function showTab(id, el) {
   el.classList.add('active');
   if (id === 'dev') {
     loadSalesDashboard();
+  }
+  if (id === 'billing') {
+    loadBillingDashboard();
+  }
+}
+
+async function loadBillingDashboard() {
+  const container = document.getElementById('billingSummaryContainer');
+  if (!container) return;
+  container.innerHTML = '<div style="color:var(--text2);font-size:13px;padding:20px 0">Loading settlement metrics...</div>';
+
+  try {
+    const res = await fetch('/api/billing/summary', {
+      headers: {
+        'Authorization': `Bearer ${adminToken || ''}`,
+        'x-admin-token': adminToken || ''
+      }
+    });
+
+    if (!res.ok) {
+      container.innerHTML = `<div class="a-card" style="color:var(--red);padding:16px">Failed to load billing metrics (HTTP ${res.status}). Ensure billing ledger worker is active.</div>`;
+      return;
+    }
+
+    const json = await res.json();
+    if (!json.ok) {
+      container.innerHTML = `<div class="a-card" style="color:var(--red);padding:16px">${escapeHtml(json.error || 'Failed to fetch billing data.')}</div>`;
+      return;
+    }
+
+    const d = json;
+    const today = d.today || {};
+    const weekly = d.weekly || {};
+    const monthly = d.monthly || {};
+    const rollups = d.recent_rollups || [];
+    const cur = d.currency || 'RM';
+
+    let rollupsHtml = '';
+    if (!rollups || rollups.length === 0) {
+      rollupsHtml = '<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:14px">No rollup records yet. Daily rollups execute at midnight UTC.</td></tr>';
+    } else {
+      rollupsHtml = rollups.map(r => `
+        <tr style="border-bottom:1px solid var(--line)">
+          <td style="padding:10px 8px;font-weight:700">${escapeHtml(r.rollup_date)}</td>
+          <td style="padding:10px 8px">${r.order_count || 0}</td>
+          <td style="padding:10px 8px;font-weight:700;color:var(--gold)">${escapeHtml(r.gross_revenue_formatted || (cur + ' ' + ((r.gross_revenue_cents||0)/100).toFixed(2)))}</td>
+          <td style="padding:10px 8px">${escapeHtml(r.fee_formatted || (cur + ' ' + ((r.fee_cents||0)/100).toFixed(2)))}</td>
+          <td style="padding:10px 8px;color:var(--text3);font-size:11px">${escapeHtml(r.currency || cur)}</td>
+        </tr>
+      `).join('');
+    }
+
+    container.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:16px">
+        <div class="a-card" style="margin-top:0">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:6px">Today's Revenue</div>
+          <div style="font-size:24px;font-weight:900;color:var(--gold)">${escapeHtml(today.gross_revenue_formatted || (cur + ' 0.00'))}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">${today.order_count || 0} orders today</div>
+        </div>
+        <div class="a-card" style="margin-top:0">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:6px">7-Day Weekly Volume</div>
+          <div style="font-size:24px;font-weight:900;color:var(--gold)">${escapeHtml(weekly.gross_revenue_formatted || (cur + ' 0.00'))}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">${weekly.order_count || 0} orders past 7 days</div>
+        </div>
+        <div class="a-card" style="margin-top:0">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:6px">Monthly Settlement (${escapeHtml(monthly.month || '')})</div>
+          <div style="font-size:24px;font-weight:900;color:var(--ink)">${escapeHtml(monthly.gross_revenue_formatted || (cur + ' 0.00'))}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">Ledger fee: ${escapeHtml(monthly.fee_formatted || (cur + ' 0.00'))} (${monthly.order_count || 0} orders)</div>
+        </div>
+      </div>
+
+      <div class="a-card" style="margin-top:0">
+        <div class="a-card-title" style="margin-bottom:12px">Daily Transaction Rollups (Cloudflare D1)</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left">
+            <thead>
+              <tr style="border-bottom:2px solid var(--line);color:var(--text2);font-size:11px;text-transform:uppercase">
+                <th style="padding:8px">Date</th>
+                <th style="padding:8px">Orders</th>
+                <th style="padding:8px">Gross Sales</th>
+                <th style="padding:8px">Usage Fee</th>
+                <th style="padding:8px">Currency</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rollupsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div class="a-card" style="color:var(--red);padding:16px">Failed to connect to billing service: ${escapeHtml(err.message)}</div>`;
   }
 }
 
