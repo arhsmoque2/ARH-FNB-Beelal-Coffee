@@ -1064,6 +1064,76 @@
       margin-top: 14px; padding: 12px 14px; border-radius: var(--radius);
       background: rgba(91,20,23,.05); text-align: center; font-weight: 800; font-size: 13px; color: var(--ink);
     }
+    .order-stepper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      margin: 20px 0 16px;
+      padding: 0 10px;
+    }
+    .order-stepper-bg {
+      position: absolute;
+      top: 18px;
+      left: 28px;
+      right: 28px;
+      height: 3px;
+      background: var(--line);
+      z-index: 1;
+    }
+    .order-stepper-progress {
+      position: absolute;
+      top: 18px;
+      left: 28px;
+      height: 3px;
+      background: var(--brand);
+      z-index: 2;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .stepper-step {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .step-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 2px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--muted);
+      transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+    }
+    .stepper-step.active .step-dot {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: #ffffff;
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 20%, transparent);
+    }
+    .stepper-step.done .step-dot {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: #ffffff;
+    }
+    .step-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      transition: color 0.3s ease;
+      white-space: nowrap;
+    }
+    .stepper-step.active .step-label,
+    .stepper-step.done .step-label {
+      color: var(--ink);
+    }
     .debug-panel {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
       background: rgba(10,10,10,.93); color: #e8e8e8;
@@ -2200,6 +2270,29 @@
         <div class="qr-await-icon" id="qrAwaitIcon">⏳</div>
         <div class="qr-await-title" id="qrAwaitTitle">Awaiting confirmation</div>
         <div class="qr-await-text" id="qrAwaitText">Your payment has been submitted. The store owner will confirm it shortly — this screen updates automatically.</div>
+
+        <!-- Live Fulfillment Stepper -->
+        <div class="order-stepper" id="orderFulfillmentTracker" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Order progress">
+          <div class="order-stepper-bg"></div>
+          <div class="order-stepper-progress" id="orderProgressLine"></div>
+          <div class="stepper-step active" id="stepPlaced">
+            <div class="step-dot">📝</div>
+            <div class="step-label">Placed</div>
+          </div>
+          <div class="stepper-step" id="stepBrewing">
+            <div class="step-dot">☕</div>
+            <div class="step-label">Brewing</div>
+          </div>
+          <div class="stepper-step" id="stepReady">
+            <div class="step-dot">🔔</div>
+            <div class="step-label">Ready</div>
+          </div>
+          <div class="stepper-step" id="stepCompleted">
+            <div class="step-dot">✅</div>
+            <div class="step-label">Picked Up</div>
+          </div>
+        </div>
+
         <div class="qr-await-summary" id="qrAwaitSummary"></div>
         <button class="btn-cash-instead" type="button" onclick="closeQrPay()">Close</button>
       </div>
@@ -4342,6 +4435,7 @@
         document.getElementById('qrAwaitSummary').textContent = `${name} — ${money(total)} · Ref ${qrPayRef}`;
         document.getElementById('qrPayView').style.display = 'none';
         document.getElementById('qrAwaitView').style.display = '';
+        updateFulfillmentStepper('placed');
 
         startQrPayStatusPoll(orderId);
       } catch (err) {
@@ -4350,6 +4444,43 @@
       } finally {
         _isSubmittingQr = false;
       }
+    }
+
+    function updateFulfillmentStepper(fulfillmentStatus) {
+      const line = document.getElementById('orderProgressLine');
+      const tracker = document.getElementById('orderFulfillmentTracker');
+      const sPlaced = document.getElementById('stepPlaced');
+      const sBrewing = document.getElementById('stepBrewing');
+      const sReady = document.getElementById('stepReady');
+      const sCompleted = document.getElementById('stepCompleted');
+      if (!tracker || !line || !sPlaced) return;
+
+      [sPlaced, sBrewing, sReady, sCompleted].forEach(el => {
+        el.classList.remove('active', 'done');
+      });
+
+      let percent = 0;
+      if (fulfillmentStatus === 'completed') {
+        sPlaced.classList.add('done');
+        sBrewing.classList.add('done');
+        sReady.classList.add('done');
+        sCompleted.classList.add('active', 'done');
+        percent = 100;
+      } else if (fulfillmentStatus === 'ready') {
+        sPlaced.classList.add('done');
+        sBrewing.classList.add('done');
+        sReady.classList.add('active');
+        percent = 66;
+      } else if (fulfillmentStatus === 'preparing') {
+        sPlaced.classList.add('done');
+        sBrewing.classList.add('active');
+        percent = 33;
+      } else {
+        sPlaced.classList.add('active');
+        percent = 0;
+      }
+      line.style.width = percent + '%';
+      tracker.setAttribute('aria-valuenow', String(percent));
     }
 
     function startQrPayStatusPoll(orderId) {
@@ -4364,26 +4495,58 @@
             const statusRes = await fetch('/api/order/status/' + encodeURIComponent(orderId));
             if (statusRes.ok) {
               const statusData = await statusRes.json();
-              if (statusData && statusData.payment_status) {
-                order = { payment_status: statusData.payment_status };
+              if (statusData && (statusData.payment_status || statusData.fulfillment_status)) {
+                order = statusData;
               }
             }
           } catch {}
           if (!order) order = await fbGet('orders/' + orderId);
-          const status = order?.payment_status;
-          if (status === 'confirmed') {
-            clearInterval(qrPayPollInterval); qrPayPollInterval = null;
-            document.getElementById('qrAwaitIcon').textContent = '✅';
-            document.getElementById('qrAwaitTitle').textContent = 'Order Confirmed!';
-            document.getElementById('qrAwaitText').textContent = "We've received your payment and your order is being prepared.";
-          } else if (status === 'rejected') {
+
+          const payStatus = order?.payment_status;
+          const fulfillStatus = order?.fulfillment_status || (payStatus === 'confirmed' ? 'preparing' : 'placed');
+
+          updateFulfillmentStepper(fulfillStatus);
+
+          if (payStatus === 'rejected') {
             clearInterval(qrPayPollInterval); qrPayPollInterval = null;
             document.getElementById('qrAwaitIcon').textContent = '⚠️';
             document.getElementById('qrAwaitTitle').textContent = 'Payment Not Verified';
             document.getElementById('qrAwaitText').textContent = order?.payment_reject_reason
               ? `We couldn't verify this payment: ${order.payment_reject_reason}. Please contact us.`
               : "We couldn't verify this payment. Please contact us on WhatsApp.";
-          } else if (!slowNoticeShown && Date.now() - pollStartedAt > SLOW_CONFIRM_MS) {
+            return;
+          }
+
+          if (fulfillStatus === 'completed') {
+            clearInterval(qrPayPollInterval); qrPayPollInterval = null;
+            document.getElementById('qrAwaitIcon').textContent = '🎉';
+            document.getElementById('qrAwaitTitle').textContent = 'Order Completed!';
+            document.getElementById('qrAwaitText').textContent = "Thank you for visiting Beelal Coffee! We hope you enjoy your drink.";
+            return;
+          }
+
+          if (fulfillStatus === 'ready') {
+            document.getElementById('qrAwaitIcon').textContent = '🔔';
+            document.getElementById('qrAwaitTitle').textContent = 'Ready for Pickup!';
+            document.getElementById('qrAwaitText').textContent = "Your order is freshly prepared and waiting at the counter!";
+            return;
+          }
+
+          if (fulfillStatus === 'preparing') {
+            document.getElementById('qrAwaitIcon').textContent = '☕';
+            document.getElementById('qrAwaitTitle').textContent = 'Brewing Your Order';
+            document.getElementById('qrAwaitText').textContent = "Payment confirmed! Our barista is handcrafting your order now.";
+            return;
+          }
+
+          if (payStatus === 'confirmed') {
+            document.getElementById('qrAwaitIcon').textContent = '✅';
+            document.getElementById('qrAwaitTitle').textContent = 'Order Confirmed!';
+            document.getElementById('qrAwaitText').textContent = "We've received your payment and your order is in the queue.";
+            return;
+          }
+
+          if (!slowNoticeShown && Date.now() - pollStartedAt > SLOW_CONFIRM_MS) {
             // Still awaiting_confirmation after a while — give the customer an
             // escape hatch instead of an indefinite spinner. Keep polling in
             // case the owner confirms it right after.

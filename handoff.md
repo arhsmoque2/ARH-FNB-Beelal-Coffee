@@ -1,455 +1,207 @@
-# Handoff — Beelal Coffee Standalone Repo
+# Handoff & Continuity Guide — Beelal Coffee F&B PWA
 
-**Date written:** 2026-08-22
-**Written by:** Claude Code cloud/sandbox session (devtool readiness assessment + fixes)
-**Read `journal.md` and `AGENTS.md` too** — this file assumes both.
-
----
-
-## 0. 🔴 URGENT, DO FIRST — Repo/Infra migration: old fleet repo → this repo
-
-This repo (`arhsmoque2/ARH-FNB-Beelal-Coffee`) was forked from the shared fleet template
-(`arhsmoque/arh-fnb-webapp`, branch `store/beelal`) on 2026-08-22. The **code** side of that
-fork is done. The **Cloudflare infrastructure** side has not been confirmed done — this
-section is a runbook for a local agent (with CF dashboard/`wrangler` access) to verify and
-finish it. Nothing below this point in the handoff matters much if the wrong repo is still
-the one actually serving customers.
-
-### 0a. Verify which project currently owns the live URL — do this before anything else
-
-`wrangler.jsonc` in this repo declares CF project name `"beelal-coffee"`. A standalone
-Workers project with that name would normally produce a URL like
-`beelal-coffee.<account-subdomain>.workers.dev`. But the URL everyone refers to as "live" —
-`https://store-beelal-fnb-pwa.arh-homelab.workers.dev` — follows the **old** fleet's naming
-pattern (`store-<name>-fnb-pwa`), which is what the old `fnb-pwa` CF project auto-generates
-for branch builds off `store/beelal`. Those two facts don't fit together cleanly, so one of
-two things is true, and it changes everything about the rest of this runbook:
-
-- **(a)** This new repo/project has never actually been connected to Cloudflare — the
-  `store-beelal-fnb-pwa...` URL customers are hitting is still being served by the **old**
-  repo/branch/project. Every fix merged into this repo's `main` (see §1–2 below) is sitting
-  in a repo that isn't deployed anywhere yet.
-- **(b)** Someone already cut over and mapped a custom route to preserve the old URL on the
-  new `beelal-coffee` project — possible, but nothing in this repo documents it, and it would
-  be unusual to do before the code-side migration was finished.
-
-**Action:** Open the Cloudflare dashboard → Workers & Pages. Look for both `fnb-pwa` and
-`beelal-coffee` projects. Check which one currently owns/routes
-`store-beelal-fnb-pwa.arh-homelab.workers.dev` (or whatever custom domain, if any). Report
-back which case (a) or (b) is true — it determines whether steps 0b onward are "do this
-whole migration" or "just confirm and document what's already in place."
-
-### 0b. If case (a) — full migration still needed
-
-1. **Stand up (or confirm) the `beelal-coffee` CF Workers project** connected to
-   `arhsmoque2/ARH-FNB-Beelal-Coffee`, production branch **`main`** (not a `store/*` branch —
-   this repo's whole structure assumes `main` is production, unlike the old fleet's
-   branch-per-store model).
-2. **Re-provision secrets on the new project** — secrets live per-Worker in Cloudflare, they
-   do not travel with git history:
-   - `UPLOAD_SECRET` (gates `worker.js` upload routes)
-   - `BILLING_SECRET` — provisioned on the new Worker and encrypted in the ARH SOPS vault
-   - `GEMINI_API_KEY` remains intentionally unused; the parser endpoint is disabled by policy
-   - Reusing the old project's exact secret values is fine for continuity, but rotating
-     during the move is the better call — `billing.secret` is already known to have leaked
-     once (git history has a "rotate billing secret" commit from the old repo).
-3. **Re-provision bindings** — also per-project, not per-repo:
-   - `MEDIA_BUCKET` R2 binding — it now points at `arh-fnb-beelal-media`, which has been created
-     and verified for the new project.
-   - Diff the old project's full dashboard config (bindings, KV/D1/anything else) against
-     this repo's `wrangler.jsonc` side by side — don't assume `worker.js`'s comments list
-     every dependency; confirm against what's actually configured on the old project.
-4. **Data needs no migration.** Firebase RTDB (`ash-2026-photobook` project, `beelal_coffee`
-   root) is shared infra, independent of which CF project/repo serves the frontend. As long
-   as `config.js`'s `firebase.url`/`firebase.root` stay unchanged (they have, and must not
-   change — see `AGENTS.md`), orders/menu/theme data keep working through the cutover with
-   zero data migration required. This is the lowest-risk part of the whole move.
-5. **Cut over the URL.** However `store-beelal-fnb-pwa.arh-homelab.workers.dev` is currently
-   routed needs to move to the new project. If it's a `*.workers.dev` subdomain generated
-   from the project name, the new project literally cannot reproduce that exact URL — either
-   set up a custom route/domain mapping to preserve it, or accept the live URL changes to
-   `beelal-coffee.<account>.workers.dev` and update everywhere that URL is referenced
-   (WhatsApp order-confirmation links if any, bookmarks, `AGENTS.md`, `README.md`).
-6. **Decommission the old path** once the new one is verified live and taking real traffic —
-   disable the old `fnb-pwa` project's branch build for `store/beelal` (or just leave that
-   branch frozen) so two live deployments can't race each other on push. Don't delete the old
-   repo/branch immediately; keep it as a rollback path for at least one full business cycle.
-7. **Verify end-to-end on the new URL** before calling it done: place a real test order,
-   confirm it lands in `beelal_coffee/orders` in Firebase, confirm the WhatsApp deep link
-   fires correctly, confirm `admin.html` loads and can read/write config on the new
-   deployment.
-
-### 0c. If case (b) — already cut over
-
-Just document it: update `AGENTS.md`/`README.md` to state explicitly that the CF project
-migration is complete (it currently reads as aspirational, not confirmed), and still work
-through steps 2–3 above as a _verification_ pass (confirm secrets/bindings are actually
-present on the live project, not assumed) rather than a fresh setup.
-
-### What I could not do from the sandbox and why
-
-I have no Cloudflare API token or dashboard access in this session — I can read
-`wrangler.jsonc` and infer from URL-naming conventions, but I cannot query Cloudflare's
-actual project list, routes, secrets, or bindings to resolve 0a myself. See §4 below for
-exactly what credentials would let a cloud-sandbox session do this verification/execution
-itself next time, instead of needing a local agent for it.
+> **Authoritative Context Document for Incoming / Cold-Start Agents**  
+> **Last Updated:** 2026-09-17  
+> **Target Repository:** [`arhsmoque2/ARH-FNB-Beelal-Coffee`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee)  
+> **Live Production Storefront:** [`https://store-beelal-fnb-pwa.arh-homelab.workers.dev`](https://store-beelal-fnb-pwa.arh-homelab.workers.dev)  
+> **Governing Rules:** Read [`AGENTS.md`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/AGENTS.md), [`ARCHITECTURE.md`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/ARCHITECTURE.md), and [`journal.md`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/journal.md) before making modifications.
 
 ---
 
-## 1. What this session fixed (safe, mechanical, done from the sandbox)
+## 1. Executive Summary & Cold-Start Quick Reference
 
-| Fix                                     | File                                | Why                                                                                                                                                                                                                                                                                                                                                                                             |
-| --------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Quality gate no longer silently vacuous | `_qa/beelal-ui-ux-quality-gate.mjs` | Gates 2–4 pointed at `v2/index.html`, which doesn't exist in this repo (files are flat). They were being skipped entirely while the script still printed "All Gates PASSED". Now Gates 2, 3, 4, 5 run against **both** `index-legacy.html` and `index-v2.html`, per-file, instead of guessing which is "the" storefront.                                                                        |
-| Removed dead gate-gaming code           | `index.html`                        | A hidden `<script style="display:none">` block plus HTML comments referenced `verify-menu-schema-contract.py` / `verify-html-static-contract.py` — Python verifier scripts that don't exist anywhere in this repo (leftover from the parent fleet template). It also stubbed a fake `function sendOrder() { window.open(); }`. Deleted; the file is now just the redirect shim it claims to be. |
-| Stale branding                          | `observatory.html`                  | `<title>` said "Woodfire" (a different store's leftover branding). Changed to "Beelal Coffee".                                                                                                                                                                                                                                                                                                  |
-| README rewritten                        | `README.md`                         | Described the old multi-branch fleet setup (`store/beelal`, `store/therizz`, shared `fnb-pwa` CF project) that no longer applies to this standalone repo. Rewritten to match `AGENTS.md` and current file layout, and now documents the two open items below instead of hiding them.                                                                                                            |
+This repository is a production-grade, progressive web app (PWA) and edge-backed storefront for **Beelal Coffee**, serving specialty Arabica roasts and cafe food with 1-tap WhatsApp checkout and instant QR payment verification.
 
-Quality gate initially correctly **failed** (14 errors) because `index-legacy.html` was
-missing the modern cart-stepper/UEQ features that `index-v2.html` has — real signal, not a
-gate bug. Once §2 was resolved and `index-legacy.html` removed, the gate was pointed at
-`index-v2.html` only and now passes for real (0 errors), not vacuously like before.
+### Core Stack
 
-## 2. ✅ RESOLVED — `index-v2.html` is the live storefront
+- **Edge Compute & Routing:** Cloudflare Workers ([`worker.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/worker.js)) with R2 object storage binding (`MEDIA_BUCKET` -> `arh-fnb-beelal-media`).
+- **Realtime Database:** Firebase Realtime Database (`ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`, root: `beelal_coffee`).
+- **Storefront Client:** Standalone, hyper-optimized HTML5/CSS3/Vanilla JS PWA ([`index-v2.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/index-v2.html)) with Web App Manifest ([`manifest.webmanifest`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/manifest.webmanifest)) and Service Worker ([`sw.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/sw.js)).
+- **Admin Studio:** Full management console ([`admin.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/admin.html)) for menu items, pricing, visual themes, AI palette studio, and barista order fulfillment.
+- **Billing Ledger:** Cloudflare Workers + D1 database microservice ([`billing-ledger/`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/billing-ledger)) for immutable transaction accounting.
 
-Confirmed by the owner on 2026-08-22. `index-legacy.html` has been **deleted** from the repo
-(git history still has it if ever needed). `AGENTS.md` and `README.md` updated accordingly.
-`journal.md` still contains the old (now superseded) June note calling `index-legacy.html`
-the live app — left as historical record, not corrected, since it's a session log.
+### Cold-Start Command Checklist
 
-This unblocks: the quality gate now runs against `index-v2.html` only and passes for real
-(not vacuously); the payment-flow build (§3.4 below) has a confirmed target file.
+Run these commands from the repository root:
 
-## 3. Remaining work that needs local-machine / credentialed access
+```bash
+# 1. Verify environment health & bindings
+node _qa/infra-doctor.mjs
 
-These are things I identified but could **not** safely fix from this sandbox — each needs
-either a decision only the owner can make, or credentials/access this session doesn't have.
+# 2. Run unit & regression test suite (153 tests across 4 files)
+npm run test:unit
 
-| #   | Item                                                 | Why I didn't do it                                                                                                                                                                                     | Who/what's needed                                        |
-| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
-| 1   | ~~Rotate & relocate `config.js` → `billing.secret`~~ | ✅ Done — server-side proxy uses `BILLING_SECRET`, which is provisioned on `beelal-coffee` and encrypted in SOPS.                                                                                      | —                                                        |
-| 2   | ~~Wire up `MEDIA_BUCKET` R2 binding~~                | ✅ Done — binding points at `arh-fnb-beelal-media`, which was created and verified.                                                                                                                    | —                                                        |
-| 3   | ~~Resolve live storefront file~~                     | ✅ Done — see §2                                                                                                                                                                                       | —                                                        |
-| 4   | Implement payment flow                               | ✅ Local implementation complete: owner-confirmed receipt lifecycle, Tesseract transcription aid, and 30-day receipt cleanup.                                                                          | Live smoke test after deployment                         |
-| 5   | Wire CI to the quality gate                          | Now safe to add — the gate passes cleanly against the confirmed live file (§2). A GitHub Actions workflow running `node _qa/beelal-ui-ux-quality-gate.mjs` on PRs is a ~10-minute add whenever wanted. | Nothing blocking                                         |
-| 6   | Firebase security rules review                       | `config.js`/`worker.js` reference read/write patterns but the actual `database.rules.json` (or console-configured rules) isn't in this repo, so I can't audit what's actually enforced server-side.    | Export of current Firebase RTDB rules, or console access |
-
-## 4. What I'd need supplied directly to this repo for full sandbox independence
-
-The Cloudflare account and new Worker/R2 provisioning are now verified from this session.
-Firebase rules and the billing Worker remain separately governed systems. To complete live
-system proof, the remaining checks are:
-
-1. **Firebase read access** — either a service-account JSON scoped to the
-   `ash-2026-photobook` project (ideally read-only, ideally restricted to the `beelal_coffee`
-   node) or, at minimum, the exported `database.rules.json` committed to this repo so rules
-   are reviewable/versioned like the rest of the code. Without this I can't verify Firebase
-   rules match what `worker.js`/`config.js` assume, and can't test payment-flow writes once
-   built. (§2, the storefront-file question, is now resolved by owner confirmation rather
-   than needing this — but this access would have let me confirm it myself.)
-2. **The `fnb-billing-ledger` Worker's source** (as a repo, or vendored into this one, or at
-   least its API contract documented) — I can't safely redesign the billing-secret handling
-   (§3.1) while treating that Worker as a black box; I could break billing for the store.
-3. **A committed `.dev.vars.example`** (referenced by `.gitignore` but doesn't exist) listing
-   every secret name a fresh clone needs (`UPLOAD_SECRET`, `BILLING_SECRET`, and the deliberately
-   disabled `GEMINI_API_KEY` future option) with placeholder values — so secret requirements are
-   self-documenting instead of living in Worker comments and this handoff file.
-4. **A CI workflow secret set** (GitHub Actions repo secrets) if/when the quality
-   gate gets wired into CI (§3.5) and later a `wrangler deploy` step is added — otherwise CI
-   can only ever run the static gate, never verify an actual deploy.
-   None of the above lets me bypass asking before destructive/production actions (secret
-   rotation, etc.) — I'd still confirm those — but it would let me _verify_ my work against the
-   real system instead of reasoning from source code alone, and get from "plausible" to "tested"
-   without a round-trip through a local machine.
-
----
-
-## Preserved: Payment Feature Plan (historical reference)
-
-The owner-confirmed receipt lifecycle is now implemented in `index-v2.html`, `admin.html`,
-and `worker.js`. The historical Gemini-based plan below is superseded: Gemini remains
-deliberately disabled, Tesseract.js is local transcription assistance, and owner bank review
-is the only payment authority.
-
-This plan pre-dates the standalone-repo split. It originally targeted `index-legacy.html`,
-which has since been confirmed dead and deleted (§2) — **build this in `index-v2.html`
-instead**, now confirmed live. Local-machine paths below (`C:\00_ARH\...`) are from the
-original authoring machine and don't apply to this sandboxed repo; treat everything else as
-still-valid design.
-
-### Firebase
-
-- URL: `https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app`
-- Root: `beelal_coffee`
-- Orders path: `beelal_coffee/orders`
-- Config path: `beelal_coffee/config`
-
-### Step 1 — `worker.js`: Add receipt parser endpoint
-
-Add `POST /api/parse-receipt` handler. No auth needed (customer-facing).
-
-**Request body:**
-
-```json
-{ "imageBase64": "<base64 string>", "mimeType": "image/jpeg" }
+# 3. Run full quality gate (lint, cspell, markdownlint, knip, prettier, UI gates, layout audit, infra doctor, unit tests)
+npm run check
 ```
 
-**What it does:**
+> [!IMPORTANT]
+> **Zero Tolerance for Regressions:** `npm run check` executes 9 automated verification gates. Every pull request must have all 9 gates 100% green before merging into `main`.
 
-- Calls Gemini Vision (`gemini-2.5-flash`) with the image
-- Prompt instructs it to extract: transaction_ref, amount, date, time, bank_or_wallet, to_account, from_account
-- Returns structured JSON
+---
 
-**Response:**
+## 2. Completed Milestones (Options A & B)
+
+In the current development cycle (PR `feat/admin-auth-and-order-fulfillment`), two critical Phase 1 initiatives were fully implemented, tested, and verified:
+
+### Option A: Server-Side Admin Authentication & Token Security
+
+- **HMAC-SHA256 Session Tokens:** Implemented cryptographic signing in [`worker.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/worker.js) via `crypto.subtle`. Valid tokens are issued upon entering dev/owner PINs via `POST /api/admin/verify-pin` and expire after 24 hours.
+- **Protected Endpoints:**
+  - `GET /api/admin/orders` — Requires Bearer token in `Authorization` header or `x-admin-token`. Rejects unauthorized calls with HTTP 401.
+  - `POST /api/admin/order/update-status` — Requires valid admin token; logs the updating role (`dev` or `owner`) in order audit metadata.
+  - `POST /api/chat` — Secured behind admin token verification. Prevents unauthorized third parties from exhausting the OpenRouter AI quota.
+- **Admin Client Integration:** [`admin.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/admin.html) now persists `admin_token` in `sessionStorage` and attaches `Authorization: Bearer ${adminToken}` to all administrative API requests, including OpenRouter chat calls and receipt OCR vision queries.
+
+### Option B: Full Order Fulfillment Lifecycle & Live Status Bar
+
+- **Expanded Order Lifecycle:** Transitioned from binary payment tracking to a dual-dimension status model:
+  1. `payment_status`: `cash_pending` | `awaiting_confirmation` | `confirmed` | `rejected`
+  2. `fulfillment_status`: `placed` | `preparing` (brewing) | `ready` (pickup) | `completed` | `cancelled`
+- **Auto-Advancement Logic:** When an admin confirms a payment via `POST /api/admin/order/update-status`, `worker.js` automatically advances `fulfillment_status` to `"preparing"` and records `preparing_at: Date.now()` unless explicitly specified otherwise.
+- **Lifecycle Timestamps:** `worker.js` logs `preparing_at`, `ready_at`, `completed_at`, and `cancelled_at` timestamps directly in Firebase RTDB for SLA analysis.
+- **Admin Barista Stepper:** [`admin.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/admin.html) Orders tab displays dual badges (`PAYMENT_STATUS_BADGE` and `FULFILLMENT_STATUS_BADGE`) and contextual action buttons:
+  - `☕ Start Brewing` (moves `placed` -> `preparing`)
+  - `🔔 Mark Ready` (moves `preparing` -> `ready`)
+  - `✅ Complete Order` (moves `ready` -> `completed`)
+  - `Cancel` (cancels an active order)
+- **Storefront Live Progress Stepper:** [`index-v2.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/index-v2.html) now features a live 4-step animated progress tracker (`#orderFulfillmentTracker`):
+  - **Step 1 (Placed 📝):** Initial order submission (0% progress).
+  - **Step 2 (Brewing ☕):** Payment confirmed, barista handcrafting drinks (33% progress).
+  - **Step 3 (Ready 🔔):** Order packed and waiting at counter (66% progress).
+  - **Step 4 (Picked Up ✅):** Completed order (100% progress). Polling automatically ceases upon completion.
+
+---
+
+## 3. Architecture & API Contract Reference
+
+### API Boundary Summary
+
+| Method | Path                             | Auth Required         | Description                                                                         |
+| :----- | :------------------------------- | :-------------------- | :---------------------------------------------------------------------------------- |
+| `POST` | `/api/admin/verify-pin`          | None (PIN in body)    | Validates 4-digit PIN; returns `{ ok: true, role, token, expires_at }`              |
+| `GET`  | `/api/admin/orders`              | Bearer Token          | Fetches all active and historical orders from Firebase RTDB                         |
+| `POST` | `/api/admin/order/update-status` | Bearer Token          | Updates `payment_status` and/or `fulfillment_status`; sets timestamps               |
+| `POST` | `/api/order`                     | Public                | Submits a new customer order; sets `fulfillment_status: "placed"`                   |
+| `GET`  | `/api/order/status/:id`          | Public                | Returns `{ ok: true, order_id, payment_status, fulfillment_status, timestamps... }` |
+| `POST` | `/api/chat`                      | Bearer Token          | Proxies AI theme assistance requests to OpenRouter                                  |
+| `POST` | `/api/upload/receipt`            | Public (Rate-limited) | Stores customer transfer receipts in R2 for 30-day verification                     |
+| `POST` | `/api/record-order`              | Server-to-server      | Relays order transaction metadata to D1 billing ledger                              |
+
+### Firebase RTDB Schema: `/beelal_coffee/orders/{orderId}`
 
 ```json
 {
-  "transaction_ref": "TXN20260610143201",
-  "amount": 27.5,
-  "date": "2026-06-10",
-  "time": "14:32",
-  "bank_or_wallet": "Touch 'n Go",
-  "to_account": "Beelal Coffee",
-  "from_account": "****1234",
-  "parse_confidence": "high"
+  "name": "Ahmad",
+  "items": [
+    {
+      "name": "Spanish Latte",
+      "size": "12oz",
+      "qty": 1,
+      "price": 14.0,
+      "unitPrice": 14.0,
+      "addons": []
+    }
+  ],
+  "total": 14.0,
+  "payment_method": "qr",
+  "payment_status": "confirmed",
+  "payment_ref": "REF-9921",
+  "payment_confirmed_at": 1718000020000,
+  "payment_confirmed_by": "owner",
+  "fulfillment_status": "preparing",
+  "preparing_at": 1718000020000,
+  "ready_at": null,
+  "completed_at": null,
+  "cancelled_at": null,
+  "ts": 1718000000000
 }
 ```
 
-**Gemini prompt to use:**
+### Gate 6 Brand Integrity Rule
 
-```
-You are reading a Malaysian e-wallet or bank transfer payment receipt screenshot.
-Extract ONLY these fields as JSON (no markdown, no explanation):
-{
-  "transaction_ref": "the transaction/reference ID or number",
-  "amount": <number, Malaysian Ringgit, no currency symbol>,
-  "date": "YYYY-MM-DD",
-  "time": "HH:MM",
-  "bank_or_wallet": "name of the bank or e-wallet (Touch 'n Go, Maybank, CIMB, etc.)",
-  "to_account": "recipient name or account",
-  "from_account": "last 4 digits of sender account if visible, else null",
-  "parse_confidence": "high" | "medium" | "low"
-}
-If a field is not visible, use null. Amount must be a number.
-```
+Gate 6 in [`_qa/beelal-ui-ux-quality-gate.mjs`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/_qa/beelal-ui-ux-quality-gate.mjs) enforces strict brand color palette matching.  
+**DO NOT USE** Tailwind default indigo/violet/pink swatches in stylesheet blocks:
 
-**Needs secret:** `GEMINI_API_KEY` (see §4.4 above for how this should reach the sandbox).
-Set it on the Worker with:
-
-```
-npx wrangler secret put GEMINI_API_KEY
-```
-
-**Add to router in `worker.js`:**
-
-```js
-if (url.pathname === "/api/parse-receipt") {
-  if (request.method !== "POST") return json({ error: "POST only" }, 405);
-  return handleParseReceipt(request, env);
-}
-```
+- Forbidden hex regex: `/#(4f46e5|6366f1|818cf8|a5b4fc|c7d2fe|e0e7ff|312e81|1e1b4b|3730a3|4338ca|ec4899|f472b6|db2777|fbcfe8)\b/i`
+- Always use CSS variables: `var(--brand)`, `var(--brand2)`, `var(--paper)`, `var(--ink)`, `var(--muted)`, `var(--line)`.
 
 ---
 
-### Step 2 — `config.js`: Add payment config block
+## 4. Remaining Roadmap: Options C & D (Next Takeover Point)
 
-In `APP_CONFIG`, add after `checkout`:
+Incoming agents should proceed with the following priorities:
 
-```js
-payment: {
-  methods: ['cash', 'qr', 'bank_transfer'],
-  bank_name:      '',   // e.g. 'Maybank'
-  account_name:   '',   // e.g. 'Beelal Coffee'
-  account_number: '',   // e.g. '1234567890'
-  qr_image_url:   '',   // set by admin via Payment Settings
-},
-```
+### 🎯 Option C: Multi-Tenant Architecture & Store Registry Isolation
 
----
+#### Context & Objectives
 
-### Step 3 — `index-v2.html`: Customer payment flow
+While this repository is the dedicated standalone instance for Beelal Coffee, the codebase contains foundations for multi-tenant registry resolution (`window.__registryReady` in [`admin.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/admin.html)). The goal of Option C is complete multi-tenant store isolation:
 
-#### 3a. After "Send Order" button, insert a payment method picker step
-
-The existing cart sheet has this flow:
-
-```
-Cart list → Name/Note fields → [Send Order via WhatsApp]
-```
-
-Change to:
-
-```
-Cart list → Name/Note fields → [Place Order] → payment picker sheet
-```
-
-**Important:** The existing `sendOrder()` calls `window.open(wa.me...)` synchronously (before any await) because iOS Safari blocks popups after async. For Cash method only, still open WhatsApp for order notification. For QR and Bank Transfer, no WhatsApp at order time — WhatsApp opens only when admin confirms.
-
-#### 3b. Payment method picker (new sheet/step)
-
-Three cards stacked:
-
-- 💵 **Cash** — "Pay on pickup or delivery"
-- 📱 **QR Pay** — "Scan with any banking app or e-wallet"
-- 🏦 **Bank Transfer** — "Transfer and upload proof"
-
-#### 3c. Cash flow
-
-- Write order to Firebase with `payment_method: "cash", payment_status: "cash_pending"`
-- Show confirmation: "Order placed! Pay RM XX.XX on collection. We'll prepare your order."
-- Open WhatsApp notification to store: "New cash order from [name] — RM XX.XX"
-
-#### 3d. QR flow
-
-- Read `config/payment_settings/qr_image_url` from Firebase (or fall back to `APP_CONFIG.payment.qr_image_url`)
-- Display QR image full-width with store name and order total above
-- Download button: `<a download="beelal-qr.png" href="{qr_url}">Save QR to phone</a>`
-- "I've Paid" button → write order with `payment_method: "qr", payment_status: "awaiting_confirmation"`
-- Show waiting screen: "Payment submitted! We'll confirm shortly."
-
-#### 3e. Bank Transfer flow
-
-Step 1 — Show bank details:
-
-```
-Bank:    {bank_name}
-Account: {account_number}
-Name:    {account_name}
-Amount:  RM {total}
-```
-
-"Copy account number" button.
-
-Step 2 — Receipt upload:
-
-- `<input type="file" accept="image/*" capture="environment">` (opens camera on mobile)
-- On file select: read as base64, POST to `/api/parse-receipt`
-- Show spinner: "Reading your receipt..."
-- On success: show parsed result for customer to verify:
-
-  ```
-  ✅ We read: RM 27.50 · TXN20260610143201 · Touch 'n Go
-  [Looks right — Submit Proof]  [Re-upload]
-  ```
-
-- On parse failure/low confidence: show "Could not read receipt automatically" + still allow manual submission with a note field
-
-Step 3 — On "Submit Proof":
-
-- Write order with:
-
-  ```js
-  payment_method: "bank_transfer",
-  payment_status: "awaiting_confirmation",
-  payment_proof: {
-    transaction_ref, amount, date, time,
-    bank_or_wallet, to_account, from_account,
-    amount_match: (parsedAmount === orderTotal),
-    parsed_at: Date.now()
-  }
-  ```
-
-- Show: "Proof submitted! Waiting for confirmation."
-
-#### 3f. Waiting/confirmation screen
-
-Common to QR and Bank Transfer after submission:
-
-```
-⏳ Awaiting confirmation
-Your order has been received. The store owner
-will confirm your payment shortly.
-
-Order: [name] — RM [total]
-[items summary]
-```
-
-Auto-poll Firebase every 10s for `payment_status === "confirmed"`. On confirmed, show:
-
-```
-✅ Order Confirmed!
-[items summary]
-```
+1. **Dynamic Database Namespace Routing:**
+   - Allow Worker routes (`/api/order`, `/api/admin/*`, `/api/order/status/*`) to resolve tenant namespace dynamically from custom hostnames or path prefixes (e.g. `X-Store-Slug` header or `/store/:slug/`).
+   - Default to `beelal_coffee` if no store slug is passed (100% backward compatible).
+2. **Registry Protection:**
+   - Isolate Firebase RTDB nodes per store: `/${store_slug}/orders`, `/${store_slug}/menu`, `/${store_slug}/config`.
+   - Prevent cross-tenant data leakage by enforcing tenant-scoped HMAC session tokens (embed `store_slug` inside token payload and verify during request handling).
+3. **Verification & Tests:**
+   - Add unit tests in [`tests/worker.test.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/tests/worker.test.js) validating that tokens issued for Store A cannot access Store B orders.
 
 ---
 
-### Step 4 — `admin.html`: Orders tab + Payment Settings
+### 🎯 Option D: Billing Ledger Automation & Transaction Rollups
 
-#### 4a. Orders tab — payment status display
+#### Context & Objectives
 
-Modify `loadOrders()` to show for each order:
+The repository contains an edge microservice at [`billing-ledger/`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/billing-ledger) backed by Cloudflare D1 (`fnb-billing-ledger-db`). Order submissions already dispatch fire-and-forget billing events via `fetch('/api/record-order')` (authenticated with `BILLING_SECRET`).
+The goal of Option D is automating billing reconciliation and rollups:
 
-**Status badge** (colour-coded):
-
-- `cash_pending` → yellow "Cash · Pending"
-- `awaiting_confirmation` → orange "QR/Bank · Awaiting"
-- `confirmed` → green "Confirmed"
-- `rejected` → red "Rejected"
-- (no payment_method) → grey "Legacy order"
-
-**Payment proof block** (only if `payment_proof` exists):
-
-```
-Ref: TXN20260610143201
-Paid: RM 27.50 · Touch 'n Go · 2026-06-10 14:32
-✅ Amount matches  OR  ⚠️ Mismatch: paid RM 25 / order RM 27.50
-```
-
-**Action buttons** (only if `payment_status === "awaiting_confirmation"`):
-
-- ✅ Confirm → sets `payment_status: "confirmed"` → opens WhatsApp:
-  `"✅ Order confirmed, [name]! Your order of RM [total] is being prepared. Thank you!"`
-- ❌ Reject → prompt for reason → sets `payment_status: "rejected"` + stores reason → opens WhatsApp:
-  `"Sorry [name], we could not verify your payment. Please contact us."`
-
-**Duplicate detection:** When rendering orders, check if any two orders share the same `payment_proof.transaction_ref`. If yes, show ⚠️ "Duplicate ref" on both.
-
-#### 4b. Payment Settings section (new tab or under Store Info)
-
-Form fields:
-
-- QR Image: file upload → converts to base64 → saves to `config/payment_settings/qr_image_url`
-  (or upload via existing image-upload infrastructure already in admin.html)
-- Bank Name (text input)
-- Account Name (text input)
-- Account Number (text input)
-- Save button → writes to `config/payment_settings`
+1. **Scheduled Aggregate Cron:**
+   - Implement `scheduled(controller, env, ctx)` handler in `billing-ledger/src/index.js` to compute daily, weekly, and monthly gross merchandise value (GMV), order counts, and fee rollups.
+   - Store aggregate summaries in a new D1 table `billing_daily_rollups` (`rollup_date`, `store_slug`, `gross_revenue_cents`, `order_count`, `currency`, `created_at`).
+2. **Admin Billing Dashboard Panel:**
+   - Add a lightweight read-only "Billing & Settlement" tab or modal in [`admin.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/admin.html) querying `/api/billing/summary` (protected by admin session token).
+   - Display today's revenue, weekly total, and order volume without exposing raw customer records.
+3. **Verification & Tests:**
+   - Add unit tests in [`tests/billing-ledger.test.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/tests/billing-ledger.test.js) covering aggregation maths, zero-order days, and currency isolation.
 
 ---
 
-## Firebase Rules
+## 5. Phase 2 Roadmap & Future Features
 
-Add to rules (wherever they're managed):
-
-```json
-"config": {
-  "payment_settings": {
-    ".read": true,
-    ".write": false
-  }
-}
-```
-
-Payment settings are public-read (customer needs QR/bank details) but write-protected (admin only via secret or Firebase Auth).
+1. **Inventory Depletion Engine:**
+   - Real-time stock counts in Firebase RTDB (`/beelal_coffee/inventory/{itemId}`).
+   - Automatically decrement stock when order transitions to `confirmed` or `completed`.
+   - Mark items as "Sold Out" on the storefront when quantity reaches 0.
+2. **Delayed Customer Feedback Loop:**
+   - [`index-v2.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/index-v2.html) already has the UI structure for `#reviewPromptBanner` and `#feedbackSheet`.
+   - Wire up submission to `/beelal_coffee/reviews/{orderId}` and display average ratings in admin.
+3. **Customer Phone Profiles & Repeat Orders:**
+   - Cache customer name, phone, and favorite drink in `localStorage`.
+   - Pre-fill fields on subsequent visits for frictionless checkout.
 
 ---
 
-## Testing Checklist (payment feature)
+## 6. Secrets & Environment Configuration
 
-- [ ] `POST /api/parse-receipt` with a real TNG screenshot returns correct JSON
-- [ ] Cash order: writes to Firebase with correct status, WhatsApp opens
-- [ ] QR order: QR image loads from Firebase config, "I've Paid" writes order
-- [ ] Bank Transfer: receipt upload → parse → verify screen → submit writes proof
-- [ ] Admin: awaiting_confirmation orders show proof + Confirm/Reject buttons
-- [ ] Admin: Confirm → status updates → WhatsApp opens with confirmation message
-- [ ] Admin: Payment Settings save → reloads correctly on customer page
-- [ ] Duplicate `transaction_ref` detected and flagged
-- [ ] Amount mismatch `amount_match: false` shown with warning in admin
+| Variable Name          | Environment         | Purpose                                                        |
+| :--------------------- | :------------------ | :------------------------------------------------------------- |
+| `OPENROUTER_API_KEY`   | Worker Secret       | API key for OpenRouter AI completions proxy (`POST /api/chat`) |
+| `UPLOAD_SECRET`        | Worker Secret       | Shared secret gating media uploads                             |
+| `BILLING_SECRET`       | Worker Secret       | Bearer token authenticating order records with billing ledger  |
+| `ADMIN_DEV_PIN`        | Worker Secret / Var | 4-digit PIN for developer admin role (defaults to `0405`)      |
+| `ADMIN_OWNER_PIN`      | Worker Secret / Var | 4-digit PIN for owner admin role (defaults to `1234`)          |
+| `ADMIN_SESSION_SECRET` | Worker Secret / Var | Secret key for signing admin HMAC session tokens               |
+| `FIREBASE_URL`         | Worker Var          | Base URL for Firebase Realtime Database                        |
+| `FIREBASE_AUTH_SECRET` | Worker Secret       | Private database secret for RTDB REST calls                    |
+
+Secrets are managed via `wrangler secret put <NAME>` and canonical ARH SOPS encryption.
 
 ---
 
-## Related Context
+## 7. Operational Safety Rules for Incoming Agents
 
-- Session journal with full reasoning: `journal.md` (this folder)
-- Beelal sales analysis: 529 orders, RM 14,547 revenue, RM 27.50 avg — see `journal.md` §5
-- Payment gateway recommendation: HitPay (future), but this feature works without a gateway — store owner manually confirms. Gateway integration is a separate future phase.
+1. **Run `npm run check` Before Every Commit:** Ensure all 9 gates (oxlint, cspell, markdownlint, knip, prettier, UI gates, layout audit, infra doctor, vitest) pass with 0 errors.
+2. **Never Edit Files in Parallel with Multiple Calls to Single Chunks:** Use clean, targeted diff replacements.
+3. **Always Preserve File URLs with Forward Slashes:** Format all references as `[path](file:///D:/path/to/file)`.
+4. **Deploy via Pull Request Workflow:** Work on feature branches (`feat/...`), run QA, push, verify GitHub Actions CI, and merge cleanly into `main`.
