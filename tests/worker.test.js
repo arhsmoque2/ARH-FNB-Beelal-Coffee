@@ -90,9 +90,11 @@ describe("Router — security & middleware", () => {
       const res = await worker.fetch(new Request(`https://example.com${p}`), env, makeCtx());
       expect(res.status).toBe(200);
       expect(env.ASSETS.fetch).toHaveBeenCalled();
-      const calledReq = env.ASSETS.fetch.mock.calls[0][0];
-      const url = new URL(calledReq.url);
-      expect(url.pathname, `Path ${p} should rewrite to /index-v2.html`).toBe("/index-v2.html");
+      const calledArg = env.ASSETS.fetch.mock.calls[0][0];
+      const calledUrl = calledArg instanceof URL ? calledArg : new URL(calledArg.url || calledArg);
+      expect(calledUrl.pathname, `Path ${p} should rewrite to /index-v2.html`).toBe(
+        "/index-v2.html"
+      );
     }
   });
 
@@ -105,10 +107,10 @@ describe("Router — security & middleware", () => {
     );
     expect(res.status).toBe(200);
     expect(env.ASSETS.fetch).toHaveBeenCalled();
-    const calledReq = env.ASSETS.fetch.mock.calls[0][0];
-    const url = new URL(calledReq.url);
-    expect(url.pathname).toBe("/index-v2.html");
-    expect(url.search).toBe("?table=5&ref=qr");
+    const calledArg = env.ASSETS.fetch.mock.calls[0][0];
+    const calledUrl = calledArg instanceof URL ? calledArg : new URL(calledArg.url || calledArg);
+    expect(calledUrl.pathname).toBe("/index-v2.html");
+    expect(calledUrl.search).toBe("?table=5&ref=qr");
   });
 });
 
