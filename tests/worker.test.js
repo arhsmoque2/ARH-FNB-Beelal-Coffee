@@ -75,12 +75,40 @@ describe("Router — security & middleware", () => {
   it("forwards unrecognised paths to static ASSETS", async () => {
     const env = makeEnv();
     const res = await worker.fetch(
-      new Request("https://example.com/index-v2.html"),
+      new Request("https://example.com/custom-file.css"),
       env,
       makeCtx()
     );
     expect(res.status).toBe(200);
     expect(env.ASSETS.fetch).toHaveBeenCalled();
+  });
+
+  it("rewrites root and legacy aliases to /index-v2.html on static ASSETS", async () => {
+    const paths = ["/", "/index", "/index.html", "/index-v2"];
+    for (const p of paths) {
+      const env = makeEnv();
+      const res = await worker.fetch(new Request(`https://example.com${p}`), env, makeCtx());
+      expect(res.status).toBe(200);
+      expect(env.ASSETS.fetch).toHaveBeenCalled();
+      const calledReq = env.ASSETS.fetch.mock.calls[0][0];
+      const url = new URL(calledReq.url);
+      expect(url.pathname, `Path ${p} should rewrite to /index-v2.html`).toBe("/index-v2.html");
+    }
+  });
+
+  it("preserves query params when rewriting root to /index-v2.html", async () => {
+    const env = makeEnv();
+    const res = await worker.fetch(
+      new Request("https://example.com/?table=5&ref=qr"),
+      env,
+      makeCtx()
+    );
+    expect(res.status).toBe(200);
+    expect(env.ASSETS.fetch).toHaveBeenCalled();
+    const calledReq = env.ASSETS.fetch.mock.calls[0][0];
+    const url = new URL(calledReq.url);
+    expect(url.pathname).toBe("/index-v2.html");
+    expect(url.search).toBe("?table=5&ref=qr");
   });
 });
 

@@ -122,6 +122,19 @@ export default {
       return serveMedia(key, request, env, ctx);
     }
 
+    // Reconcile root and legacy aliases to serve the authoritative v2 storefront directly
+    if (
+      url.pathname === "/" ||
+      url.pathname === "/index" ||
+      url.pathname === "/index.html" ||
+      url.pathname === "/index-v2"
+    ) {
+      const v2Url = new URL("/index-v2.html", request.url);
+      v2Url.search = url.search;
+      v2Url.hash = url.hash;
+      return env.ASSETS.fetch(new Request(v2Url, request));
+    }
+
     return env.ASSETS.fetch(request);
   },
 

@@ -56,7 +56,18 @@ async function checkRoute(path, expectedStatuses = [200], validateFn = null) {
 async function run() {
   console.log("--- 1. Live Web Entrypoints ---");
   await checkRoute("/", [200], (text) => {
-    if (!text.includes("index-v2.html")) return "Expected redirect shim pointing to index-v2.html";
+    if (!text.includes("cartList") || !text.includes("APP_CONFIG"))
+      return "Root / must serve direct v2 storefront markup and config";
+  });
+
+  await checkRoute("/index", [200], (text) => {
+    if (!text.includes("cartList") || !text.includes("APP_CONFIG"))
+      return "Route /index must resolve to v2 storefront";
+  });
+
+  await checkRoute("/index-v2", [200], (text) => {
+    if (!text.includes("cartList") || !text.includes("APP_CONFIG"))
+      return "Route /index-v2 must resolve to v2 storefront";
   });
 
   await checkRoute("/index-v2.html", [200], (text) => {
