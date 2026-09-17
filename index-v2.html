@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="theme-color" content="#f8fafc">
+  <meta name="theme-color" content="#fef7ee">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25,21 +25,38 @@
       link.href = APP_CONFIG.store.banner.image_url;
       document.head.appendChild(link);
     }
+    (function() {
+      try {
+        const saved = localStorage.getItem("beelal_theme_cache");
+        const theme = saved ? JSON.parse(saved) : (typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.defaultTheme : null);
+        if (theme) {
+          const r = document.documentElement.style;
+          if (theme.primary) r.setProperty("--brand", theme.primary);
+          if (theme.accent) r.setProperty("--brand2", theme.accent);
+          if (theme.text) r.setProperty("--ink", theme.text);
+          if (theme.text2) r.setProperty("--muted", theme.text2);
+          if (theme.bg) r.setProperty("--bg", theme.bg);
+          if (theme.surface) r.setProperty("--paper", theme.surface);
+          if (theme.font_display) r.setProperty("--fd", theme.font_display);
+          if (theme.font_body) r.setProperty("--fb", theme.font_body);
+        }
+      } catch {}
+    })();
   </script>
   <style>
     :root {
-      --bg: #f8fafc;
+      --bg: #fef7ee;
       --paper: #ffffff;
-      --ink: #0f172a;
-      --muted: #475569;
-      --faint: #94a3b8;
-      --line: rgba(15, 23, 42, 0.08);
-      --soft: rgba(255, 255, 255, 0.82);
-      --brand: #4f46e5;
-      --brand2: #ec4899;
-      --gold: #f59e0b;
+      --ink: #1c110a;
+      --muted: #7a5c3e;
+      --faint: #b89070;
+      --line: rgba(44, 26, 14, 0.12);
+      --soft: rgba(255, 253, 248, 0.82);
+      --brand: #2c1a0e;
+      --brand2: #c8962a;
+      --gold: #e8b84b;
       --green: #10b981;
-      --shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+      --shadow: 0 16px 40px rgba(44, 26, 14, 0.06);
       --radius: 10px;
       --fd: "Playfair Display", Georgia, serif;
       --fb: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -53,8 +70,8 @@
       margin: 0;
       min-height: 100vh;
       background:
-        radial-gradient(circle at 8% 4%, rgba(99, 102, 241, 0.08), transparent 32%),
-        linear-gradient(135deg, #f8fafc 0%, #ffffff 42%, #f1f5f9 100%);
+        radial-gradient(circle at 8% 4%, rgba(200, 150, 42, 0.08), transparent 32%),
+        linear-gradient(135deg, #fef7ee 0%, #ffffff 42%, #f9f0e1 100%);
       color: var(--ink);
       letter-spacing: 0;
       overflow-x: hidden;
@@ -65,6 +82,105 @@
     img { max-width: 100%; display: block; }
     a { color: inherit; text-decoration: none; }
     .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+
+    /* ── App Loading Screen ─────────────────────────────────────────── */
+    .app-loader-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: var(--bg, #fef7ee);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.38s ease;
+      pointer-events: auto;
+    }
+    .app-loader-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .app-loader-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .app-loader-icon-wrap {
+      position: relative;
+      width: 108px;
+      height: 108px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .app-loader-spinner-outer {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(200, 150, 42, 0.28);
+      animation: appLoaderSpinReverse 8s linear infinite;
+    }
+    .app-loader-spinner-ring {
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      border: 3px solid rgba(200, 150, 42, 0.16);
+      border-top-color: var(--brand2, #c8962a);
+      border-right-color: var(--gold, #e8b84b);
+      animation: appLoaderSpin 1.1s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite;
+    }
+    .app-loader-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+      box-shadow: 0 12px 28px rgba(44, 26, 14, 0.16), 0 2px 6px rgba(44, 26, 14, 0.08);
+      animation: appLoaderPulse 2s ease-in-out infinite;
+      display: block;
+      z-index: 1;
+    }
+    .app-loader-title {
+      font-family: var(--fd, "Playfair Display", Georgia, serif);
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--ink, #1c110a);
+      margin-top: 18px;
+      letter-spacing: 0.5px;
+    }
+    .app-loader-sub {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted, #7a5c3e);
+      margin-top: 6px;
+    }
+    .app-loader-ellipsis::after {
+      content: '.';
+      animation: appLoaderDots 1.5s steps(4, end) infinite;
+    }
+    @keyframes appLoaderSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes appLoaderSpinReverse {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+    @keyframes appLoaderPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    @keyframes appLoaderDots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .app-loader-spinner-ring, .app-loader-spinner-outer { animation: none; border-color: var(--brand2, #c8962a); }
+      .app-loader-icon { animation: none; }
+      .app-loader-ellipsis::after { content: '...'; animation: none; }
+    }
 
     .topbar {
       position: sticky;
@@ -685,11 +801,11 @@
       justify-content: space-between;
       gap: 12px;
     }
-    .review-prompt-text { font-size: 13.5px; font-weight: 700; color: var(--text, #0f172a); }
+    .review-prompt-text { font-size: 13.5px; font-weight: 700; color: var(--ink, #1c110a); }
     .review-prompt-actions { display: flex; align-items: center; gap: 8px; }
     .review-prompt-btn { border: none; cursor: pointer; font-weight: 700; transition: all 0.2s; }
     .review-prompt-btn.rate-btn {
-      background: var(--brand, #4f46e5);
+      background: var(--brand, #2c1a0e);
       color: #ffffff;
       padding: 6px 14px;
       border-radius: 8px;
@@ -698,12 +814,12 @@
     .review-prompt-btn.rate-btn:hover { opacity: 0.9; transform: scale(1.03); }
     .review-prompt-btn.close-btn {
       background: none;
-      color: var(--text3, #94a3b8);
+      color: var(--faint, #b89070);
       font-size: 14px;
       padding: 4px;
       display: flex; align-items: center; justify-content: center;
     }
-    .review-prompt-btn.close-btn:hover { color: var(--text, #0f172a); }
+    .review-prompt-btn.close-btn:hover { color: var(--ink, #1c110a); }
     .item-desc {
       min-height: 18px;
       margin: 7px 0 0;
@@ -953,7 +1069,7 @@
       font-size: 12px; font-weight: 700; transition: all 0.2s;
     }
     .feedback-chip.active {
-      background: rgba(99, 102, 241, 0.08); color: var(--brand); border-color: var(--brand);
+      background: rgba(200, 150, 42, 0.12); color: var(--brand); border-color: var(--brand2);
     }
     .feedback-note {
       width: 100%; min-height: 80px; resize: vertical;
@@ -2093,6 +2209,28 @@
   </style>
 </head>
 <body>
+  <!-- APP LOADING SCREEN -->
+  <div class="app-loader-screen" id="loader" role="status" aria-live="polite" aria-label="Loading Beelal Coffee">
+    <div class="app-loader-card">
+      <div class="app-loader-icon-wrap">
+        <div class="app-loader-spinner-outer" aria-hidden="true"></div>
+        <div class="app-loader-spinner-ring" aria-hidden="true"></div>
+        <img class="app-loader-icon" src="/icons/icon.svg" width="68" height="68" alt="Beelal Coffee Icon">
+      </div>
+      <div class="app-loader-title">Beelal Coffee</div>
+      <div class="app-loader-sub" id="loaderStatusText">Crafting your brew<span class="app-loader-ellipsis"></span></div>
+    </div>
+  </div>
+  <script>
+    setTimeout(function() {
+      var l = document.getElementById("loader");
+      if (l && !l.classList.contains("hidden")) {
+        l.classList.add("hidden");
+        setTimeout(function() { l.style.display = "none"; }, 400);
+      }
+    }, 4500);
+  </script>
+
   <div class="announcement-ribbon" id="liveAnnouncement">
     <span class="announcement-dot"></span>
     <span><strong>Beelal Coffee</strong> • 100% Arabica Specialty Roasts • Fast WhatsApp & QR Checkout</span>
@@ -2433,7 +2571,12 @@
       }
     };
     const DEFAULT_MENU = APP_CONFIG.defaultMenu || { categories: [], items: [] };
-    let activeTheme = DEFAULT_CONFIG.theme || {};
+    let cachedTheme = null;
+    try {
+      const savedTheme = localStorage.getItem("beelal_theme_cache");
+      if (savedTheme) cachedTheme = JSON.parse(savedTheme);
+    } catch {}
+    let activeTheme = cachedTheme || DEFAULT_CONFIG.theme || {};
 
     let storeConfig = { ...DEFAULT_CONFIG.store };
     let paymentConfig = { ...DEFAULT_CONFIG.payment };
@@ -2579,19 +2722,19 @@
         style.setProperty("--brand", "#ead1a3");
         style.setProperty("--brand2", "#d9a441");
       } else {
-        style.setProperty("--bg", activeTheme.bg || "#F7F1E8");
-        style.setProperty("--paper", activeTheme.surface || "#FFFDF8");
-        style.setProperty("--ink", activeTheme.text || "#201711");
-        style.setProperty("--muted", activeTheme.text2 || "#68574B");
-        style.setProperty("--faint", activeTheme.text3 || "#9A826C");
-        style.setProperty("--line", "rgba(36, 20, 15, 0.12)");
-        style.setProperty("--soft", "rgba(255, 253, 248, 0.78)");
-        style.setProperty("--brand", activeTheme.primary || "#24140F");
-        style.setProperty("--brand2", activeTheme.accent || "#B7792F");
+        style.setProperty("--bg", activeTheme.bg || "#FEF7EE");
+        style.setProperty("--paper", activeTheme.surface || "#FFFFFF");
+        style.setProperty("--ink", activeTheme.text || "#1C110A");
+        style.setProperty("--muted", activeTheme.text2 || "#7A5C3E");
+        style.setProperty("--faint", activeTheme.text3 || "#B89070");
+        style.setProperty("--line", "rgba(44, 26, 14, 0.12)");
+        style.setProperty("--soft", "rgba(255, 253, 248, 0.82)");
+        style.setProperty("--brand", activeTheme.primary || "#2C1A0E");
+        style.setProperty("--brand2", activeTheme.accent || "#C8962A");
       }
       document.querySelector('meta[name="theme-color"]')?.setAttribute(
         "content",
-        mode === "night" ? "#140e0b" : (activeTheme.bg || "#F7F1E8")
+        mode === "night" ? "#140e0b" : (activeTheme.bg || "#FEF7EE")
       );
     }
 
@@ -2792,7 +2935,12 @@
       updateCart();
       checkPendingItemReviews();
       const ldr = document.getElementById("loader");
-      if (ldr) ldr.classList.add("hidden");
+      if (ldr) {
+        ldr.classList.add("hidden");
+        setTimeout(() => {
+          ldr.style.display = "none";
+        }, 400);
+      }
 
       setInterval(() => pollStoreStatus().catch(() => {}), 30000);
       document.addEventListener("visibilitychange", () => {
@@ -2834,15 +2982,21 @@
 
     function applyTheme(theme) {
       activeTheme = theme || {};
+      try {
+        if (theme && typeof theme === "object" && Object.keys(theme).length) {
+          localStorage.setItem("beelal_theme_cache", JSON.stringify(theme));
+        }
+      } catch {}
       const root = document.documentElement.style;
       if (theme.primary) root.setProperty("--brand", theme.primary);
       if (theme.accent) root.setProperty("--brand2", theme.accent);
       if (theme.text) root.setProperty("--ink", theme.text);
       if (theme.text2) root.setProperty("--muted", theme.text2);
       if (theme.bg) root.setProperty("--bg", theme.bg);
+      if (theme.surface) root.setProperty("--paper", theme.surface);
       if (theme.font_display) root.setProperty("--fd", theme.font_display);
       if (theme.font_body) root.setProperty("--fb", theme.font_body);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme.bg || "#fff7f4");
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme.bg || "#FEF7EE");
       syncAmbienceVars();
     }
 

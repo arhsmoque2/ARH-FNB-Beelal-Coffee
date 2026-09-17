@@ -51,3 +51,16 @@ CREATE TABLE IF NOT EXISTS developer_audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_created ON developer_audit_log(created_at);
+
+CREATE TABLE IF NOT EXISTS billing_daily_rollups (
+  rollup_date TEXT NOT NULL,
+  store_slug TEXT NOT NULL,
+  gross_revenue_cents INTEGER NOT NULL DEFAULT 0,
+  order_count INTEGER NOT NULL DEFAULT 0,
+  fee_cents INTEGER NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'RM',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  PRIMARY KEY (store_slug, rollup_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rollups_store_date ON billing_daily_rollups(store_slug, rollup_date);

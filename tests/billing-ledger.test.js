@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import ledgerWorker from "../billing-ledger/src/index.js";
+import ledgerWorker, {
+  computeDailyRollup,
+  dateFromTimestamp,
+  formatCents
+} from "../billing-ledger/src/index.js";
 
 // ── Mock factory ──────────────────────────────────────────────────────────────
 
@@ -458,5 +462,225 @@ describe("FEE_PER_ORDER_CENTS — billing fee calculation", () => {
     expect(body.status).toBe("success");
     expect(body.data.usage.fee_cents).toBe(300);
     expect(body.data.usage.billable_orders).toBe(3);
+  });
+});
+
+// ── Daily Rollups & Summary (Option D) ────────────────────────────────────────
+
+describe("Daily Rollups & Aggregation Maths", () => {
+  it("formats dateFromTimestamp correctly across seconds and milliseconds", () => {
+    expect(dateFromTimestamp(1718000000000)).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(dateFromTimestamp(1718000000)).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("formats cents to currency string cleanly", () => {
+    expect(formatCents(1450, "RM")).toBe("RM 14.50");
+    expect(formatCents(0, "RM")).toBe("RM 0.00");
+  });
+
+  it("computes daily rollup accurately when orders exist", async () => {
+    const store = { id: "store-1", slug: "beelal_coffee", name: "Beelal Coffee" };
+    const db = {
+      prepare: vi.fn().mockImplementation((sql) => {
+        if (sql.includes("FROM stores")) {
+          return { bind: vi.fn().mockReturnThis(), first: vi.fn().mockResolvedValue(store) };
+        }
+        if (sql.includes("COUNT(*)")) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue({
+              order_count: 5,
+              gross_revenue_cents: 7500,
+              currency: "RM"
+            })
+          };
+        }
+        return { bind: vi.fn().mockReturnThis(), run: vi.fn().mockResolvedValue({}) };
+      })
+    };
+    const env = makeEnv(db, { FEE_PER_ORDER_CENTS: "50" });
+    const result = await computeDailyRollup(db, "beelal_coffee", "2026-09-17", env);
+
+    expect(result.order_count).toBe(5);
+    expect(result.gross_revenue_cents).toBe(7500);
+    expect(result.fee_cents).toBe(250);
+    expect(result.currency).toBe("RM");
+  });
+
+  it("handles zero-order days without NaN or null errors", async () => {
+    const store = { id: "store-1", slug: "beelal_coffee", name: "Beelal Coffee" };
+    const db = {
+      prepare: vi.fn().mockImplementation((sql) => {
+        if (sql.includes("FROM stores")) {
+          return { bind: vi.fn().mockReturnThis(), first: vi.fn().mockResolvedValue(store) };
+        }
+        if (sql.includes("COUNT(*)")) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue({
+              order_count: 0,
+              gross_revenue_cents: 0,
+              currency: null
+            })
+          };
+        }
+        return { bind: vi.fn().mockReturnThis(), run: vi.fn().mockResolvedValue({}) };
+      })
+    };
+    const env = makeEnv(db, { FEE_PER_ORDER_CENTS: "50" });
+    const result = await computeDailyRollup(db, "beelal_coffee", "2026-09-17", env);
+
+    expect(result.order_count).toBe(0);
+    expect(result.gross_revenue_cents).toBe(0);
+    expect(result.fee_cents).toBe(0);
+    expect(result.currency).toBe("RM");
+  });
+
+  it("isolates currency per store defaults", async () => {
+    const store = { id: "store-sgd", slug: "singapore-cafe", name: "SG Cafe" };
+    const db = {
+      prepare: vi.fn().mockImplementation((sql) => {
+        if (sql.includes("FROM stores")) {
+          return { bind: vi.fn().mockReturnThis(), first: vi.fn().mockResolvedValue(store) };
+        }
+        if (sql.includes("COUNT(*)")) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue({
+              order_count: 2,
+              gross_revenue_cents: 4000,
+              currency: "SGD"
+            })
+          };
+        }
+        return { bind: vi.fn().mockReturnThis(), run: vi.fn().mockResolvedValue({}) };
+      })
+    };
+    const env = makeEnv(db, { CURRENCY_DEFAULT: "SGD" });
+    const result = await computeDailyRollup(db, "singapore-cafe", "2026-09-17", env);
+
+    expect(result.currency).toBe("SGD");
+    expect(result.gross_revenue_cents).toBe(4000);
+  });
+});
+
+describe("GET /summary/:store_slug — settlement dashboard endpoint", () => {
+  it("blocks request with 403 when no auth token is provided", async () => {
+    const req = new Request("https://ledger.example.com/summary/beelal_coffee", { method: "GET" });
+    const res = await ledgerWorker.fetch(req, makeEnv());
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.status).toBe("blocked");
+  });
+
+  it("returns failure when store is unknown", async () => {
+    const req = new Request("https://ledger.example.com/summary/unknown_store", {
+      method: "GET",
+      headers: authHeader("valid-secret-token")
+    });
+    const res = await ledgerWorker.fetch(req, makeEnv());
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.errors[0].code).toBe("unknown_store");
+  });
+
+  it("returns 200 with today, weekly, and monthly rollups for known store", async () => {
+    const store = { id: "store-1", slug: "beelal_coffee", name: "Beelal Coffee" };
+    const db = {
+      prepare: vi.fn().mockImplementation((sql) => {
+        if (sql.includes("FROM stores")) {
+          return { bind: vi.fn().mockReturnThis(), first: vi.fn().mockResolvedValue(store) };
+        }
+        if (sql.includes("billing_daily_rollups WHERE store_slug")) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue({
+              rollup_date: "2026-09-17",
+              order_count: 10,
+              gross_revenue_cents: 15000,
+              fee_cents: 500,
+              currency: "RM"
+            }),
+            all: vi.fn().mockResolvedValue({ results: [] })
+          };
+        }
+        if (sql.includes("monthly_usage")) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue({
+              billable_orders: 50,
+              submitted_sales_cents: 80000,
+              fee_cents: 2500
+            })
+          };
+        }
+        if (sql.includes("COUNT(*)")) {
+          return {
+            bind: vi.fn().mockReturnThis(),
+            first: vi.fn().mockResolvedValue({ order_count: 25, gross_revenue_cents: 40000 })
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnThis(),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+          run: vi.fn().mockResolvedValue({})
+        };
+      })
+    };
+    const req = new Request("https://ledger.example.com/summary/beelal_coffee", {
+      method: "GET",
+      headers: authHeader("valid-secret-token")
+    });
+    const res = await ledgerWorker.fetch(req, makeEnv(db));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe("success");
+    expect(body.data.store_slug).toBe("beelal_coffee");
+    expect(body.data.today.order_count).toBe(10);
+    expect(body.data.today.gross_revenue_formatted).toBe("RM 150.00");
+    expect(body.data.weekly.order_count).toBe(25);
+    expect(body.data.monthly.order_count).toBe(50);
+  });
+});
+
+describe("Scheduled Cron Automation — scheduled(controller, env, ctx)", () => {
+  it("processes all active stores and logs to developer_audit_log", async () => {
+    const activeStores = [
+      { id: "store-1", slug: "beelal_coffee", name: "Beelal Coffee" },
+      { id: "store-2", slug: "woodfire-kulim", name: "Woodfire Kulim" }
+    ];
+    let auditLogged = false;
+    const db = {
+      prepare: vi.fn().mockImplementation((sql) => {
+        if (sql.includes("FROM stores WHERE status = 'active'")) {
+          return { all: vi.fn().mockResolvedValue({ results: activeStores }) };
+        }
+        if (sql.includes("FROM stores WHERE slug = ?")) {
+          return {
+            bind: vi.fn().mockImplementation((slug) => ({
+              first: vi.fn().mockResolvedValue(activeStores.find((s) => s.slug === slug))
+            }))
+          };
+        }
+        if (sql.includes("developer_audit_log")) {
+          return {
+            bind: vi.fn().mockImplementation(() => {
+              auditLogged = true;
+              return { run: vi.fn().mockResolvedValue({}) };
+            })
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnThis(),
+          first: vi.fn().mockResolvedValue({ order_count: 0, gross_revenue_cents: 0 }),
+          run: vi.fn().mockResolvedValue({})
+        };
+      })
+    };
+    const env = makeEnv(db);
+    const result = await ledgerWorker.scheduled({ cron: "0 0 * * *" }, env, {});
+    expect(result.ok).toBe(true);
+    expect(result.processed_count).toBe(2);
+    expect(auditLogged).toBe(true);
   });
 });

@@ -94,6 +94,11 @@ export default {
       return handleBillingProxy(request, env);
     }
 
+    if (url.pathname === "/api/billing/summary") {
+      if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+      return handleAdminBillingSummary(request, env);
+    }
+
     if (url.pathname === "/api/parse-receipt") {
       if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       if (!ENABLE_GEMINI_RECEIPT_PARSER) {
@@ -300,6 +305,42 @@ async function handleBillingProxy(request, env) {
 
   if (!upstream.ok) return json({ error: "Billing ledger rejected the event." }, 502);
   return json({ ok: true });
+}
+
+async function handleAdminBillingSummary(request, env) {
+  const token = extractAdminToken(request);
+  const session = await verifyAdminToken(token, env);
+  if (!session) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
+  const url = new URL(request.url);
+  const storeSlug =
+    url.searchParams.get("store") || request.headers.get("x-store-slug") || "beelal_coffee";
+  const billingUrl = env.BILLING_WORKER_URL || "https://fnb-billing-ledger.arh-homelab.workers.dev";
+  const billingSecret = env.BILLING_SECRET || env.FNB_BILLING_SECRET;
+
+  if (!billingSecret) {
+    return json({ error: "Billing proxy is not configured." }, 503);
+  }
+
+  try {
+    const upstream = await fetch(`${billingUrl.replace(/\/$/, "")}/summary/${storeSlug}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${billingSecret}`
+      }
+    });
+
+    if (!upstream.ok) {
+      return json({ error: `Billing ledger returned HTTP ${upstream.status}` }, 502);
+    }
+
+    const payload = await upstream.json();
+    return json({ ok: true, ...(payload?.data || payload) });
+  } catch (err) {
+    return json({ error: `Billing ledger communication failure: ${err.message}` }, 502);
+  }
 }
 
 // FUTURE OPTION ONLY — deliberately unreachable while owner-confirmed payment is the policy.
