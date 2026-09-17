@@ -114,7 +114,16 @@
   <div class="pin-card">
     <div class="brand-badge" style="display:inline-block;margin-bottom:12px">ARH DEVCON</div>
     <div class="pin-title">Platform Developer Console</div>
-    <div class="pin-sub">Enter developer PIN to access diagnostics and configuration</div>
+    <div class="pin-sub">Authenticate via platform biometrics or developer PIN</div>
+
+    <!-- BIOMETRIC FAST UNLOCK -->
+    <div id="bioUnlockSection" style="display:none;margin-bottom:20px;padding:12px;background:rgba(200,150,42,0.08);border:1px solid var(--border-focus);border-radius:8px">
+      <button class="btn btn-primary" style="width:100%;height:44px;justify-content:center;font-size:13px;border-radius:6px;gap:8px" onclick="unlockWithBiometrics()">
+        <span style="font-size:16px">🔐</span> Unlock with Touch ID / Windows Hello
+      </button>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">Or enter 4-digit PIN below:</div>
+    </div>
+
     <div class="pin-dots" id="pinDots">
       <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
     </div>
@@ -167,33 +176,85 @@
   <!-- TAB 1: SYSTEM & AI MODELS -->
   <div class="panel active" id="tab-system">
     <div class="section-head">
-      <div class="section-title">System & AI Models Configuration</div>
-      <div class="section-desc">Manage OpenRouter proxy parameters and theme assistant prompts</div>
+      <div class="section-title">System, Security & AI Models Configuration</div>
+      <div class="section-desc">Manage platform biometric authentication, OpenRouter models cascade, and theme prompts</div>
     </div>
 
+    <!-- BIOMETRIC SECURITY (BIOAUTH) -->
     <div class="card">
-      <div class="card-title">OpenRouter AI Chat Proxy</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">AI Chat requests are proxied via Cloudflare Worker using server-side <code>OPENROUTER_API_KEY</code>.</div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-        <input class="form-input" style="max-width:380px" type="text" value="•••••••••••••••• (Worker Secret)" disabled>
-        <button class="btn btn-primary btn-sm" onclick="testChatProxy()">Test Worker Proxy</button>
+      <div class="card-title">
+        <span>Platform Biometric Authentication (BioAuth)</span>
+        <span class="brand-badge" id="bioBadge">Checking...</span>
       </div>
-      <div id="proxyTestStatus" style="font-size:12px;color:var(--text2)"></div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
+        W3C WebAuthn platform authenticator (Touch ID, Windows Hello, Face ID) for instant console unlock adopting the BioAuth standard.
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn btn-primary btn-sm" id="btnEnrollBio" onclick="enrollBiometrics()">Enroll This Device</button>
+        <button class="btn btn-sm" id="btnTestBio" onclick="testBiometricsPrompt()" style="display:none">Test Biometric Prompt</button>
+        <button class="btn btn-sm" id="btnUnenrollBio" onclick="unenrollBiometrics()" style="display:none;color:var(--red)">Remove Biometrics</button>
+      </div>
+      <div id="bioStatusDetail" style="font-size:11px;color:var(--text3)"></div>
     </div>
 
+    <!-- OPENROUTER LIVE MODEL SELECTOR & CASCADE -->
     <div class="card">
-      <div class="card-title">AI Completion Model</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Active model ID for theme generation assistant.</div>
-      <div class="form-group" style="max-width:480px">
-        <select class="form-select" id="devOrModelSelect">
-          <option value="">Loading models...</option>
-        </select>
+      <div class="card-title">
+        <span>OpenRouter Dynamic AI Models & 429 Cascade</span>
+        <span class="brand-badge" id="modelCountBadge">Live Catalog</span>
       </div>
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-sm" onclick="fetchOpenRouterModels()">Refresh OpenRouter Models</button>
-        <button class="btn btn-primary btn-sm" onclick="saveDevOrModel()">Save Active Model</button>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">
+        Browse live models directly from OpenRouter API without hardcoding. When the primary model reaches provider rate limits (HTTP 429), the Edge Worker automatically cascades sequentially across the fallback models.
+      </div>
+
+      <!-- SEARCH & FILTER -->
+      <div class="grid-2" style="margin-bottom:14px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Search Models Catalog</label>
+          <input class="form-input" id="modelSearchQuery" placeholder="Filter by name, provider, or ID (e.g. gemma, llama, deepseek, mistral)..." oninput="filterModelsCatalog()">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Tier Filter</label>
+          <select class="form-select" id="modelTierFilter" onchange="filterModelsCatalog()">
+            <option value="free" selected>Free Models (:free / 0-cost)</option>
+            <option value="all">All Available Models</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PRIMARY MODEL -->
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">Primary Active Model</label>
+        <div style="display:flex;gap:10px">
+          <select class="form-select" id="devOrModelSelect" onchange="updateSelectedModelDetails()">
+            <option value="">Loading models...</option>
+          </select>
+          <button class="btn btn-primary btn-sm" style="white-space:nowrap" onclick="saveDevOrModel()">Save Primary</button>
+        </div>
+        <div id="primaryModelMeta" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+      </div>
+
+      <!-- FALLBACK CASCADE -->
+      <div class="form-group" style="margin-bottom:16px">
+        <label class="form-label">Fallback Cascade (Sequential 429 Failover)</label>
+        <div id="fallbackListContainer" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+          <!-- Rendered dynamically -->
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select class="form-select" id="devOrFallbackCandidateSelect" style="max-width:380px">
+            <option value="">Select a model to append to fallback cascade...</option>
+          </select>
+          <button class="btn btn-sm" onclick="addSelectedToFallback()">+ Add Fallback</button>
+          <button class="btn btn-primary btn-sm" onclick="saveDevFallbackModels()">Save Cascade</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--border);padding-top:14px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="reloadOpenRouterModels()">Refresh Live Catalog</button>
+        <button class="btn btn-primary btn-sm" onclick="testChatCascade()">Test Model & Cascade</button>
       </div>
       <div id="modelSaveStatus" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+      <div id="proxyTestStatus" style="font-size:12px;color:var(--text2);margin-top:6px"></div>
     </div>
 
     <div class="card">
@@ -414,6 +475,9 @@ async function verifyDevPin(enteredPin) {
       }
       devconToken = data.token;
       sessionStorage.setItem('devcon_token', devconToken);
+      if (localStorage.getItem('arh_devcon_biokey_id')) {
+        localStorage.setItem('arh_devcon_vault_token', devconToken);
+      }
       document.getElementById('pinScreen').classList.add('hidden');
       initDevcon();
       toast('Developer authenticated ✓');
@@ -434,6 +498,7 @@ function logoutDevcon() {
   updatePinDots();
   document.getElementById('pinError').textContent = '';
   document.getElementById('pinScreen').classList.remove('hidden');
+  initBiometrics();
 }
 
 // TABS
@@ -474,41 +539,423 @@ function escapeHtml(str) {
   return String(str ?? '').replace(/[<>&"]/g, ch => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[ch]));
 }
 
-// SYSTEM & MODELS
+// ── Platform Biometrics (BioAuth / WebAuthn) ─────────────────────────────────
+
+function bufferToBase64Url(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlToBuffer(base64url) {
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) base64 += '=';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+async function checkBiometricSupport() {
+  if (!window.PublicKeyCredential || !navigator.credentials) return false;
+  try {
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  } catch {
+    return false;
+  }
+}
+
+async function initBiometrics() {
+  const bioSection = document.getElementById('bioUnlockSection');
+  const bioBadge = document.getElementById('bioBadge');
+  const bioDetail = document.getElementById('bioStatusDetail');
+  const btnEnroll = document.getElementById('btnEnrollBio');
+  const btnTest = document.getElementById('btnTestBio');
+  const btnUnenroll = document.getElementById('btnUnenrollBio');
+
+  const isSupported = await checkBiometricSupport();
+  const enrolledId = localStorage.getItem('arh_devcon_biokey_id');
+
+  if (bioSection) {
+    bioSection.style.display = (isSupported && enrolledId) ? 'block' : 'none';
+  }
+
+  if (bioBadge) {
+    if (!isSupported) {
+      bioBadge.textContent = 'Device Unsupported';
+      bioBadge.style.borderColor = 'var(--text3)';
+      bioBadge.style.color = 'var(--text3)';
+    } else if (enrolledId) {
+      bioBadge.textContent = 'Enrolled & Active';
+      bioBadge.style.borderColor = 'var(--green)';
+      bioBadge.style.color = 'var(--green)';
+    } else {
+      bioBadge.textContent = 'Supported (Not Enrolled)';
+      bioBadge.style.borderColor = 'var(--gold)';
+      bioBadge.style.color = 'var(--gold)';
+    }
+  }
+
+  if (bioDetail) {
+    if (!isSupported) {
+      bioDetail.textContent = 'Platform biometric authenticator (Touch ID / Windows Hello) is not available in this browser environment.';
+    } else if (enrolledId) {
+      const enrolledAt = localStorage.getItem('arh_devcon_biokey_enrolled_at');
+      const dateStr = enrolledAt ? new Date(Number(enrolledAt)).toLocaleDateString() : 'Active';
+      bioDetail.textContent = `Hardware Key ID: ${enrolledId.slice(0, 16)}... | Enrolled: ${dateStr} | BioKey W3C Platform Authenticator`;
+    } else {
+      bioDetail.textContent = 'No biometric key enrolled on this browser yet. Click "Enroll This Device" to bind Touch ID / Windows Hello.';
+    }
+  }
+
+  if (btnEnroll && btnTest && btnUnenroll) {
+    btnEnroll.style.display = (!enrolledId && isSupported) ? 'inline-flex' : 'none';
+    btnTest.style.display = (enrolledId && isSupported) ? 'inline-flex' : 'none';
+    btnUnenroll.style.display = enrolledId ? 'inline-flex' : 'none';
+  }
+}
+
+async function enrollBiometrics() {
+  if (!window.PublicKeyCredential || !navigator.credentials) {
+    alert('WebAuthn biometrics is not supported in this browser environment.');
+    return;
+  }
+  const isSupported = await checkBiometricSupport();
+  if (!isSupported) {
+    alert('No platform authenticator (Touch ID / Windows Hello) detected on this device.');
+    return;
+  }
+
+  const challenge = new Uint8Array(32);
+  crypto.getRandomValues(challenge);
+  const userId = new Uint8Array(16);
+  crypto.getRandomValues(userId);
+
+  try {
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: {
+          name: "ARH Devcon Beelal",
+          id: window.location.hostname
+        },
+        user: {
+          id: userId,
+          name: "developer@beelal.local",
+          displayName: "Platform Developer"
+        },
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },   // ES256
+          { type: "public-key", alg: -257 }  // RS256
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required",
+          residentKey: "preferred"
+        },
+        timeout: 60000
+      }
+    });
+
+    if (cred && cred.rawId) {
+      const credIdBase64 = bufferToBase64Url(cred.rawId);
+      localStorage.setItem('arh_devcon_biokey_id', credIdBase64);
+      localStorage.setItem('arh_devcon_biokey_enrolled_at', Date.now().toString());
+      if (devconToken) {
+        localStorage.setItem('arh_devcon_vault_token', devconToken);
+      }
+      await initBiometrics();
+      toast('Biometric key enrolled (Touch ID / Windows Hello) ✓');
+    }
+  } catch (err) {
+    if (err.name !== 'NotAllowedError') {
+      alert('Biometric enrollment failed: ' + err.message);
+    }
+  }
+}
+
+async function unlockWithBiometrics() {
+  const credIdBase64 = localStorage.getItem('arh_devcon_biokey_id');
+  if (!credIdBase64) return;
+  const challenge = new Uint8Array(32);
+  crypto.getRandomValues(challenge);
+
+  const errEl = document.getElementById('pinError');
+  errEl.textContent = 'Touch fingerprint or look at camera...';
+
+  try {
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{
+          id: base64UrlToBuffer(credIdBase64),
+          type: "public-key",
+          transports: ["internal"]
+        }],
+        userVerification: "required",
+        timeout: 60000
+      }
+    });
+
+    if (assertion) {
+      const vaultedToken = localStorage.getItem('arh_devcon_vault_token');
+      if (vaultedToken) {
+        try {
+          const payload = JSON.parse(atob(vaultedToken.split('.')[0]));
+          if (payload.exp && payload.exp > Date.now()) {
+            devconToken = vaultedToken;
+            sessionStorage.setItem('devcon_token', devconToken);
+            document.getElementById('pinScreen').classList.add('hidden');
+            initDevcon();
+            toast('Unlocked via Biometrics ✓');
+            return;
+          }
+        } catch {}
+      }
+      errEl.textContent = 'Biometric verified. Session token expired — enter PIN to refresh.';
+    }
+  } catch (err) {
+    if (err.name === 'NotAllowedError') {
+      errEl.textContent = 'Biometric unlock cancelled. Enter PIN.';
+    } else {
+      errEl.textContent = 'Biometric error: ' + err.message;
+    }
+  }
+}
+
+async function testBiometricsPrompt() {
+  const credIdBase64 = localStorage.getItem('arh_devcon_biokey_id');
+  if (!credIdBase64) return;
+  const challenge = new Uint8Array(32);
+  crypto.getRandomValues(challenge);
+
+  try {
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{
+          id: base64UrlToBuffer(credIdBase64),
+          type: "public-key",
+          transports: ["internal"]
+        }],
+        userVerification: "required",
+        timeout: 60000
+      }
+    });
+    if (assertion) {
+      toast('Biometric verification prompt PASSED ✓');
+    }
+  } catch (err) {
+    if (err.name !== 'NotAllowedError') {
+      toast('Test cancelled: ' + err.message);
+    }
+  }
+}
+
+function unenrollBiometrics() {
+  if (!confirm('Remove biometric authentication from this device?')) return;
+  localStorage.removeItem('arh_devcon_biokey_id');
+  localStorage.removeItem('arh_devcon_biokey_enrolled_at');
+  localStorage.removeItem('arh_devcon_vault_token');
+  initBiometrics();
+  toast('Biometric key removed ✓');
+}
+
+// ── OpenRouter Dynamic Models & Cascade ──────────────────────────────────────
+
+let catalogModels = [];
+let devActiveModel = 'google/gemma-4-26b-a4b-it:free';
+let devFallbackModels = [
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'mistralai/mistral-small-3.1:free'
+];
+
 async function loadSystemConfig() {
   const sp = await fbGet('config/dev/sys_prompt');
   document.getElementById('devSysPrompt').value = sp || APP_CONFIG.ai?.systemPrompt || '';
 
   const savedModel = await fbGet('config/dev/or_model');
-  await fetchOpenRouterModels(savedModel);
+  if (savedModel) devActiveModel = savedModel;
+
+  const savedFallbacks = await fbGet('config/dev/or_fallback_models');
+  if (Array.isArray(savedFallbacks)) devFallbackModels = savedFallbacks;
+
+  await initBiometrics();
+  await reloadOpenRouterModels();
 }
 
-async function fetchOpenRouterModels(activeModelId) {
-  const sel = document.getElementById('devOrModelSelect');
-  sel.innerHTML = '<option value="">Fetching models...</option>';
+async function reloadOpenRouterModels() {
+  const badge = document.getElementById('modelCountBadge');
+  if (badge) badge.textContent = 'Loading...';
+
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/models');
-    const data = await res.json();
-    const freeModels = (data?.data || []).filter(m => m.pricing?.prompt === '0' && m.pricing?.completion === '0');
-    sel.innerHTML = '';
-    freeModels.forEach(m => {
+    let data = null;
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/models');
+      if (res.ok) data = await res.json();
+    } catch {}
+
+    if (!data || !Array.isArray(data.data)) {
+      const workerRes = await fetch('/api/models');
+      if (workerRes.ok) data = await workerRes.json();
+    }
+
+    if (data && Array.isArray(data.data)) {
+      catalogModels = data.data;
+      if (badge) badge.textContent = `${catalogModels.length} Models`;
+    }
+  } catch {
+    if (badge) badge.textContent = 'Offline Catalog';
+  }
+
+  if (catalogModels.length === 0) {
+    catalogModels = [
+      { id: 'google/gemma-4-26b-a4b-it:free', name: 'Gemma 4 26B A4B IT (Free)', context_length: 131072, pricing: { prompt: '0', completion: '0' } },
+      { id: 'google/gemma-4-31b-it:free', name: 'Gemma 4 31B IT (Free)', context_length: 131072, pricing: { prompt: '0', completion: '0' } },
+      { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B Instruct (Free)', context_length: 131072, pricing: { prompt: '0', completion: '0' } },
+      { id: 'mistralai/mistral-small-3.1:free', name: 'Mistral Small 3.1 (Free)', context_length: 32768, pricing: { prompt: '0', completion: '0' } },
+      { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash (Free)', context_length: 65536, pricing: { prompt: '0', completion: '0' } }
+    ];
+  }
+
+  renderModelsCatalog();
+}
+
+function filterModelsCatalog() {
+  renderModelsCatalog();
+}
+
+function renderModelsCatalog() {
+  const query = (document.getElementById('modelSearchQuery')?.value || '').toLowerCase().trim();
+  const tier = document.getElementById('modelTierFilter')?.value || 'free';
+
+  const filtered = catalogModels.filter(m => {
+    if (tier === 'free') {
+      const isFree = m.pricing?.prompt === '0' && m.pricing?.completion === '0';
+      if (!isFree && !m.id.endsWith(':free')) return false;
+    }
+    if (query) {
+      const match = m.id.toLowerCase().includes(query) || (m.name || '').toLowerCase().includes(query);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Render Primary select
+  const primSelect = document.getElementById('devOrModelSelect');
+  if (primSelect) {
+    primSelect.innerHTML = '';
+    const hasActive = filtered.some(m => m.id === devActiveModel);
+    if (!hasActive) {
+      const opt = document.createElement('option');
+      opt.value = devActiveModel;
+      opt.textContent = `${devActiveModel} (Active)`;
+      opt.selected = true;
+      primSelect.appendChild(opt);
+    }
+    filtered.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.id;
-      opt.textContent = `${m.name} (${m.id})`;
-      if (m.id === activeModelId || m.id === 'google/gemma-4-26b-a4b-it:free') opt.selected = true;
-      sel.appendChild(opt);
+      const ctx = m.context_length ? `${Math.round(m.context_length / 1024)}k ctx` : '';
+      const isZero = (m.pricing?.prompt === '0') ? 'Free' : '';
+      const tags = [isZero, ctx].filter(Boolean).join(' · ');
+      opt.textContent = `${m.name || m.id} (${tags ? tags + ' · ' : ''}${m.id})`;
+      if (m.id === devActiveModel) opt.selected = true;
+      primSelect.appendChild(opt);
     });
-  } catch {
-    sel.innerHTML = '<option value="google/gemma-4-26b-a4b-it:free">google/gemma-4-26b-a4b-it:free (default)</option>';
+    updateSelectedModelDetails();
   }
+
+  // Render Fallback Candidates select
+  const fbSelect = document.getElementById('devOrFallbackCandidateSelect');
+  if (fbSelect) {
+    fbSelect.innerHTML = '<option value="">Select a model to append to fallback cascade...</option>';
+    filtered.forEach(m => {
+      if (m.id === devActiveModel || devFallbackModels.includes(m.id)) return;
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = `${m.name || m.id} (${m.id})`;
+      fbSelect.appendChild(opt);
+    });
+  }
+
+  renderFallbackList();
+}
+
+function updateSelectedModelDetails() {
+  const modelId = document.getElementById('devOrModelSelect')?.value;
+  const metaEl = document.getElementById('primaryModelMeta');
+  if (!metaEl || !modelId) return;
+  const found = catalogModels.find(m => m.id === modelId);
+  if (found) {
+    const ctx = found.context_length ? `${Number(found.context_length).toLocaleString()} tokens context` : 'Standard context';
+    const isFree = found.pricing?.prompt === '0' && found.pricing?.completion === '0';
+    metaEl.textContent = `Provider / Model: ${found.name || modelId} | Context: ${ctx} | Cost: ${isFree ? 'Free ($0.00)' : 'Paid'}`;
+  } else {
+    metaEl.textContent = `Model ID: ${modelId}`;
+  }
+}
+
+function renderFallbackList() {
+  const container = document.getElementById('fallbackListContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (devFallbackModels.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:6px 0">No fallback models configured. If rate-limited (429), requests will return an error immediately.</div>';
+    return;
+  }
+
+  devFallbackModels.forEach((modId, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:12px';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--gold)">#${idx + 1}</span>
+        <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink)">${escapeHtml(modId)}</span>
+      </div>
+      <button class="btn btn-sm" style="color:var(--red);padding:2px 8px;font-size:11px" onclick="removeFallbackModel('${escapeHtml(modId)}')">Remove</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addSelectedToFallback() {
+  const sel = document.getElementById('devOrFallbackCandidateSelect');
+  const val = sel.value;
+  if (!val) return;
+  if (!devFallbackModels.includes(val)) {
+    devFallbackModels.push(val);
+    renderFallbackList();
+    renderModelsCatalog();
+    toast(`Added ${val} to fallback list`);
+  }
+}
+
+function removeFallbackModel(modId) {
+  devFallbackModels = devFallbackModels.filter(m => m !== modId);
+  renderFallbackList();
+  renderModelsCatalog();
 }
 
 async function saveDevOrModel() {
   const model = document.getElementById('devOrModelSelect').value;
   if (!model) return;
+  devActiveModel = model;
   await fbSet('config/dev/or_model', model);
-  document.getElementById('modelSaveStatus').textContent = `Saved: ${model} ✓`;
-  toast('Model saved ✓');
+  document.getElementById('modelSaveStatus').textContent = `Saved active model: ${model} ✓`;
+  toast('Primary model saved ✓');
+}
+
+async function saveDevFallbackModels() {
+  await fbSet('config/dev/or_fallback_models', devFallbackModels);
+  document.getElementById('modelSaveStatus').textContent = `Saved ${devFallbackModels.length} fallback models to cascade ✓`;
+  toast('Fallback cascade saved ✓');
 }
 
 async function saveDevSysPrompt() {
@@ -517,10 +964,12 @@ async function saveDevSysPrompt() {
   toast('System prompt saved ✓');
 }
 
-async function testChatProxy() {
+async function testChatCascade() {
   const statusEl = document.getElementById('proxyTestStatus');
-  statusEl.textContent = 'Testing Worker /api/chat proxy...';
-  const model = document.getElementById('devOrModelSelect').value || 'google/gemma-4-26b-a4b-it:free';
+  statusEl.textContent = 'Testing AI cascade via Cloudflare Worker...';
+  const model = document.getElementById('devOrModelSelect')?.value || devActiveModel;
+  const start = performance.now();
+
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
@@ -528,16 +977,23 @@ async function testChatProxy() {
         'Content-Type': 'application/json',
         ...(devconToken ? { 'Authorization': 'Bearer ' + devconToken } : {})
       },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Say: OK' }], max_tokens: 20 })
+      body: JSON.stringify({
+        model,
+        fallback_models: devFallbackModels,
+        messages: [{ role: 'user', content: 'Reply with the word OK' }],
+        max_tokens: 20
+      })
     });
+    const duration = Math.round(performance.now() - start);
     const data = await res.json();
     if (res.ok && data.choices?.[0]?.message?.content) {
-      statusEl.textContent = `✓ Response received: "${data.choices[0].message.content.trim()}"`;
+      const resolved = data.resolved_model || model;
+      statusEl.innerHTML = `<span style="color:var(--green)">✓ Resolved by <b>${escapeHtml(resolved)}</b> in ${duration}ms:</span> "${escapeHtml(data.choices[0].message.content.trim())}"`;
     } else {
-      statusEl.textContent = `⚠ Error: ${data.error || res.statusText}`;
+      statusEl.innerHTML = `<span style="color:var(--red)">⚠ Error (${res.status}):</span> ${escapeHtml(data.error || res.statusText)}`;
     }
   } catch (err) {
-    statusEl.textContent = `❌ Network failure: ${err.message}`;
+    statusEl.innerHTML = `<span style="color:var(--red)">❌ Network failure:</span> ${escapeHtml(err.message)}`;
   }
 }
 
@@ -751,6 +1207,8 @@ function initDevcon() {
 if (devconToken) {
   document.getElementById('pinScreen').classList.add('hidden');
   initDevcon();
+} else {
+  initBiometrics();
 }
 </script>
 </body>

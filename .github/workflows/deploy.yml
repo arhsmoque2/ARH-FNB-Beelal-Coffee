@@ -41,11 +41,20 @@ jobs:
         if: always()
         run: kill "$(cat /tmp/static-server.pid)" 2>/dev/null || true
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy Main Worker to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "latest"
+          command: deploy
+
+      - name: Deploy Billing Ledger Worker to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: "billing-ledger"
           wranglerVersion: "latest"
           command: deploy
 
