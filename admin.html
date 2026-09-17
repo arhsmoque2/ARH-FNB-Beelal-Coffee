@@ -2237,6 +2237,14 @@ const PAYMENT_STATUS_BADGE = {
   rejected:               { label: 'Rejected',           bg: '#fee2e2', fg: '#991b1b' },
 };
 
+const FULFILLMENT_STATUS_BADGE = {
+  placed:     { label: 'Placed',         bg: '#f3f4f6', fg: '#374151' },
+  preparing:  { label: '☕ Brewing',     bg: '#fef3c7', fg: '#92400e' },
+  ready:      { label: '🔔 Ready',       bg: '#dbeafe', fg: '#1e40af' },
+  completed:  { label: '✅ Picked Up',   bg: '#dcfce7', fg: '#166534' },
+  cancelled:  { label: 'Cancelled',     bg: '#fee2e2', fg: '#991b1b' },
+};
+
 async function loadOrders() {
   await safe(async () => {
     const snap = await getAdminOrders();
@@ -2250,22 +2258,48 @@ async function loadOrders() {
       const r = document.createElement('div');
       r.className = 'order-row';
       const itemsStr = (o.items||[]).map(i=>`${i.name}${i.size?' ('+i.size+')':''} — ${CUR}${Number(i.price).toFixed(2)}`).join('<br>');
-      const badge = PAYMENT_STATUS_BADGE[o.payment_status];
-      const badgeHtml = badge
-        ? `<span style="display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:${badge.bg};color:${badge.fg};margin-left:6px">${badge.label}</span>`
+      const payBadge = PAYMENT_STATUS_BADGE[o.payment_status];
+      const payBadgeHtml = payBadge
+        ? `<span style="display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:${payBadge.bg};color:${payBadge.fg};margin-left:6px">${payBadge.label}</span>`
         : '';
-      const actionsHtml = o.payment_status === 'awaiting_confirmation'
-        ? `<div style="display:flex;gap:8px;margin-top:8px">
-             <button class="btn btn-primary btn-sm" onclick="confirmOrderPayment('${o.id}')">✅ Confirm</button>
+      const fulfillStatus = o.fulfillment_status || (o.payment_status === 'confirmed' ? 'preparing' : 'placed');
+      const fulfillBadge = FULFILLMENT_STATUS_BADGE[fulfillStatus];
+      const fulfillBadgeHtml = fulfillBadge
+        ? `<span style="display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;background:${fulfillBadge.bg};color:${fulfillBadge.fg};margin-left:4px">${fulfillBadge.label}</span>`
+        : '';
+
+      let actionsHtml = '';
+      if (o.payment_status === 'awaiting_confirmation') {
+        actionsHtml = `<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+             <button class="btn btn-primary btn-sm" onclick="confirmOrderPayment('${o.id}')">✅ Confirm Payment</button>
              <button class="btn btn-danger btn-sm" onclick="rejectOrderPayment('${o.id}')">❌ Reject</button>
-           </div>`
-        : '';
+           </div>`;
+      } else if (o.payment_status !== 'rejected') {
+        let nextBtn = '';
+        if (fulfillStatus === 'placed') {
+          nextBtn = `<button class="btn btn-primary btn-sm" onclick="updateOrderFulfillment('${o.id}', 'preparing')">☕ Start Brewing</button>`;
+        } else if (fulfillStatus === 'preparing') {
+          nextBtn = `<button class="btn btn-primary btn-sm" onclick="updateOrderFulfillment('${o.id}', 'ready')">🔔 Mark Ready</button>`;
+        } else if (fulfillStatus === 'ready') {
+          nextBtn = `<button class="btn btn-primary btn-sm" onclick="updateOrderFulfillment('${o.id}', 'completed')">✅ Complete Order</button>`;
+        }
+        const cancelBtn = (fulfillStatus !== 'completed' && fulfillStatus !== 'cancelled')
+          ? `<button class="btn btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--text2)" onclick="updateOrderFulfillment('${o.id}', 'cancelled')">Cancel</button>`
+          : '';
+        if (nextBtn || cancelBtn) {
+          actionsHtml = `<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
+               ${nextBtn}
+               ${cancelBtn}
+             </div>`;
+        }
+      }
+
       const refHtml = o.payment_ref
         ? `<div style="margin-top:4px;font-size:11px;color:var(--text3)">Ref: ${escapeHtml(o.payment_ref)}</div>`
         : '';
       const receiptHtml = buildReceiptHtml(o);
       r.innerHTML = `
-        <div class="order-top"><span class="order-name">👤 ${escapeHtml(o.name)}${badgeHtml}</span><span class="order-total">${CUR} ${Number(o.total).toFixed(2)}</span></div>
+        <div class="order-top"><span class="order-name">👤 ${escapeHtml(o.name)}${payBadgeHtml}${fulfillBadgeHtml}</span><span class="order-total">${CUR} ${Number(o.total).toFixed(2)}</span></div>
         <div class="order-time">${t}</div>
         <div class="order-items">${itemsStr}</div>
         ${refHtml}
@@ -2294,9 +2328,12 @@ async function confirmOrderPayment(orderId) {
       } catch {}
     }
     if (!handled) {
+      const now = Date.now();
       await fbSet(`orders/${orderId}/payment_status`, 'confirmed');
-      await fbSet(`orders/${orderId}/payment_confirmed_at`, Date.now());
+      await fbSet(`orders/${orderId}/payment_confirmed_at`, now);
       await fbSet(`orders/${orderId}/payment_confirmed_by`, currentRole);
+      await fbSet(`orders/${orderId}/fulfillment_status`, 'preparing');
+      await fbSet(`orders/${orderId}/preparing_at`, now);
     }
     toast('Payment confirmed ✓');
     await loadOrders();
@@ -2327,6 +2364,35 @@ async function rejectOrderPayment(orderId) {
     toast('Payment rejected');
     await loadOrders();
   }, 'rejectOrderPayment');
+}
+
+async function updateOrderFulfillment(orderId, status) {
+  await safe(async () => {
+    let handled = false;
+    if (adminToken) {
+      try {
+        const res = await fetch('/api/admin/order/update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + adminToken
+          },
+          body: JSON.stringify({ order_id: orderId, fulfillment_status: status })
+        });
+        if (res.ok) handled = true;
+      } catch {}
+    }
+    if (!handled) {
+      await fbSet(`orders/${orderId}/fulfillment_status`, status);
+      const now = Date.now();
+      if (status === 'preparing') await fbSet(`orders/${orderId}/preparing_at`, now);
+      if (status === 'ready') await fbSet(`orders/${orderId}/ready_at`, now);
+      if (status === 'completed') await fbSet(`orders/${orderId}/completed_at`, now);
+      if (status === 'cancelled') await fbSet(`orders/${orderId}/cancelled_at`, now);
+    }
+    toast(`Order status: ${status} ✓`);
+    await loadOrders();
+  }, 'updateOrderFulfillment');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3502,6 +3568,7 @@ async function requestOpenRouterChat(messages, userText) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(adminToken ? { 'Authorization': 'Bearer ' + adminToken } : {}),
         },
         body: JSON.stringify(body),
       }, 25000);
@@ -3725,7 +3792,10 @@ async function testKey() {
   await safe(async () => {
     const r = await fetchWithTimeout('/api/chat', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        ...(adminToken ? { 'Authorization': 'Bearer ' + adminToken } : {}),
+      },
       body: JSON.stringify({ model: orModel, messages:[{role:'user',content:'Say: OK'}], max_tokens:30 })
     }, 15000);
     const payload = await readResponsePayload(r);
@@ -3943,6 +4013,7 @@ Rules:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(adminToken ? { 'Authorization': 'Bearer ' + adminToken } : {}),
         },
         body: JSON.stringify({
           model,

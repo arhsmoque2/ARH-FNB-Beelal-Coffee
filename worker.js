@@ -177,6 +177,12 @@ function json(data, status = 200) {
 }
 
 async function handleChatProxy(request, env) {
+  const token = extractAdminToken(request);
+  const session = await verifyAdminToken(token, env);
+  if (!session) {
+    return json({ error: "Unauthorized." }, 401);
+  }
+
   const apiKey = env.OPENROUTER_API_KEY;
   if (!apiKey) return json({ error: "AI chat proxy is not configured." }, 503);
 
@@ -720,21 +726,62 @@ async function handleAdminUpdateOrderStatus(request, env) {
     return json({ error: "Valid order ID is required." }, 400);
   }
 
-  const allowedStatuses = ["awaiting_confirmation", "confirmed", "rejected", "cash_pending"];
-  const status = body?.payment_status;
-  if (!status || !allowedStatuses.includes(status)) {
-    return json({ error: `payment_status must be one of: ${allowedStatuses.join(", ")}` }, 400);
+  const allowedPaymentStatuses = ["awaiting_confirmation", "confirmed", "rejected", "cash_pending"];
+  const allowedFulfillmentStatuses = ["placed", "preparing", "ready", "completed", "cancelled"];
+
+  const paymentStatus = body?.payment_status;
+  const fulfillmentStatus = body?.fulfillment_status;
+
+  if (!paymentStatus && !fulfillmentStatus) {
+    return json(
+      { error: "At least one of payment_status or fulfillment_status is required." },
+      400
+    );
   }
 
-  const updates = {
-    payment_status: status
-  };
-  if (status === "confirmed") {
-    updates.payment_confirmed_at = Date.now();
-    updates.payment_confirmed_by = session.role;
+  if (paymentStatus && !allowedPaymentStatuses.includes(paymentStatus)) {
+    return json(
+      { error: `payment_status must be one of: ${allowedPaymentStatuses.join(", ")}` },
+      400
+    );
   }
-  if (status === "rejected" && typeof body.reject_reason === "string") {
-    updates.payment_reject_reason = body.reject_reason.trim();
+
+  if (fulfillmentStatus && !allowedFulfillmentStatuses.includes(fulfillmentStatus)) {
+    return json(
+      { error: `fulfillment_status must be one of: ${allowedFulfillmentStatuses.join(", ")}` },
+      400
+    );
+  }
+
+  const updates = {};
+
+  if (paymentStatus) {
+    updates.payment_status = paymentStatus;
+    if (paymentStatus === "confirmed") {
+      updates.payment_confirmed_at = Date.now();
+      updates.payment_confirmed_by = session.role;
+      // Auto-advance fulfillment to "preparing" when payment is confirmed unless explicitly specified
+      if (!fulfillmentStatus) {
+        updates.fulfillment_status = "preparing";
+        updates.preparing_at = Date.now();
+      }
+    }
+    if (paymentStatus === "rejected" && typeof body.reject_reason === "string") {
+      updates.payment_reject_reason = body.reject_reason.trim();
+    }
+  }
+
+  if (fulfillmentStatus) {
+    updates.fulfillment_status = fulfillmentStatus;
+    if (fulfillmentStatus === "preparing" && !updates.preparing_at) {
+      updates.preparing_at = Date.now();
+    } else if (fulfillmentStatus === "ready") {
+      updates.ready_at = Date.now();
+    } else if (fulfillmentStatus === "completed") {
+      updates.completed_at = Date.now();
+    } else if (fulfillmentStatus === "cancelled") {
+      updates.cancelled_at = Date.now();
+    }
   }
 
   const fbBaseUrl =
@@ -822,6 +869,7 @@ async function handleCreateOrder(request, env, ctx) {
     note: typeof body.note === "string" ? body.note.slice(0, 300) : "",
     payment_method: paymentMethod,
     payment_status: paymentStatus,
+    fulfillment_status: "placed",
     payment_ref: typeof body.payment_ref === "string" ? body.payment_ref.slice(0, 50) : "",
     consent: body.consent || {
       privacy_agreed: true,
@@ -895,18 +943,41 @@ async function handleGetOrderStatus(orderId, request, env) {
     env.FIREBASE_URL ||
     "https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app";
   const authParam = env.FIREBASE_AUTH_SECRET ? `?auth=${env.FIREBASE_AUTH_SECRET}` : "";
-  const fbUrl = `${fbBaseUrl}/beelal_coffee/orders/${orderId}/payment_status.json${authParam}`;
+  const fbUrl = `${fbBaseUrl}/beelal_coffee/orders/${orderId}.json${authParam}`;
 
   try {
     const res = await fetch(fbUrl);
     if (!res.ok) {
       return json({ error: "Failed to fetch order status." }, 502);
     }
-    const status = await res.json();
-    if (!status) {
+    const order = await res.json();
+    if (!order) {
       return json({ error: "Order not found." }, 404);
     }
-    return json({ ok: true, order_id: orderId, payment_status: status });
+
+    const paymentStatus =
+      typeof order === "string" ? order : order.payment_status || "cash_pending";
+    const fulfillmentStatus =
+      typeof order === "object" && order.fulfillment_status
+        ? order.fulfillment_status
+        : paymentStatus === "confirmed"
+          ? "preparing"
+          : "placed";
+
+    return json({
+      ok: true,
+      order_id: orderId,
+      payment_status: paymentStatus,
+      fulfillment_status: fulfillmentStatus,
+      total: typeof order === "object" ? order.total : undefined,
+      ts: typeof order === "object" ? order.ts : undefined,
+      payment_ref: typeof order === "object" ? order.payment_ref || "" : "",
+      payment_reject_reason: typeof order === "object" ? order.payment_reject_reason || null : null,
+      preparing_at: typeof order === "object" ? order.preparing_at || null : null,
+      ready_at: typeof order === "object" ? order.ready_at || null : null,
+      completed_at: typeof order === "object" ? order.completed_at || null : null,
+      cancelled_at: typeof order === "object" ? order.cancelled_at || null : null
+    });
   } catch (err) {
     return json({ error: `Database communication failure: ${err.message}` }, 502);
   }

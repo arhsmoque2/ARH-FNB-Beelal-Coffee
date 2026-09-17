@@ -746,11 +746,58 @@ describe("scheduled() — deleteExpiredReceipts", () => {
 // ── AI Chat Proxy ─────────────────────────────────────────────────────────────
 
 describe("POST /api/chat — AI chat proxy", () => {
-  it("returns 503 when OPENROUTER_API_KEY is not set", async () => {
+  async function getChatToken() {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "0405" })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    const data = await res.json();
+    return data.token;
+  }
+
+  it("rejects unauthenticated requests without admin token with 401", async () => {
     const res = await worker.fetch(
       new Request("https://example.com/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] })
+      }),
+      makeEnv({ OPENROUTER_API_KEY: "test-key" }),
+      makeCtx()
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects requests with forged or invalid admin token with 401", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer invalid.signature.token"
+        },
+        body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] })
+      }),
+      makeEnv({ OPENROUTER_API_KEY: "test-key" }),
+      makeCtx()
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 503 when OPENROUTER_API_KEY is not set", async () => {
+    const token = await getChatToken();
+    const res = await worker.fetch(
+      new Request("https://example.com/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ messages: [{ role: "user", content: "hi" }] })
       }),
       makeEnv({ OPENROUTER_API_KEY: undefined }),
@@ -762,10 +809,14 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("returns 400 when request body is not valid JSON", async () => {
+    const token = await getChatToken();
     const res = await worker.fetch(
       new Request("https://example.com/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: "invalid json string"
       }),
       makeEnv({ OPENROUTER_API_KEY: "test-key" }),
@@ -777,13 +828,17 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("returns 400 when messages array is missing or empty", async () => {
+    const token = await getChatToken();
     const env = makeEnv({ OPENROUTER_API_KEY: "test-key" });
     const ctx = makeCtx();
 
     const res1 = await worker.fetch(
       new Request("https://example.com/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({})
       }),
       env,
@@ -794,7 +849,10 @@ describe("POST /api/chat — AI chat proxy", () => {
     const res2 = await worker.fetch(
       new Request("https://example.com/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ messages: [] })
       }),
       env,
@@ -804,11 +862,15 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("returns 413 when messages payload exceeds size limit", async () => {
+    const token = await getChatToken();
     const largeContent = "x".repeat(130 * 1024);
     const res = await worker.fetch(
       new Request("https://example.com/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ messages: [{ role: "user", content: largeContent }] })
       }),
       makeEnv({ OPENROUTER_API_KEY: "test-key" }),
@@ -820,6 +882,7 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("proxies request to OpenRouter upstream and returns response", async () => {
+    const token = await getChatToken();
     const mockOpenRouterResponse = {
       id: "gen-123",
       choices: [{ message: { role: "assistant", content: "Hello from OpenRouter" } }]
@@ -838,7 +901,10 @@ describe("POST /api/chat — AI chat proxy", () => {
       const res = await worker.fetch(
         new Request("https://example.com/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
           body: JSON.stringify({
             messages: [{ role: "user", content: "hello" }],
             model: "deepseek/deepseek-v4-flash:free",
@@ -865,6 +931,7 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("returns 502 when upstream fetch throws", async () => {
+    const token = await getChatToken();
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network connection dropped"));
 
@@ -872,7 +939,10 @@ describe("POST /api/chat — AI chat proxy", () => {
       const res = await worker.fetch(
         new Request("https://example.com/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
           body: JSON.stringify({ messages: [{ role: "user", content: "hello" }] })
         }),
         makeEnv({ OPENROUTER_API_KEY: "sk-or-test" }),
@@ -887,6 +957,7 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("returns 502 when upstream returns HTTP error", async () => {
+    const token = await getChatToken();
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi
       .fn()
@@ -896,7 +967,10 @@ describe("POST /api/chat — AI chat proxy", () => {
       const res = await worker.fetch(
         new Request("https://example.com/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
           body: JSON.stringify({ messages: [{ role: "user", content: "hello" }] })
         }),
         makeEnv({ OPENROUTER_API_KEY: "sk-or-test" }),
@@ -911,6 +985,7 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("returns 502 when upstream returns non-JSON payload", async () => {
+    const token = await getChatToken();
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response("<html>Bad Gateway</html>", {
@@ -923,7 +998,10 @@ describe("POST /api/chat — AI chat proxy", () => {
       const res = await worker.fetch(
         new Request("https://example.com/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
           body: JSON.stringify({ messages: [{ role: "user", content: "hello" }] })
         }),
         makeEnv({ OPENROUTER_API_KEY: "sk-or-test" }),
@@ -938,11 +1016,13 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("rejects unauthorized cross-origin requests with 403", async () => {
+    const token = await getChatToken();
     const res = await worker.fetch(
       new Request("https://example.com/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
           Origin: "https://evil-attacker.com"
         },
         body: JSON.stringify({ messages: [{ role: "user", content: "hello" }] })
@@ -956,6 +1036,7 @@ describe("POST /api/chat — AI chat proxy", () => {
   });
 
   it("allows trusted worker/local origins", async () => {
+    const token = await getChatToken();
     const originalFetch = globalThis.fetch;
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ choices: [{ message: { content: "OK" } }] }), {
@@ -970,6 +1051,7 @@ describe("POST /api/chat — AI chat proxy", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
             Origin: "https://store-beelal-fnb-pwa.arh-homelab.workers.dev"
           },
           body: JSON.stringify({ messages: [{ role: "user", content: "hello" }] })
@@ -1217,6 +1299,8 @@ describe("Protected Admin Orders API — GET /api/admin/orders & POST /api/admin
       expect(capturedBody.payment_status).toBe("confirmed");
       expect(capturedBody.payment_confirmed_by).toBe("owner");
       expect(capturedBody.payment_confirmed_at).toBeTypeOf("number");
+      expect(capturedBody.fulfillment_status).toBe("preparing");
+      expect(capturedBody.preparing_at).toBeTypeOf("number");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -1251,6 +1335,97 @@ describe("Protected Admin Orders API — GET /api/admin/orders & POST /api/admin
       expect(res.status).toBe(200);
       expect(capturedBody.payment_status).toBe("rejected");
       expect(capturedBody.payment_reject_reason).toBe("Payment receipt unreadable");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("updates order fulfillment status and records lifecycle timestamps", async () => {
+    const token = await getValidToken("dev");
+    const originalFetch = globalThis.fetch;
+    let capturedBody = null;
+    globalThis.fetch = vi.fn().mockImplementation((_url, options) => {
+      capturedBody = JSON.parse(options.body);
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    });
+
+    try {
+      // Test ready
+      const resReady = await worker.fetch(
+        new Request("https://example.com/api/admin/order/update-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            order_id: "ord_12345",
+            fulfillment_status: "ready"
+          })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(resReady.status).toBe(200);
+      expect(capturedBody.fulfillment_status).toBe("ready");
+      expect(capturedBody.ready_at).toBeTypeOf("number");
+
+      // Test completed
+      const resCompleted = await worker.fetch(
+        new Request("https://example.com/api/admin/order/update-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            order_id: "ord_12345",
+            fulfillment_status: "completed"
+          })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(resCompleted.status).toBe(200);
+      expect(capturedBody.fulfillment_status).toBe("completed");
+      expect(capturedBody.completed_at).toBeTypeOf("number");
+
+      // Test cancelled
+      const resCancelled = await worker.fetch(
+        new Request("https://example.com/api/admin/order/update-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            order_id: "ord_12345",
+            fulfillment_status: "cancelled"
+          })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(resCancelled.status).toBe(200);
+      expect(capturedBody.fulfillment_status).toBe("cancelled");
+      expect(capturedBody.cancelled_at).toBeTypeOf("number");
+
+      // Test rejection when neither payment_status nor fulfillment_status is provided
+      const resEmpty = await worker.fetch(
+        new Request("https://example.com/api/admin/order/update-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            order_id: "ord_12345"
+          })
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(resEmpty.status).toBe(400);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -1361,6 +1536,7 @@ describe("Customer Order Dispatch — POST /api/order", () => {
       expect(writtenBody.name).toBe("Siti");
       expect(writtenBody.payment_method).toBe("cash");
       expect(writtenBody.payment_status).toBe("cash_pending");
+      expect(writtenBody.fulfillment_status).toBe("placed");
       expect(writtenBody.items.length).toBe(2);
       expect(writtenBody.total).toBe(32);
     } finally {
@@ -1399,6 +1575,7 @@ describe("Customer Order Dispatch — POST /api/order", () => {
       expect(res.status).toBe(201);
       expect(writtenBody.payment_method).toBe("qr");
       expect(writtenBody.payment_status).toBe("awaiting_confirmation");
+      expect(writtenBody.fulfillment_status).toBe("placed");
       expect(writtenBody.payment_ref).toBe("REF-9999");
       expect(writtenBody.receipt_url).toBe("https://example.com/media/receipts/test.webp");
     } finally {
@@ -1460,6 +1637,46 @@ describe("Customer Order Status Polling — GET /api/order/status/:id", () => {
       expect(data.ok).toBe(true);
       expect(data.order_id).toBe("ord_12345");
       expect(data.payment_status).toBe("confirmed");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns full order fulfillment metadata and lifecycle timestamps", async () => {
+    const originalFetch = globalThis.fetch;
+    const mockOrder = {
+      name: "Siti",
+      payment_status: "confirmed",
+      fulfillment_status: "preparing",
+      total: 18.5,
+      ts: 1718000000000,
+      payment_ref: "REF999",
+      preparing_at: 1718000060000,
+      ready_at: null,
+      completed_at: null
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockOrder), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/order/status/ord_67890", { method: "GET" }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.ok).toBe(true);
+      expect(data.order_id).toBe("ord_67890");
+      expect(data.payment_status).toBe("confirmed");
+      expect(data.fulfillment_status).toBe("preparing");
+      expect(data.total).toBe(18.5);
+      expect(data.payment_ref).toBe("REF999");
+      expect(data.preparing_at).toBe(1718000060000);
     } finally {
       globalThis.fetch = originalFetch;
     }
