@@ -1104,6 +1104,7 @@ const FREE_MODEL_FALLBACKS = [
   'google/gemma-4-26b-a4b-it:free', // Google — instruction-tuned, 26B MoE
   'openai/gpt-oss-120b',           // OpenAI — large open-weight chat model
 ];
+let orFallbackModels = [...FREE_MODEL_FALLBACKS];
 const WEB_SEARCH_DOMAINS = [
   'coolors.co',
   'colorhunt.co',
@@ -1184,6 +1185,13 @@ async function init() {
 
     const sp = await fbGet('config/dev/sys_prompt');
     if (!sp) await fbSet('config/dev/sys_prompt', DEFAULT_SYS_PROMPT);
+
+    const savedModel = await safe(() => fbGet('config/dev/or_model'), 'orModel');
+    if (savedModel) orModel = savedModel;
+    const savedFallbacks = await safe(() => fbGet('config/dev/or_fallback_models'), 'orFallbackModels');
+    if (Array.isArray(savedFallbacks) && savedFallbacks.length > 0) {
+      orFallbackModels = savedFallbacks;
+    }
 
     // Check if last-saved exists
     const ls = await fbGet('config/theme_last_saved');
@@ -1362,6 +1370,7 @@ async function loadBillingDashboard() {
     const monthly = d.monthly || {};
     const rollups = d.recent_rollups || [];
     const cur = d.currency || 'RM';
+    const sourceLabel = d.source === 'rtdb_fallback' ? 'Realtime DB (Active Fallback)' : 'Cloudflare D1';
 
     let rollupsHtml = '';
     if (!rollups || rollups.length === 0) {
@@ -1398,7 +1407,7 @@ async function loadBillingDashboard() {
       </div>
 
       <div class="a-card" style="margin-top:0">
-        <div class="a-card-title" style="margin-bottom:12px">Daily Transaction Rollups (Cloudflare D1)</div>
+        <div class="a-card-title" style="margin-bottom:12px">Daily Transaction Rollups (${escapeHtml(sourceLabel)})</div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left">
             <thead>
@@ -3489,6 +3498,9 @@ function shouldUseWebSearch(text) {
 function buildChatRequestBody(model, messages, useWebSearch, forceSimple = false) {
   const body = {
     model,
+    fallback_models: (orFallbackModels && orFallbackModels.length > 0)
+      ? orFallbackModels.filter(m => m !== model)
+      : undefined,
     messages,
     max_completion_tokens: 600,
     temperature: 0.3,

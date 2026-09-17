@@ -648,6 +648,17 @@
     "Gagal",
     "pelayan",
     "Pelayan",
-    "memulangkan"
+    "memulangkan",
+    "BioAuth",
+    "bioauth",
+    "BioKey",
+    "biokey",
+    "unenroll",
+    "Unenroll",
+    "mistralai",
+    "WebAuthn",
+    "webauthn",
+    "Cryptoistaken",
+    "unenrollment"
   ]
 }

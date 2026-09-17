@@ -1154,6 +1154,53 @@ describe("POST /api/chat — AI chat proxy", () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it("cascades to fallback model when primary model returns 429", async () => {
+    const token = await getChatToken();
+    const originalFetch = globalThis.fetch;
+    const calls = [];
+
+    globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      calls.push(body.model);
+      if (body.model === "rate-limited-model") {
+        return new Response("Rate limit exceeded", { status: 429 });
+      }
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "Fallback model answered" } }]
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    });
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: "hello" }],
+            model: "rate-limited-model",
+            fallback_models: ["working-fallback-model"]
+          })
+        }),
+        makeEnv({ OPENROUTER_API_KEY: "sk-or-test" }),
+        makeCtx()
+      );
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.choices[0].message.content).toBe("Fallback model answered");
+      expect(data.resolved_model).toBe("working-fallback-model");
+      expect(calls).toEqual(["rate-limited-model", "working-fallback-model"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 // ── Phase 1: Admin Auth & PIN Security ───────────────────────────────────────
@@ -1873,5 +1920,85 @@ describe("GET /api/billing/summary — admin billing ledger summary proxy", () =
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it("falls back to RTDB calculation when billing ledger returns 500", async () => {
+    const token = await getAdminToken();
+    const originalFetch = globalThis.fetch;
+    const now = Date.now();
+    const mockOrders = {
+      ord_1: { ts: now, total: 25.0, fulfillment_status: "completed" },
+      ord_2: { ts: now - 3600000, total: 15.0, fulfillment_status: "placed" },
+      ord_3: { ts: now, total: 50.0, fulfillment_status: "cancelled" }
+    };
+
+    globalThis.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes("fnb-billing-ledger")) {
+        return new Response("Internal Server Error", { status: 500 });
+      }
+      if (urlStr.includes("orders.json")) {
+        return new Response(JSON.stringify(mockOrders), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+      return new Response("Not found", { status: 404 });
+    });
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/billing/summary", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.source).toBe("rtdb_fallback");
+      expect(json.today.order_count).toBe(2);
+      expect(json.today.gross_revenue_cents).toBe(4000);
+      expect(json.today.gross_revenue_formatted).toBe("RM 40.00");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe("GET /api/models — OpenRouter models proxy", () => {
+  it("proxies available models with caching", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: "model-1", name: "Model 1" }] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    try {
+      const res = await worker.fetch(
+        new Request("https://example.com/api/models", { method: "GET" }),
+        makeEnv(),
+        makeCtx()
+      );
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.data[0].id).toBe("model-1");
+      expect(res.headers.get("Cache-Control")).toContain("max-age=180");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns 405 when hit with non-GET methods", async () => {
+    const res = await worker.fetch(
+      new Request("https://example.com/api/models", { method: "POST" }),
+      makeEnv(),
+      makeCtx()
+    );
+    expect(res.status).toBe(405);
   });
 });

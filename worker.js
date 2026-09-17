@@ -89,6 +89,11 @@ export default {
       return handleChatProxy(request, env);
     }
 
+    if (url.pathname === "/api/models") {
+      if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+      return handleListModels(request, env);
+    }
+
     if (url.pathname === "/api/record-order") {
       if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       return handleBillingProxy(request, env);
@@ -237,45 +242,107 @@ async function handleChatProxy(request, env) {
     return json({ error: "Messages payload exceeds 128 KB limit." }, 413);
   }
 
-  const model =
-    typeof body.model === "string" && body.model.trim()
-      ? body.model.trim()
-      : "deepseek/deepseek-v4-flash:free";
+  const candidateModels = [];
+  if (typeof body.model === "string" && body.model.trim()) {
+    candidateModels.push(body.model.trim());
+  }
+  if (Array.isArray(body.fallback_models)) {
+    for (const m of body.fallback_models) {
+      if (typeof m === "string" && m.trim() && !candidateModels.includes(m.trim())) {
+        candidateModels.push(m.trim());
+      }
+    }
+  }
+  if (candidateModels.length === 0) {
+    candidateModels.push(env.OPENROUTER_DEFAULT_MODEL || "google/gemma-4-26b-a4b-it:free");
+  }
 
-  let upstream;
+  let lastUpstream = null;
+  let lastErrText = "";
+  let successfulData = null;
+
+  for (const currentModel of candidateModels) {
+    try {
+      const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://store-beelal-fnb-pwa.arh-homelab.workers.dev",
+          "X-Title": "Beelal Coffee Admin Studio"
+        },
+        body: JSON.stringify({
+          model: currentModel,
+          messages: body.messages,
+          temperature: typeof body.temperature === "number" ? body.temperature : 0.7,
+          max_tokens: typeof body.max_tokens === "number" ? Math.min(body.max_tokens, 4000) : 1500
+        })
+      });
+
+      lastUpstream = upstream;
+      if (upstream.ok) {
+        try {
+          successfulData = await upstream.json();
+        } catch {
+          return json({ error: "Invalid JSON received from OpenRouter." }, 502);
+        }
+        if (successfulData && typeof successfulData === "object") {
+          successfulData.resolved_model = currentModel;
+        }
+        break;
+      }
+
+      try {
+        lastErrText = await upstream.text();
+      } catch {}
+
+      // If 429 (Rate Limit), 503 (Overloaded), 502 (Bad Gateway), 404 (Not Found), cascade to next candidate
+      if (
+        upstream.status === 429 ||
+        upstream.status === 503 ||
+        upstream.status === 502 ||
+        upstream.status === 404
+      ) {
+        continue;
+      } else {
+        break;
+      }
+    } catch (err) {
+      lastErrText = err.message;
+    }
+  }
+
+  if (successfulData) {
+    return json(successfulData);
+  }
+
+  if (lastUpstream) {
+    return json({ error: `OpenRouter error (${lastUpstream.status}): ${lastErrText}` }, 502);
+  }
+
+  return json({ error: `Upstream OpenRouter request failed: ${lastErrText}` }, 502);
+}
+
+async function handleListModels(request, env) {
   try {
-    upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
+    const headers = env.OPENROUTER_API_KEY
+      ? { Authorization: `Bearer ${env.OPENROUTER_API_KEY}` }
+      : undefined;
+    const upstream = await fetch("https://openrouter.ai/api/v1/models", { headers });
+    if (!upstream.ok) {
+      return json({ error: `Upstream models returned ${upstream.status}` }, 502);
+    }
+    const data = await upstream.json();
+    return new Response(JSON.stringify(data), {
+      status: 200,
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        ...CORS,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://store-beelal-fnb-pwa.arh-homelab.workers.dev",
-        "X-Title": "Beelal Coffee Admin Studio"
-      },
-      body: JSON.stringify({
-        model,
-        messages: body.messages,
-        temperature: typeof body.temperature === "number" ? body.temperature : 0.7,
-        max_tokens: typeof body.max_tokens === "number" ? Math.min(body.max_tokens, 4000) : 1500
-      })
+        "Cache-Control": "public, max-age=180, stale-while-revalidate=600"
+      }
     });
   } catch (err) {
-    return json({ error: `Upstream OpenRouter request failed: ${err.message}` }, 502);
-  }
-
-  if (!upstream.ok) {
-    let errText = "";
-    try {
-      errText = await upstream.text();
-    } catch {}
-    return json({ error: `OpenRouter error (${upstream.status}): ${errText}` }, 502);
-  }
-
-  try {
-    const data = await upstream.json();
-    return json(data);
-  } catch {
-    return json({ error: "Invalid JSON received from OpenRouter." }, 502);
+    return json({ error: `Failed to fetch models: ${err.message}` }, 502);
   }
 }
 
@@ -320,6 +387,163 @@ async function handleBillingProxy(request, env) {
   return json({ ok: true });
 }
 
+function dateFromTimestamp(ts) {
+  const ms = Number(ts) < 10000000000 ? Number(ts) * 1000 : Number(ts);
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+function formatCents(cents, currency = "RM") {
+  const n = (Number(cents) || 0) / 100;
+  return `${currency} ${n.toFixed(2)}`;
+}
+
+async function computeRtdbBillingSummary(storeSlug, env) {
+  const fbBaseUrl =
+    env.FIREBASE_URL ||
+    "https://ash-2026-photobook-default-rtdb.asia-southeast1.firebasedatabase.app";
+  const authParam = env.FIREBASE_AUTH_SECRET ? `?auth=${env.FIREBASE_AUTH_SECRET}` : "";
+  const fbUrl = `${fbBaseUrl}/${storeSlug}/orders.json${authParam}`;
+
+  const res = await fetch(fbUrl);
+  if (!res.ok) {
+    throw new Error(`Firebase RTDB returned HTTP ${res.status}`);
+  }
+
+  const rawOrders = (await res.json()) || {};
+  const ordersList = Array.isArray(rawOrders)
+    ? rawOrders.filter(Boolean)
+    : Object.values(rawOrders);
+
+  const nowMs = Date.now();
+  const nowDate = new Date(nowMs);
+  const todayStr = dateFromTimestamp(nowMs);
+  const currentMonthStr = todayStr.slice(0, 7);
+
+  const startOfTodayMs = Date.UTC(
+    nowDate.getUTCFullYear(),
+    nowDate.getUTCMonth(),
+    nowDate.getUTCDate()
+  );
+  const sevenDaysAgoMs = startOfTodayMs - 6 * 86400000;
+
+  const rollupsMap = new Map();
+  for (let i = 0; i < 14; i++) {
+    const dStr = dateFromTimestamp(startOfTodayMs - i * 86400000);
+    rollupsMap.set(dStr, {
+      rollup_date: dStr,
+      store_slug: storeSlug,
+      order_count: 0,
+      gross_revenue_cents: 0
+    });
+  }
+
+  let todayOrderCount = 0;
+  let todayRevenueCents = 0;
+  let weeklyOrderCount = 0;
+  let weeklyRevenueCents = 0;
+  let monthlyOrderCount = 0;
+  let monthlyRevenueCents = 0;
+
+  const feePerOrderCents = parseInt(env.FEE_PER_ORDER_CENTS || "50", 10);
+  const currency = env.CURRENCY_DEFAULT || "RM";
+
+  for (const order of ordersList) {
+    if (!order || typeof order !== "object") continue;
+    if (order.fulfillment_status === "cancelled" || order.status === "cancelled") {
+      continue;
+    }
+
+    let orderTs = Number(order.ts || order.submitted_at || order.created_at);
+    if (!orderTs && typeof order.created_at === "string") {
+      orderTs = new Date(order.created_at).getTime();
+    }
+    if (!orderTs) continue;
+
+    let cents = 0;
+    if (typeof order.order_total_cents === "number") {
+      cents = order.order_total_cents;
+    } else if (order.total !== undefined && order.total !== null) {
+      cents = Math.round((Number(order.total) || 0) * 100);
+    }
+
+    const orderDateStr = dateFromTimestamp(orderTs);
+
+    if (rollupsMap.has(orderDateStr)) {
+      const r = rollupsMap.get(orderDateStr);
+      r.order_count++;
+      r.gross_revenue_cents += cents;
+    }
+
+    if (orderTs >= startOfTodayMs) {
+      todayOrderCount++;
+      todayRevenueCents += cents;
+    }
+
+    if (orderTs >= sevenDaysAgoMs) {
+      weeklyOrderCount++;
+      weeklyRevenueCents += cents;
+    }
+
+    if (orderDateStr.startsWith(currentMonthStr)) {
+      monthlyOrderCount++;
+      monthlyRevenueCents += cents;
+    }
+  }
+
+  const todayFee = todayOrderCount * feePerOrderCents;
+  const weeklyFee = weeklyOrderCount * feePerOrderCents;
+  const monthlyFee = monthlyOrderCount * feePerOrderCents;
+
+  const recentRollups = Array.from(rollupsMap.values()).map((r) => {
+    const fee = r.order_count * feePerOrderCents;
+    return {
+      rollup_date: r.rollup_date,
+      store_slug: storeSlug,
+      order_count: r.order_count,
+      gross_revenue_cents: r.gross_revenue_cents,
+      gross_revenue_formatted: formatCents(r.gross_revenue_cents, currency),
+      fee_cents: fee,
+      fee_formatted: formatCents(fee, currency),
+      currency
+    };
+  });
+
+  return {
+    ok: true,
+    source: "rtdb_fallback",
+    store_slug: storeSlug,
+    currency,
+    today: {
+      date: todayStr,
+      gross_revenue_cents: todayRevenueCents,
+      gross_revenue_formatted: formatCents(todayRevenueCents, currency),
+      order_count: todayOrderCount,
+      fee_cents: todayFee,
+      fee_formatted: formatCents(todayFee, currency)
+    },
+    weekly: {
+      start_date: dateFromTimestamp(sevenDaysAgoMs),
+      end_date: todayStr,
+      gross_revenue_cents: weeklyRevenueCents,
+      gross_revenue_formatted: formatCents(weeklyRevenueCents, currency),
+      order_count: weeklyOrderCount,
+      fee_cents: weeklyFee,
+      fee_formatted: formatCents(weeklyFee, currency)
+    },
+    monthly: {
+      month: currentMonthStr,
+      gross_revenue_cents: monthlyRevenueCents,
+      gross_revenue_formatted: formatCents(monthlyRevenueCents, currency),
+      order_count: monthlyOrderCount,
+      fee_cents: monthlyFee,
+      fee_formatted: formatCents(monthlyFee, currency)
+    },
+    recent_rollups: recentRollups
+  };
+}
+
 async function handleAdminBillingSummary(request, env) {
   const token = extractAdminToken(request);
   const session = await verifyAdminToken(token, env);
@@ -337,6 +561,8 @@ async function handleAdminBillingSummary(request, env) {
     return json({ error: "Billing proxy is not configured." }, 503);
   }
 
+  let upstreamError = "";
+
   try {
     const upstream = await fetch(`${billingUrl.replace(/\/$/, "")}/summary/${storeSlug}`, {
       method: "GET",
@@ -345,14 +571,21 @@ async function handleAdminBillingSummary(request, env) {
       }
     });
 
-    if (!upstream.ok) {
-      return json({ error: `Billing ledger returned HTTP ${upstream.status}` }, 502);
+    if (upstream.ok) {
+      const payload = await upstream.json();
+      return json({ ok: true, source: "ledger_d1", ...(payload?.data || payload) });
     }
-
-    const payload = await upstream.json();
-    return json({ ok: true, ...(payload?.data || payload) });
+    upstreamError = `Billing ledger returned HTTP ${upstream.status}`;
   } catch (err) {
-    return json({ error: `Billing ledger communication failure: ${err.message}` }, 502);
+    upstreamError = `Billing ledger communication failure: ${err.message}`;
+  }
+
+  // Defensive fallback: compute summary directly from Firebase RTDB
+  try {
+    const fallbackSummary = await computeRtdbBillingSummary(storeSlug, env);
+    return json(fallbackSummary);
+  } catch (rtdbErr) {
+    return json({ error: `${upstreamError}. RTDB fallback failed: ${rtdbErr.message}` }, 502);
   }
 }
 

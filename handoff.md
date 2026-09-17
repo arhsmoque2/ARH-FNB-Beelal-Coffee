@@ -107,6 +107,23 @@ In the current development cycle (PR `feat/admin-auth-and-order-fulfillment`), t
   4. **Act 4 (Zero-FOUC Theme Rehearsal):** Validates pre-render theme script execution and coffee loader affordance.
 - **Continuous Gate Integration:** Added Check 1.5 directly into [`_qa/beelal-layout-audit.mjs`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/_qa/beelal-layout-audit.mjs) so `npm run check:layout` guards against layout collisions on every commit.
 
+### Production Resilience: Billing Ledger RTDB Fallback, Dynamic AI Models Cascade & WebAuthn Platform Biometrics
+
+- **Defensive Billing Ledger Fallback:**
+  - Root cause: Upstream Cloudflare Worker `fnb-billing-ledger` returned HTTP 500 when cold or during deployment shifts, causing `handleAdminBillingSummary` to return HTTP 502 to admin and devcon.
+  - Solution: Implemented `computeRtdbBillingSummary` in [`worker.js`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/worker.js). When upstream D1 returns an error, it falls back to computing daily, weekly, and monthly settlement totals and 14-day daily rollups directly from Firebase RTDB (`orders.json`).
+  - Added sub-worker deployment step in [`.github/workflows/deploy.yml`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/.github/workflows/deploy.yml) for `billing-ledger/`.
+- **OpenRouter Dynamic AI Model Selector & 429 Cascade:**
+  - Root cause: Static fallback models caused HTTP 429 rate limit errors when free provider quotas were reached.
+  - Solution: Replaced hardcoded fallback in `handleChatProxy` with dynamic sequential cascade supporting `model` and `fallback_models`. When a model returns 429, 503, or 404, requests automatically cascade to the next candidate model.
+  - Added cached `GET /api/models` endpoint on the Edge Worker.
+  - Built interactive model browser with tier filters, live search, primary model selector, and fallback cascade manager in [`devcon.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/devcon.html), persisting to `config/dev/or_model` and `config/dev/or_fallback_models`.
+- **WebAuthn Platform Biometric Authentication (`devcon.html` adopting `Cryptoistaken/BioAuth`):**
+  - Standardized W3C platform authenticator credentials (`authenticatorAttachment: "platform"`, `userVerification: "required"`) for Touch ID, Windows Hello, and Face ID.
+  - Console fast-unlock via biometric assertion with automatic fallback to 4-digit PIN.
+  - Hardware session vaulting validating 24-hour token longevity.
+  - Biometric key management (enrollment, prompt test, unenrollment) in [`devcon.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/devcon.html).
+
 ---
 
 ## 3. Architecture & API Contract Reference
@@ -120,10 +137,11 @@ In the current development cycle (PR `feat/admin-auth-and-order-fulfillment`), t
 | `POST` | `/api/admin/order/update-status` | Bearer Token          | Updates `payment_status` and/or `fulfillment_status`; sets timestamps               |
 | `POST` | `/api/order`                     | Public                | Submits a new customer order; sets `fulfillment_status: "placed"`                   |
 | `GET`  | `/api/order/status/:id`          | Public                | Returns `{ ok: true, order_id, payment_status, fulfillment_status, timestamps... }` |
-| `POST` | `/api/chat`                      | Bearer Token          | Proxies AI theme assistance requests to OpenRouter                                  |
+| `POST` | `/api/chat`                      | Bearer Token          | Proxies AI completions with automatic 429 fallback cascade                          |
+| `GET`  | `/api/models`                    | Public / Cached       | Proxies live OpenRouter model catalog with edge caching                             |
 | `POST` | `/api/upload/receipt`            | Public (Rate-limited) | Stores customer transfer receipts in R2 for 30-day verification                     |
 | `POST` | `/api/record-order`              | Server-to-server      | Relays order transaction metadata to D1 billing ledger                              |
-| `GET`  | `/api/billing/summary`           | Bearer Token          | Proxies GMV, order volume, and D1 transaction rollups to admin dashboard            |
+| `GET`  | `/api/billing/summary`           | Bearer Token          | Proxies settlement metrics with defensive RTDB calculation fallback                 |
 
 ### Firebase RTDB Schema: `/beelal_coffee/orders/{orderId}`
 
