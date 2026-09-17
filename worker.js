@@ -475,9 +475,16 @@ async function deleteExpiredReceipts(env) {
 // ── Upload handler ─────────────────────────────────────────────────────
 
 async function handleVideoUpload(request, env) {
+  const adminToken = extractAdminToken(request);
+  const session = adminToken ? await verifyAdminToken(adminToken, env) : null;
   const provided = request.headers.get("X-Admin-Secret") || "";
-  if (!env.UPLOAD_SECRET || provided !== env.UPLOAD_SECRET) {
-    return json({ error: "Unauthorized. Set UPLOAD_SECRET via wrangler secret put." }, 401);
+  const hasLegacySecret = env.UPLOAD_SECRET && provided === env.UPLOAD_SECRET;
+
+  if (!session && !hasLegacySecret) {
+    return json(
+      { error: "Unauthorized. Set UPLOAD_SECRET via wrangler secret put or login as admin." },
+      401
+    );
   }
 
   // Fast pre-check on Content-Length before reading body
@@ -536,9 +543,16 @@ async function handleVideoUpload(request, env) {
 // ── Image upload handler ───────────────────────────────────────────────
 
 async function handleImageUpload(request, env) {
+  const adminToken = extractAdminToken(request);
+  const session = adminToken ? await verifyAdminToken(adminToken, env) : null;
   const provided = request.headers.get("X-Admin-Secret") || "";
-  if (!env.UPLOAD_SECRET || provided !== env.UPLOAD_SECRET) {
-    return json({ error: "Unauthorized. Set UPLOAD_SECRET via wrangler secret put." }, 401);
+  const hasLegacySecret = env.UPLOAD_SECRET && provided === env.UPLOAD_SECRET;
+
+  if (!session && !hasLegacySecret) {
+    return json(
+      { error: "Unauthorized. Set UPLOAD_SECRET via wrangler secret put or login as admin." },
+      401
+    );
   }
 
   const contentLength = parseInt(request.headers.get("Content-Length") || "0", 10);

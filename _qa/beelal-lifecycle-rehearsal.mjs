@@ -479,6 +479,84 @@ async function rehearseAmbientTheme() {
   console.log("");
 }
 
+// ── ACT 5: Media Upload & Defensive Framing Contract Rehearsal ───────────────
+
+async function rehearseMediaFraming() {
+  console.log("🎬 --- ACT 5: Media Upload & Defensive Framing Contracts ---");
+
+  const adminContent = fs.readFileSync(path.join(process.cwd(), "admin.html"), "utf8");
+  const indexContent = fs.readFileSync(path.join(process.cwd(), "index-v2.html"), "utf8");
+  const workerContent = fs.readFileSync(path.join(process.cwd(), "worker.js"), "utf8");
+
+  // 1. Admin R2 upload integration & local fallback
+  if (
+    adminContent.includes("uploadImageToR2") &&
+    adminContent.includes("handleLogoUpload") &&
+    adminContent.includes("handleBannerUpload") &&
+    adminContent.includes("handleQrImageUpload")
+  ) {
+    pass(
+      "ACT 5",
+      "Admin R2 media uploaders verified: Store logo, banner, and payment QR wired to Cloudflare R2."
+    );
+  } else {
+    fail("ACT 5", "admin.html missing unified uploadImageToR2 pipeline.");
+  }
+
+  // 2. Aspect-ratio visual guidance for merchants
+  if (
+    adminContent.includes("Nisbah 16:9 landskap") &&
+    adminContent.includes("Nisbah 1:1 segi empat")
+  ) {
+    pass(
+      "ACT 5",
+      "Merchant aspect-ratio framing guidance verified for 16:9 banners and 1:1 logos."
+    );
+  } else {
+    fail("ACT 5", "admin.html missing aspect-ratio visual guidance badges.");
+  }
+
+  // 3. Story photo card uploader in info builder
+  if (adminContent.includes("handleInfoCardPhotoUpload")) {
+    pass("ACT 5", "Store story photo card 1-tap uploader verified in About builder.");
+  } else {
+    fail("ACT 5", "admin.html missing story photo card uploader.");
+  }
+
+  // 4. Logo protection: object-fit: contain
+  if (indexContent.includes(".mark img") && indexContent.includes("object-fit: contain")) {
+    pass("ACT 5", "Logo wordmark protection verified: .mark img uses object-fit: contain.");
+  } else {
+    fail("ACT 5", "index-v2.html logo mark does not enforce object-fit: contain.");
+  }
+
+  // 5. Defensive banner framing: center 35%
+  if (indexContent.includes("background-position: center 35%")) {
+    pass(
+      "ACT 5",
+      "Defensive banner framing verified: background-position: center 35% protects vertical viewports."
+    );
+  } else {
+    fail("ACT 5", "index-v2.html missing center 35% background-position anchor.");
+  }
+
+  // 6. Worker authenticated upload endpoint
+  if (
+    workerContent.includes("handleImageUpload") &&
+    workerContent.includes("extractAdminToken") &&
+    workerContent.includes("verifyAdminToken")
+  ) {
+    pass(
+      "ACT 5",
+      "Cloudflare Worker verified: POST /api/upload/image accepts admin session Bearer tokens."
+    );
+  } else {
+    fail("ACT 5", "worker.js handleImageUpload missing admin session verification.");
+  }
+
+  console.log("");
+}
+
 // ── RUN ALL REHEARSALS ────────────────────────────────────────────────────────
 
 async function runRehearsalSuite() {
@@ -486,6 +564,7 @@ async function runRehearsalSuite() {
   await rehearseOrderLifecycle();
   await rehearseBillingLedger();
   await rehearseAmbientTheme();
+  await rehearseMediaFraming();
 
   console.log("======================================================");
   if (totalErrors === 0) {

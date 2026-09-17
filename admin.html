@@ -451,18 +451,20 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <div class="form-row">
         <label class="form-label">Logo (optional)</label>
         <div class="photo-upload-area">
-          <img id="iLogoPreview" class="photo-preview" style="display:none">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">📷 Disyorkan: Nisbah 1:1 segi empat atau bulatan (min 400×400px). Format PNG atau JPG.</div>
+          <img id="iLogoPreview" class="photo-preview" style="display:none;width:64px;height:64px;border-radius:var(--r2);object-fit:contain;background:var(--card2);border:1px solid var(--border);padding:4px;margin-bottom:8px">
           <input type="hidden" id="iLogo">
-          <label class="photo-upload-btn">📷 Upload Logo<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handleLogoUpload(this)"></label>
+          <label class="photo-upload-btn">📷 Upload Logo<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleLogoUpload(this)"></label>
           <div id="iLogoStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
         </div>
       </div>
       <div class="form-row">
         <label class="form-label">Banner (optional)</label>
         <div class="photo-upload-area">
-          <img id="iBannerPreview" class="photo-preview" style="display:none;max-height:80px;width:100%;object-fit:cover">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">🖼️ Disyorkan: Nisbah 16:9 landskap (min 1600×900px). Subjek berada di tengah untuk paparan mudah alih.</div>
+          <img id="iBannerPreview" class="photo-preview" style="display:none;aspect-ratio:16/9;max-width:380px;width:100%;object-fit:cover;object-position:center 35%;border-radius:var(--r2);border:1px solid var(--border);margin-bottom:8px">
           <input type="hidden" id="iBanner">
-          <label class="photo-upload-btn">🖼️ Upload Banner<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handleBannerUpload(this)"></label>
+          <label class="photo-upload-btn">🖼️ Upload Banner<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleBannerUpload(this)"></label>
           <div id="iBannerStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
         </div>
       </div>
@@ -481,11 +483,12 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       <div class="a-card-title">Payment Settings</div>
       <div class="sec-sub" style="margin-bottom:12px">Shown to customers who choose "Pay by QR" at checkout. Upload your real bank/e-wallet QR — customers scan it and mark "I've Paid"; confirm or reject the payment from the Orders tab.</div>
       <div class="form-row">
-        <label class="form-label">Payment QR (optional — JPG/PNG)</label>
+        <label class="form-label">Payment QR (optional — JPG/PNG/WebP)</label>
         <div class="photo-upload-area">
-          <img id="pQrPreview" class="photo-preview" style="display:none">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">📷 Disyorkan: Imej QR kod yang jelas dari aplikasi perbankan atau e-dompet anda.</div>
+          <img id="pQrPreview" class="photo-preview" style="display:none;width:120px;height:120px;object-fit:contain;background:#fff;border-radius:var(--r2);border:1px solid var(--border);padding:6px;margin-bottom:8px">
           <input type="hidden" id="pQrImage">
-          <label class="photo-upload-btn">📷 Upload QR<input type="file" accept="image/jpeg,image/png" style="display:none" onchange="handleQrImageUpload(this)"></label>
+          <label class="photo-upload-btn">📷 Upload QR<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleQrImageUpload(this)"></label>
           <div id="pQrStatus" style="font-size:11px;color:var(--text2);margin-top:6px"></div>
         </div>
       </div>
@@ -1658,19 +1661,29 @@ async function loadPaymentSettings() {
 async function handleQrImageUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  if (!['image/jpeg','image/png'].includes(file.type)) {
-    toast('JPG or PNG only'); input.value = ''; return;
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    toast('JPG, PNG, atau WebP sahaja'); input.value = ''; return;
   }
   const statusEl = document.getElementById('pQrStatus');
-  statusEl.textContent = 'Processing…';
+  const preview = document.getElementById('pQrPreview');
+  statusEl.textContent = 'Memproses dan memuat naik QR…';
   try {
-    const dataUrl = await resizeImageToDataURL(file, 800, 0.85);
-    document.getElementById('pQrImage').value = dataUrl;
-    const preview = document.getElementById('pQrPreview');
-    preview.src = dataUrl; preview.style.display = 'block';
-    statusEl.textContent = 'QR ready — tap Save Payment Settings to apply ✓';
+    const localDataUrl = await resizeImageToDataURL(file, 800, 0.85);
+    preview.src = localDataUrl;
+    preview.style.display = 'block';
+  } catch {}
+
+  try {
+    const r2Url = await uploadImageToR2(file, 'payment-qr', 800);
+    document.getElementById('pQrImage').value = r2Url;
+    preview.src = r2Url;
+    statusEl.textContent = 'QR berjaya dimuat naik ke R2 ✓ Tekan Save Payment Settings untuk simpan.';
+    toast('QR kod berjaya dimuat naik ke storan R2 ✓');
   } catch (e) {
-    statusEl.textContent = 'Failed to process image';
+    const fallbackDataUrl = await resizeImageToDataURL(file, 800, 0.85);
+    document.getElementById('pQrImage').value = fallbackDataUrl;
+    statusEl.textContent = 'Storan R2 tidak dapat dicapai — disimpan secara setempat. Tekan Save Payment Settings.';
+    toast('Disimpan secara setempat (fallback)');
   } finally {
     input.value = '';
   }
@@ -1766,7 +1779,7 @@ function renderInfoBuilder() {
         </div>
       </div>
       <div class="info-builder-grid${isPhoto ? '' : ' full'}">
-        ${isPhoto ? `<div class="form-row"><label class="form-label">Image URL</label><input class="form-input" value="${escapeHtml(card.image_url||'')}" oninput="updateInfoCard(${i},'image_url',this.value)" placeholder="https://i.imgur.com/..."></div>` : `<div class="form-row"><label class="form-label">Title</label><input class="form-input" value="${escapeHtml(card.title||'')}" oninput="updateInfoCard(${i},'title',this.value)" placeholder="Optional heading"></div>`}
+        ${isPhoto ? `<div class="form-row"><label class="form-label">Image URL / Muat Naik</label><div style="display:flex;gap:6px;align-items:center"><input class="form-input" value="${escapeHtml(card.image_url||'')}" oninput="updateInfoCard(${i},'image_url',this.value)" placeholder="https://..."><label class="photo-upload-btn" style="white-space:nowrap;cursor:pointer;padding:7px 10px;font-size:11px">📷 Upload<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleInfoCardPhotoUpload(this,${i})"></label></div>${card.image_url ? `<img src="${escapeHtml(card.image_url)}" style="margin-top:6px;max-height:80px;border-radius:var(--r2);border:1px solid var(--border);object-fit:cover">` : ''}</div>` : `<div class="form-row"><label class="form-label">Title</label><input class="form-input" value="${escapeHtml(card.title||'')}" oninput="updateInfoCard(${i},'title',this.value)" placeholder="Optional heading"></div>`}
         <div class="form-row"><label class="form-label">${isPhoto ? 'Caption' : 'Body text'}</label><textarea class="form-input" rows="2" style="resize:vertical" oninput="updateInfoCard(${i},'body',this.value)" placeholder="${isPhoto ? 'Optional caption' : 'Paragraph text'}">${escapeHtml(card.body||'')}</textarea></div>
       </div>
       <div class="form-row" style="margin-top:6px"><label class="form-label">Size</label><select class="form-input" onchange="updateInfoCard(${i},'size',this.value)">${sizeOpts}</select></div>
@@ -1795,6 +1808,34 @@ function removeInfoCard(idx) {
 
 function updateInfoCard(idx, field, value) {
   if (storeInfoCards[idx]) storeInfoCards[idx][field] = value;
+}
+
+async function handleInfoCardPhotoUpload(input, idx) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    toast('JPG, PNG, atau WebP sahaja');
+    input.value = '';
+    return;
+  }
+  toast('Memuat naik foto cerita...');
+  try {
+    const url = await uploadImageToR2(file, 'about-story', 1200);
+    updateInfoCard(idx, 'image_url', url);
+    renderInfoBuilder();
+    toast('Foto cerita dimuat naik ✓ Tekan Save About Section');
+  } catch (err) {
+    try {
+      const fallbackUrl = await resizeImageToDataURL(file, 800, 0.82);
+      updateInfoCard(idx, 'image_url', fallbackUrl);
+      renderInfoBuilder();
+      toast('Foto disimpan secara setempat (fallback)');
+    } catch {
+      toast('Gagal memproses foto: ' + (err.message || 'Ralat'));
+    }
+  } finally {
+    input.value = '';
+  }
 }
 
 async function saveStoreInfo() {
@@ -2032,22 +2073,78 @@ async function imgurUpload(file, maxW, maxH) {
   return j.data.link;
 }
 
+async function dataUrlToBlob(dataUrl) {
+  const res = await fetch(dataUrl);
+  return await res.blob();
+}
+
+async function uploadImageToR2(file, itemId = 'img', maxPx = 1600) {
+  let uploadFile = file;
+  if (file.size > 1.5 * 1024 * 1024 || (maxPx && maxPx < 3000)) {
+    try {
+      const dataUrl = await resizeImageToDataURL(file, maxPx, 0.85);
+      const blob = await dataUrlToBlob(dataUrl);
+      uploadFile = new File([blob], (file.name || 'image.jpg').replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+    } catch {
+      uploadFile = file;
+    }
+  }
+
+  const fd = new FormData();
+  fd.append('image', uploadFile);
+  fd.append('item_id', itemId);
+
+  const headers = {};
+  if (adminToken) {
+    headers['Authorization'] = 'Bearer ' + adminToken;
+  }
+
+  const res = await fetch('/api/upload/image', {
+    method: 'POST',
+    headers,
+    body: fd
+  });
+
+  if (!res.ok) {
+    let errMsg = `Upload failed (${res.status})`;
+    try {
+      const errPayload = await res.json();
+      if (errPayload && errPayload.error) errMsg = errPayload.error;
+    } catch {}
+    throw new Error(errMsg);
+  }
+
+  const data = await res.json();
+  if (!data || !data.url) throw new Error('Pelayan tidak memulangkan URL imej.');
+  return data.url;
+}
+
 async function handleLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  if (!['image/jpeg','image/png'].includes(file.type)) {
-    toast('JPG or PNG only'); input.value = ''; return;
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    toast('JPG, PNG, atau WebP sahaja'); input.value = ''; return;
   }
   const statusEl = document.getElementById('iLogoStatus');
-  statusEl.textContent = 'Processing…';
+  const preview = document.getElementById('iLogoPreview');
+  statusEl.textContent = 'Memproses dan memuat naik logo…';
   try {
-    const dataUrl = await resizeImageToDataURL(file, 400, 0.82);
-    document.getElementById('iLogo').value = dataUrl;
-    const preview = document.getElementById('iLogoPreview');
-    preview.src = dataUrl; preview.style.display = 'block';
-    statusEl.textContent = 'Photo ready — tap Save Store Info to apply ✓';
+    const localDataUrl = await resizeImageToDataURL(file, 400, 0.82);
+    preview.src = localDataUrl;
+    preview.style.display = 'block';
+  } catch {}
+
+  try {
+    const r2Url = await uploadImageToR2(file, 'store-logo', 512);
+    document.getElementById('iLogo').value = r2Url;
+    preview.src = r2Url;
+    statusEl.textContent = 'Logo berjaya dimuat naik ke R2 ✓ Tekan Save Store Info untuk simpan.';
+    toast('Logo berjaya dimuat naik ke storan R2 ✓');
   } catch (e) {
-    statusEl.textContent = 'Failed to process image';
+    const fallbackDataUrl = await resizeImageToDataURL(file, 400, 0.82);
+    document.getElementById('iLogo').value = fallbackDataUrl;
+    statusEl.textContent = 'Storan R2 tidak dapat dicapai — disimpan secara setempat. Tekan Save Store Info.';
+    toast('Disimpan secara setempat (fallback)');
   } finally {
     input.value = '';
   }
@@ -2056,19 +2153,29 @@ async function handleLogoUpload(input) {
 async function handleBannerUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  if (!['image/jpeg','image/png'].includes(file.type)) {
-    toast('JPG or PNG only'); input.value = ''; return;
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    toast('JPG, PNG, atau WebP sahaja'); input.value = ''; return;
   }
   const statusEl = document.getElementById('iBannerStatus');
-  statusEl.textContent = 'Processing…';
+  const preview = document.getElementById('iBannerPreview');
+  statusEl.textContent = 'Memproses dan memuat naik banner…';
   try {
-    const dataUrl = await resizeImageToDataURL(file, 1200, 0.82);
-    document.getElementById('iBanner').value = dataUrl;
-    const preview = document.getElementById('iBannerPreview');
-    preview.src = dataUrl; preview.style.display = 'block';
-    statusEl.textContent = 'Photo ready — tap Save Store Info to apply ✓';
+    const localDataUrl = await resizeImageToDataURL(file, 1200, 0.82);
+    preview.src = localDataUrl;
+    preview.style.display = 'block';
+  } catch {}
+
+  try {
+    const r2Url = await uploadImageToR2(file, 'store-banner', 1920);
+    document.getElementById('iBanner').value = r2Url;
+    preview.src = r2Url;
+    statusEl.textContent = 'Banner berjaya dimuat naik ke R2 ✓ Tekan Save Store Info untuk simpan.';
+    toast('Banner berjaya dimuat naik ke storan R2 ✓');
   } catch (e) {
-    statusEl.textContent = 'Failed to process image';
+    const fallbackDataUrl = await resizeImageToDataURL(file, 1200, 0.82);
+    document.getElementById('iBanner').value = fallbackDataUrl;
+    statusEl.textContent = 'Storan R2 tidak dapat dicapai — disimpan secara setempat. Tekan Save Store Info.';
+    toast('Disimpan secara setempat (fallback)');
   } finally {
     input.value = '';
   }
@@ -2122,18 +2229,29 @@ function resizeImageToDataURL(file, maxPx, quality) {
 async function handlePhotoUpload(input, previewId, hiddenId) {
   const file = input.files[0];
   if (!file) return;
-  if (!['image/jpeg','image/png'].includes(file.type)) {
-    toast('JPG or PNG only'); input.value = ''; return;
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+    toast('JPG, PNG, atau WebP sahaja'); input.value = ''; return;
   }
-  toast('Resizing image...');
+  toast('Memproses foto...');
   try {
     const dataUrl = await resizeImageToDataURL(file, 500, 0.72);
     const preview = document.getElementById(previewId);
     preview.src = dataUrl;
     preview.style.display = 'block';
     document.getElementById(hiddenId).value = dataUrl;
+
+    if (adminToken) {
+      try {
+        const r2Url = await uploadImageToR2(file, 'menu-item', 800);
+        document.getElementById(hiddenId).value = r2Url;
+        preview.src = r2Url;
+        toast('Foto dimuat naik ke R2 ✓ Tekan Save');
+        return;
+      } catch {}
+    }
     toast('Photo ready — tap Save to apply ✓');
   } catch { toast('Failed to process image'); }
+  finally { input.value = ''; }
 }
 
 function removeItemPhoto(previewId, hiddenId) {

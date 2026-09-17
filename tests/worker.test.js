@@ -474,6 +474,38 @@ describe("POST /api/upload/video — video upload", () => {
     const body = await res.json();
     expect(body.filename).toMatch(/\.webm$/);
   });
+
+  it("uploads video with Authorization: Bearer <adminToken> without X-Admin-Secret", async () => {
+    const pinRes = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "0405" })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    const pinData = await pinRes.json();
+    const token = pinData.token;
+
+    const form = new FormData();
+    form.append("video", makeFile("fake-webm-bytes", "video/webm", "clip.webm"));
+    form.append("item_id", "roast-clip");
+    const env = makeEnv();
+    const res = await worker.fetch(
+      new Request("https://example.com/api/upload/video", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form
+      }),
+      env,
+      makeCtx()
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.url).toMatch(/\/media\/clips\/roast-clip_/);
+    expect(body.filename).toMatch(/\.webm$/);
+  });
 });
 
 // ── Image Upload ──────────────────────────────────────────────────────────────
@@ -574,6 +606,39 @@ describe("POST /api/upload/image — image upload", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.filename).toMatch(/\.jpg$/);
+  });
+
+  it("uploads image with Authorization: Bearer <adminToken> without X-Admin-Secret", async () => {
+    const pinRes = await worker.fetch(
+      new Request("https://example.com/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: "0405" })
+      }),
+      makeEnv(),
+      makeCtx()
+    );
+    const pinData = await pinRes.json();
+    const token = pinData.token;
+
+    const form = new FormData();
+    form.append("image", makeFile("fake-webp-bytes", "image/webp", "store-logo.webp"));
+    form.append("item_id", "store-logo");
+    const env = makeEnv();
+    const res = await worker.fetch(
+      new Request("https://example.com/api/upload/image", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form
+      }),
+      env,
+      makeCtx()
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.url).toMatch(/\/media\/images\/store-logo_/);
+    expect(body.filename).toMatch(/\.webp$/);
+    expect(env.MEDIA_BUCKET.put).toHaveBeenCalled();
   });
 });
 
