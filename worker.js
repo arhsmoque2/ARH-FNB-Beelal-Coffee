@@ -139,6 +139,19 @@ export default {
       return env.ASSETS.fetch(v2Url);
     }
 
+    // Direct routing for merchant admin and standalone developer console
+    if (url.pathname === "/admin" || url.pathname === "/admin/") {
+      const adminUrl = new URL("/admin.html", request.url);
+      adminUrl.search = url.search;
+      return env.ASSETS.fetch(adminUrl);
+    }
+
+    if (url.pathname === "/devcon" || url.pathname === "/devcon/") {
+      const devconUrl = new URL("/devcon.html", request.url);
+      devconUrl.search = url.search;
+      return env.ASSETS.fetch(devconUrl);
+    }
+
     if (url.pathname === "/sw.js") {
       const assetRes = await env.ASSETS.fetch(request);
       const headers = new Headers(assetRes.headers);

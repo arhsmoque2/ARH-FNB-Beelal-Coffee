@@ -404,18 +404,17 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     <div><div class="topbar-title" id="topbarTitle">Panel Admin</div><div class="topbar-role" id="roleLabel">Pemilik</div></div>
     <div style="display:flex;gap:6px;align-items:center;">
       <button class="lock-btn" id="adminLangToggle" onclick="setAdminLang(_aLang==='bm'?'en':'bm')" style="display:none">EN</button>
-      <button class="lock-btn" id="lockBtn" onclick="logout()">Kunci</button>
+      <button class="lock-btn" id="lockBtn" onclick="logout()">Lock</button>
     </div>
   </div>
   <div class="tab-nav">
-    <div class="tab-btn active" id="tab-btn-store" onclick="showTab('store',this)">Kedai</div>
+    <div class="tab-btn active" id="tab-btn-store" onclick="showTab('store',this)">Store</div>
     <div class="tab-btn" id="tab-btn-menu" onclick="showTab('menu',this)">Menu</div>
-    <div class="tab-btn" id="tab-btn-orders" onclick="showTab('orders',this)">Pesanan</div>
-    <div class="tab-btn" id="tab-btn-billing" onclick="showTab('billing',this)">Penyelesaian & Bil</div>
-    <div class="tab-btn" id="tab-btn-feedback" onclick="showTab('feedback',this)">Maklum Balas</div>
-    <div class="tab-btn" id="tab-btn-security" onclick="showTab('security',this)">Keselamatan</div>
-    <div class="tab-btn" id="tab-btn-studio" onclick="showTab('studio',this)">Studio Tema</div>
-    <div class="tab-btn hidden" id="devTabBtn" onclick="showTab('dev',this)">Pembangun ⚙</div>
+    <div class="tab-btn" id="tab-btn-orders" onclick="showTab('orders',this)">Orders</div>
+    <div class="tab-btn" id="tab-btn-billing" onclick="showTab('billing',this)">Settlement & Billing</div>
+    <div class="tab-btn" id="tab-btn-feedback" onclick="showTab('feedback',this)">Feedback</div>
+    <div class="tab-btn" id="tab-btn-security" onclick="showTab('security',this)">Security</div>
+    <div class="tab-btn" id="tab-btn-studio" onclick="showTab('studio',this)">Theme Studio</div>
   </div>
 
   <!-- STORE TAB -->
@@ -652,15 +651,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
       </div>
       <button class="btn btn-primary" onclick="saveOwnerPin()" style="margin-top:10px">Update Owner PIN</button>
     </div>
-    <div class="a-card" id="devPinCard" style="display:none">
-      <div class="a-card-title">Developer PIN — 4 digits</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Your personal PIN. Unlocks Theme Studio, Dev tab, and system prompt editor. Keep private.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div><label class="form-label">New PIN</label><input class="form-input" id="devPinA2" type="password" maxlength="4" placeholder="••••" inputmode="numeric"></div>
-        <div><label class="form-label">Confirm</label><input class="form-input" id="devPinB2" type="password" maxlength="4" placeholder="••••" inputmode="numeric"></div>
-      </div>
-      <button class="btn btn-primary" onclick="saveDevPin()" style="margin-top:10px">Update Dev PIN</button>
-    </div>
   </div>
 
   <!-- AI STUDIO TAB -->
@@ -755,139 +745,6 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
     </div>
   </div>
 
-  <!-- DEV TAB (dev PIN only) -->
-  <div class="tab-panel" id="tab-dev">
-    <div class="sec-title">Developer</div>
-    <div class="sec-sub">Visible to developer only</div>
-
-    <!-- SALES DASHBOARD -->
-    <div class="dev-section">
-      <div class="dev-title">Sales Dashboard</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">Monitor sales analytics from order history.</div>
-        
-        <!-- Sales Stats Grid -->
-        <div id="salesStatsGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-          <div style="background:var(--bg2);padding:10px;border-radius:var(--r2);text-align:center">
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase">Today</div>
-            <strong id="salesToday" style="font-size:16px;color:var(--text)">RM 0.00</strong>
-          </div>
-          <div style="background:var(--bg2);padding:10px;border-radius:var(--r2);text-align:center">
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase">This Week</div>
-            <strong id="salesWeekly" style="font-size:16px;color:var(--text)">RM 0.00</strong>
-          </div>
-          <div style="background:var(--bg2);padding:10px;border-radius:var(--r2);text-align:center">
-            <div style="font-size:10px;color:var(--text3);text-transform:uppercase">This Month</div>
-            <strong id="salesMonthly" style="font-size:16px;color:var(--text)">RM 0.00</strong>
-          </div>
-        </div>
-        
-        <div style="display:flex;gap:8px;margin-bottom:16px">
-          <button class="btn btn-secondary btn-sm" onclick="loadSalesDashboard()">↻ Refresh Dashboard</button>
-        </div>
-        
-        <!-- Top 10 items section -->
-        <div style="margin-bottom:14px">
-          <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Top 10 Menu Items (This Week)</div>
-          <div id="topItemsWeekly" style="font-size:12px;color:var(--text2);line-height:1.6">Loading...</div>
-        </div>
-        <div style="margin-bottom:14px">
-          <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Top 10 Menu Items (This Month)</div>
-          <div id="topItemsMonthly" style="font-size:12px;color:var(--text2);line-height:1.6">Loading...</div>
-        </div>
-        
-        <!-- Order pattern section -->
-        <div>
-          <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Peak Ordering Periods (Hour of Day)</div>
-          <div id="orderPatterns" style="font-size:12px;color:var(--text2);line-height:1.6">Loading...</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">OpenRouter AI Proxy</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">AI Chat is proxied through the Cloudflare Worker via server-side <code>OPENROUTER_API_KEY</code> secret. Keys are not exposed in browser or database.</div>
-        <div class="api-key-row">
-          <input class="api-key-input" id="orKey" type="text" value="•••••••••••••••• (Cloudflare Worker Secret)" disabled>
-          <button class="btn btn-secondary btn-sm" onclick="testKey()">Test Proxy</button>
-        </div>
-        <div class="key-status" id="keyStatus"></div>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">AI Model</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Fetches available free models live from OpenRouter. Tap Fetch to refresh list.</div>
-        <div class="api-key-row">
-          <select class="model-select" id="modelSelect">
-            <option value="">— tap Fetch to load models —</option>
-          </select>
-          <button class="btn btn-secondary btn-sm" onclick="fetchModels()">Fetch</button>
-        </div>
-        <div class="key-status" id="modelStatus"></div>
-        <button class="btn btn-primary" onclick="saveModel()" style="margin-top:10px">Save Model</button>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">System Prompt</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Injected before every Theme Studio chat request. Edit to fine-tune behaviour, persona, and ambiguity rules.</div>
-        <textarea class="sysprompt-textarea" id="sysPromptInput"></textarea>
-        <button class="btn btn-primary" onclick="saveSysPrompt()" style="margin-top:10px">Save System Prompt</button>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">Imgur Client-ID</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Register an Imgur API app, choose anonymous usage without user authorization, then paste the Client ID only. Do not paste the Client Secret. Uploads use <strong>Authorization: Client-ID</strong>.</div>
-        <div class="api-key-row">
-          <input class="api-key-input" id="imgurClientId" type="text" placeholder="Client ID from Imgur">
-        </div>
-        <div class="key-status" id="imgurStatus"></div>
-        <button class="btn btn-primary" onclick="saveImgurClientId()" style="margin-top:10px">Save Client-ID</button>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">Master Snapshot</div>
-      <div class="a-card">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Take a master snapshot of current theme. This becomes the factory reset point. Cannot be overwritten except from this panel.</div>
-        <button class="btn btn-primary" onclick="takeMasterSnapshot()">📸 Take Master Snapshot Now</button>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">What's New</div>
-      <div class="a-card">
-        <div id="releaseList"><div style="color:var(--text2);font-size:13px">Loading...</div></div>
-        <button class="btn btn-primary" onclick="markAllReleasesSeen()" style="margin-top:10px">Mark Updates as Read</button>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title">Developer Feedback Inbox</div>
-      <div class="a-card">
-        <div class="inline-grid" style="margin-bottom:10px">
-          <button class="btn btn-secondary" onclick="loadDeveloperFeedback('customer_to_developer')">Customer App Feedback</button>
-          <button class="btn btn-secondary" onclick="loadDeveloperFeedback('owner_to_developer')">Owner Support Feedback</button>
-        </div>
-        <div id="devFeedbackList"><div style="color:var(--text2);font-size:13px">Choose a feedback channel.</div></div>
-      </div>
-    </div>
-
-    <div class="dev-section">
-      <div class="dev-title" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-        <span>Error Log</span>
-        <button class="btn btn-secondary" id="forceRefreshErrorLog" onclick="loadErrorLog(true)" style="font-size:12px;padding:6px 10px;">Force Refresh</button>
-      </div>
-      <div id="errorLog"><div style="color:var(--text2);font-size:13px">Loading...</div></div>
-    </div>
-  </div>
-
 </div><!-- end app -->
 
 <!-- RELEASE MODAL -->
@@ -968,18 +825,18 @@ input[type=color]{width:32px;height:32px;border:none;border-radius:6px;cursor:po
 let FB_URL  = APP_CONFIG.firebase.url;
 let FB_ROOT = APP_CONFIG.firebase.root;
 const CUR     = APP_CONFIG.store.currency;
-const APP_VERSION = '2026.05.25.1';
+const APP_VERSION = '2026.09.17';
 const LOCAL_RELEASES = {
   [APP_VERSION]: {
     version: APP_VERSION,
-    title: 'Private feedback channels and update notices',
-    summary: 'Admin now separates store feedback from developer feedback, and owners can see relevant app updates.',
-    details: 'Customer feedback is private by default. Store/service feedback appears in the owner Feedback tab. App experience feedback and owner support requests stay in the Dev tab.',
+    title: 'Store Capabilities Update — September 2026',
+    summary: 'Direct photo uploads for store assets, order fulfillment workflow, and daily billing summaries.',
+    details: 'Store Asset Uploads:\n• Direct upload for store logo, hero banner, payment QR, and story cards.\n• Automatic aspect-ratio preview framing.\n\nOrder Fulfillment:\n• Barista controls: Start Brewing, Mark Ready, Complete, Cancel.\n• Customer live status tracking bar updates automatically.\n• Audio chime and status badge on incoming QR orders.\n\nBilling Summary:\n• Daily transaction counts, gross volume, and platform settlement.\n\nPerformance:\n• Standalone PWA installation prompt for mobile home screens.\n• Instant theme cache prevents display flicker on startup.',
     type: 'feature',
     audience: 'owner',
     severity: 'medium',
     requires_owner_action: false,
-    created_at: Date.now(),
+    created_at: 1758110400000,
     store_specific: false,
   },
 };
@@ -1428,10 +1285,9 @@ async function unlockApp() {
   document.getElementById('pinScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.add('visible');
   const _rl = document.getElementById('roleLabel');
-  if (_rl) { _rl.dataset.role = currentRole; _rl.textContent = currentRole === 'dev' ? (ADMIN_STRINGS[_aLang]||ADMIN_STRINGS.bm).roleDev : (ADMIN_STRINGS[_aLang]||ADMIN_STRINGS.bm).roleOwner; }
-  if (currentRole === 'dev') {
-    document.getElementById('devTabBtn').classList.remove('hidden');
-    document.getElementById('devPinCard').style.display = 'block';
+  if (_rl) {
+    _rl.dataset.role = currentRole;
+    _rl.textContent = currentRole === 'dev' ? 'Developer' : 'Owner';
   }
   await safe(loadAll, 'unlockApp');
   startOrdersPolling();
@@ -1461,7 +1317,6 @@ async function loadAll() {
   await loadOwnerFeedback();
   await checkWhatsNew();
   await loadStudioTab();
-  if (currentRole === 'dev') await loadDevTab();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1472,9 +1327,6 @@ function showTab(id, el) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   el.classList.add('active');
-  if (id === 'dev') {
-    loadSalesDashboard();
-  }
   if (id === 'billing') {
     loadBillingDashboard();
   }
@@ -2841,113 +2693,6 @@ function stopOrdersPolling() {
   document.title = 'Admin';
 }
 
-async function loadSalesDashboard() {
-  await safe(async () => {
-    const snap = await getAdminOrders();
-    const todayEl = document.getElementById('salesToday');
-    const weeklyEl = document.getElementById('salesWeekly');
-    const monthlyEl = document.getElementById('salesMonthly');
-    const topWeeklyEl = document.getElementById('topItemsWeekly');
-    const topMonthlyEl = document.getElementById('topItemsMonthly');
-    const patternsEl = document.getElementById('orderPatterns');
-    
-    if (!snap) {
-      todayEl.textContent = `${CUR} 0.00`;
-      weeklyEl.textContent = `${CUR} 0.00`;
-      monthlyEl.textContent = `${CUR} 0.00`;
-      topWeeklyEl.innerHTML = '<div style="color:var(--text3)">No data</div>';
-      topMonthlyEl.innerHTML = '<div style="color:var(--text3)">No data</div>';
-      patternsEl.innerHTML = '<div style="color:var(--text3)">No data</div>';
-      return;
-    }
-    
-    const orders = Object.values(snap);
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000;
-    const oneWeek = 7 * oneDay;
-    const oneMonth = 30 * oneDay;
-    
-    // 1. Sales Calculations
-    let todaySales = 0;
-    let weeklySales = 0;
-    let monthlySales = 0;
-    
-    // Weekly & Monthly items frequency map
-    const weeklyItemMap = {};
-    const monthlyItemMap = {};
-    
-    // Hourly ordering pattern (0-23 hours)
-    const hourMap = Array(24).fill(0);
-    
-    orders.forEach(o => {
-      const ts = Number(o.ts) || 0;
-      const total = Number(o.total) || 0;
-      const age = now - ts;
-      
-      if (age < oneDay) todaySales += total;
-      if (age < oneWeek) {
-        weeklySales += total;
-        (o.items || []).forEach(item => {
-          weeklyItemMap[item.name] = (weeklyItemMap[item.name] || 0) + 1;
-        });
-      }
-      if (age < oneMonth) {
-        monthlySales += total;
-        (o.items || []).forEach(item => {
-          monthlyItemMap[item.name] = (monthlyItemMap[item.name] || 0) + 1;
-        });
-      }
-      
-      const date = new Date(ts);
-      const hour = date.getHours();
-      hourMap[hour] += 1;
-    });
-    
-    todayEl.textContent = `${CUR} ${todaySales.toFixed(2)}`;
-    weeklyEl.textContent = `${CUR} ${weeklySales.toFixed(2)}`;
-    monthlyEl.textContent = `${CUR} ${monthlySales.toFixed(2)}`;
-    
-    // 2. Top 10 items for the week
-    const topWeekly = Object.entries(weeklyItemMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-      
-    if (topWeekly.length) {
-      topWeeklyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topWeekly.map(([name, count]) => `<li><strong>${escapeHtml(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
-    } else {
-      topWeeklyEl.innerHTML = '<div style="color:var(--text3)">No orders this week.</div>';
-    }
-    
-    // 3. Top 10 items for the month
-    const topMonthly = Object.entries(monthlyItemMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10);
-      
-    if (topMonthly.length) {
-      topMonthlyEl.innerHTML = '<ol style="margin:0;padding-left:16px">' + topMonthly.map(([name, count]) => `<li><strong>${escapeHtml(name)}</strong> (${count} order${count === 1 ? '' : 's'})</li>`).join('') + '</ol>';
-    } else {
-      topMonthlyEl.innerHTML = '<div style="color:var(--text3)">No orders this month.</div>';
-    }
-    
-    // 4. Hourly patterns rendering (show peak hours)
-    const peakHours = hourMap
-      .map((count, hour) => ({ hour, count }))
-      .filter(item => item.count > 0)
-      .sort((a, b) => b.count - a.count);
-      
-    if (peakHours.length) {
-      patternsEl.innerHTML = '<ul style="margin:0;padding-left:16px;list-style-type:none">' + peakHours.slice(0, 5).map(item => {
-        const h = item.hour;
-        const periodStr = `${h === 0 ? 12 : (h > 12 ? h - 12 : h)}:00 ${h >= 12 ? 'PM' : 'AM'}`;
-        return `<li>🕒 <strong>${periodStr}</strong>: ${item.count} order${item.count === 1 ? '' : 's'}</li>`;
-      }).join('') + '</ul>';
-    } else {
-      patternsEl.innerHTML = '<div style="color:var(--text3)">No pattern data yet.</div>';
-    }
-    
-  }, 'loadSalesDashboard');
-}
-
 // ════════════════════════════════════════════════════════════
 // RELEASE ANNOUNCEMENTS
 // ════════════════════════════════════════════════════════════
@@ -3944,191 +3689,6 @@ async function sendChat() {
 }
 
 // ════════════════════════════════════════════════════════════
-// DEV TAB
-// ════════════════════════════════════════════════════════════
-async function loadDevTab() {
-  await safe(async () => {
-    // API key
-    document.getElementById('orKey').value = '•••••••••••••••• (Cloudflare Worker Secret)';
-    document.getElementById('orKey').disabled = true;
-
-    // Saved model
-    const savedModel = await fbGet('config/dev/or_model');
-    if (savedModel) {
-      orModel = savedModel;
-      const sel = document.getElementById('modelSelect');
-      let opt = sel.querySelector(`option[value="${savedModel}"]`);
-      if (!opt) {
-        opt = document.createElement('option');
-        opt.value = savedModel;
-        opt.textContent = savedModel;
-        sel.appendChild(opt);
-      }
-      opt.selected = true;
-      document.getElementById('modelStatus').textContent = `Current: ${savedModel}`;
-    }
-
-    // Imgur Client-ID
-    const imgurId = await fbGet('config/dev/imgur_client_id');
-    if (imgurId) document.getElementById('imgurClientId').value = imgurId;
-
-    // System prompt
-    const sp = await fbGet('config/dev/sys_prompt');
-    document.getElementById('sysPromptInput').value = sp || DEFAULT_SYS_PROMPT;
-
-    // Error log
-    await loadErrorLog();
-  }, 'loadDev');
-}
-
-async function loadErrorLog(force = false) {
-  const snap = await fbGet(`error_log${force ? `?t=${Date.now()}` : ''}`);
-  const el   = document.getElementById('errorLog');
-  if (!snap) { el.innerHTML = '<div style="color:var(--text2);font-size:13px">No errors logged.</div>'; return; }
-  const errors = Object.values(snap).sort((a,b) => b.ts-a.ts).slice(0,20);
-  el.innerHTML = '';
-  errors.forEach(e => {
-    const d = document.createElement('div');
-    d.className = 'error-row';
-    const t = new Date(e.ts).toLocaleString(APP_CONFIG.brand.locale);
-    const meta = [
-      e.type ? `Type: ${e.type}` : '',
-      e.ctx ? `Context: ${e.ctx}` : '',
-      e.phase ? `Phase: ${e.phase}` : '',
-      e.http_status ? `HTTP: ${e.http_status}${e.status_text ? ' ' + e.status_text : ''}` : '',
-      e.server_code ? `Server code: ${e.server_code}` : '',
-      e.model ? `Model: ${e.model}` : '',
-      e.endpoint ? `Endpoint: ${e.endpoint}` : '',
-    ].filter(Boolean);
-    const detail = e.server_message || e.raw || e.stack;
-    d.innerHTML = `
-      <div class="error-row-time">${t}</div>
-      <div class="error-row-msg">${escapeHtml(e.msg || e.server_message || 'Unknown error')}</div>
-      ${meta.length ? `<div class="error-row-ctx">${escapeHtml(meta.join(' · '))}</div>` : ''}
-      ${detail ? `<pre class="error-row-raw">${escapeHtml(detail)}</pre>` : ''}`;
-    el.appendChild(d);
-  });
-}
-
-async function testKey() {
-  const status = document.getElementById('keyStatus');
-  status.textContent = 'Testing worker AI proxy...'; status.className = 'key-status';
-  await safe(async () => {
-    const r = await fetchWithTimeout('/api/chat', {
-      method:'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(adminToken ? { 'Authorization': 'Bearer ' + adminToken } : {}),
-      },
-      body: JSON.stringify({ model: orModel, messages:[{role:'user',content:'Say: OK'}], max_tokens:30 })
-    }, 15000);
-    const payload = await readResponsePayload(r);
-    const d = payload.json || {};
-    if (!r.ok || d.error) {
-      await logHttpFailure('testKey', r, payload, {
-        phase: 'openrouter_proxy_test',
-        model: orModel,
-      });
-      const err = new Error(serverErrorMessage(payload, r.status));
-      err.httpStatus = r.status;
-      err.endpoint = r.url;
-      err.model = orModel;
-      err.phase = 'openrouter_proxy_test';
-      err.raw = safeJsonPreview(d || payload.text);
-      err.logged = true;
-      throw err;
-    }
-    const choice = d.choices?.[0];
-    const txt = choice?.message?.content?.trim() || '';
-    if (txt) {
-      status.textContent = `✓ ${orModel} — Worker AI proxy active`;
-      status.className = 'key-status ok';
-    } else {
-      const reason = choice?.finish_reason || 'no choices returned';
-      logError({ type:'testKey_empty_response', model: orModel, http_status: r.status, finish_reason: reason, raw: safeJsonPreview(d, 500) });
-      status.textContent = `⚠ Empty response — finish: ${reason} — see Error Log`;
-      status.className = 'key-status err';
-    }
-  }, 'testKey');
-}
-
-async function saveKey() {
-  toast('OPENROUTER_API_KEY is governed server-side on Cloudflare Worker');
-}
-
-async function fetchModels() {
-  const status = document.getElementById('modelStatus');
-  status.textContent = 'Fetching models...';
-  status.className = 'key-status';
-  await safe(async () => {
-    const r = await fetchWithTimeout('https://openrouter.ai/api/v1/models', 8000);
-    const payload = await readResponsePayload(r);
-    const data = payload.json || {};
-    if (!r.ok || data.error) {
-      await logHttpFailure('fetchModels', r, payload, {
-        phase: 'openrouter_models_list',
-      });
-      const err = new Error(serverErrorMessage(payload, r.status));
-      err.httpStatus = r.status;
-      err.endpoint = r.url;
-      err.phase = 'openrouter_models_list';
-      err.raw = safeJsonPreview(data || payload.text);
-      err.logged = true;
-      throw err;
-    }
-    const free = (data.data || []).filter(m =>
-      m.pricing?.prompt === '0' && m.pricing?.completion === '0'
-    ).sort((a, b) => a.name.localeCompare(b.name));
-
-    const sel = document.getElementById('modelSelect');
-    const current = orModel;
-    sel.innerHTML = '';
-    if (!free.length) {
-      sel.innerHTML = '<option value="">No free models found</option>';
-      status.textContent = 'No free models available';
-      return;
-    }
-    free.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = m.name;
-      if (m.id === current) opt.selected = true;
-      sel.appendChild(opt);
-    });
-    status.textContent = `✓ ${free.length} free models loaded`;
-    status.className = 'key-status ok';
-  }, 'fetchModels');
-}
-
-async function saveModel() {
-  const sel = document.getElementById('modelSelect');
-  const m = sel.value;
-  if (!m) { toast('Select a model first'); return; }
-  await safe(async () => {
-    await fbSet('config/dev/or_model', m);
-    orModel = m;
-    document.getElementById('modelStatus').textContent = `Saved: ${m}`;
-    toast('Model saved ✓');
-  }, 'saveModel');
-}
-
-async function saveSysPrompt() {
-  await safe(async () => {
-    await fbSet('config/dev/sys_prompt', document.getElementById('sysPromptInput').value);
-    toast('System prompt saved ✓');
-  }, 'saveSysPrompt');
-}
-
-async function takeMasterSnapshot() {
-  if (!confirm('Take master snapshot of current theme? This becomes the factory reset point.')) return;
-  await safe(async () => {
-    const current = await fbGet('config/theme');
-    await fbSet('config/theme_master', current);
-    toast('Master snapshot taken ✓');
-  }, 'masterSnapshot');
-}
-
-// ════════════════════════════════════════════════════════════
 // TOAST
 // ════════════════════════════════════════════════════════════
 function toast(msg) {
@@ -4419,21 +3979,21 @@ zipDrop.addEventListener('drop', e => {
 const ADMIN_STRINGS = {
   bm: {
     pinLogo: 'Panel Admin', pinSubtitle: 'Masukkan PIN anda untuk teruskan',
-    firstRunTitle: '⚙ Persediaan Pertama — Pembangun',
-    firstRunDesc: 'Tetapkan PIN pembangun anda. Rahsiakan — ia membuka kunci Studio Tema dan tetapan sistem.',
-    firstRunBtn: 'Tetapkan PIN Pembangun & Teruskan',
+    firstRunTitle: '⚙ Persediaan Pertama',
+    firstRunDesc: 'Tetapkan PIN pemilik anda. Rahsiakan — ia membuka kunci tetapan kedai.',
+    firstRunBtn: 'Tetapkan PIN & Teruskan',
     topbarTitle: 'Panel Admin', roleOwner: 'Pemilik', roleDev: 'Pembangun',
     lock: 'Kunci',
-    tabs: { store:'Kedai', menu:'Menu', orders:'Pesanan', feedback:'Maklum Balas', security:'Keselamatan', studio:'Studio Tema', dev:'Pembangun ⚙' },
+    tabs: { store:'Kedai', menu:'Menu', orders:'Pesanan', billing:'Penyelesaian & Bil', feedback:'Maklum Balas', security:'Keselamatan', studio:'Studio Tema' },
   },
   en: {
     pinLogo: 'Admin Panel', pinSubtitle: 'Enter your PIN to continue',
-    firstRunTitle: '⚙ First Time Setup — Developer',
-    firstRunDesc: 'Set your developer PIN. Keep this private — it unlocks Theme Studio and system settings.',
-    firstRunBtn: 'Set Dev PIN & Continue',
+    firstRunTitle: '⚙ First Time Setup',
+    firstRunDesc: 'Set your owner PIN. Keep this private — it unlocks store management.',
+    firstRunBtn: 'Set PIN & Continue',
     topbarTitle: 'Admin Panel', roleOwner: 'Owner', roleDev: 'Developer',
     lock: 'Lock',
-    tabs: { store:'Store', menu:'Menu', orders:'Orders', feedback:'Feedback', security:'Security', studio:'Theme Studio', dev:'Dev ⚙' },
+    tabs: { store:'Store', menu:'Menu', orders:'Orders', billing:'Settlement & Billing', feedback:'Feedback', security:'Security', studio:'Theme Studio' },
   }
 };
 let _aLang = localStorage.getItem('arh_lang') || 'en';

@@ -114,6 +114,30 @@ describe("Router — security & middleware", () => {
     expect(calledUrl.search).toBe("?table=5&ref=qr");
   });
 
+  it("rewrites /admin and /admin/ to /admin.html on static ASSETS", async () => {
+    for (const p of ["/admin", "/admin/"]) {
+      const env = makeEnv();
+      const res = await worker.fetch(new Request(`https://example.com${p}`), env, makeCtx());
+      expect(res.status).toBe(200);
+      expect(env.ASSETS.fetch).toHaveBeenCalled();
+      const calledArg = env.ASSETS.fetch.mock.calls[0][0];
+      const calledUrl = calledArg instanceof URL ? calledArg : new URL(calledArg.url || calledArg);
+      expect(calledUrl.pathname, `Path ${p} should rewrite to /admin.html`).toBe("/admin.html");
+    }
+  });
+
+  it("rewrites /devcon and /devcon/ to /devcon.html on static ASSETS", async () => {
+    for (const p of ["/devcon", "/devcon/"]) {
+      const env = makeEnv();
+      const res = await worker.fetch(new Request(`https://example.com${p}`), env, makeCtx());
+      expect(res.status).toBe(200);
+      expect(env.ASSETS.fetch).toHaveBeenCalled();
+      const calledArg = env.ASSETS.fetch.mock.calls[0][0];
+      const calledUrl = calledArg instanceof URL ? calledArg : new URL(calledArg.url || calledArg);
+      expect(calledUrl.pathname, `Path ${p} should rewrite to /devcon.html`).toBe("/devcon.html");
+    }
+  });
+
   it("serves /sw.js with correct MIME, no-cache, and Service-Worker-Allowed headers", async () => {
     const env = makeEnv({
       ASSETS: {
