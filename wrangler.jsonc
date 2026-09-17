@@ -11,7 +11,16 @@
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/media/*", "/", "/index", "/index.html", "/index-v2"]
+    "run_worker_first": [
+      "/api/*",
+      "/media/*",
+      "/",
+      "/index",
+      "/index.html",
+      "/index-v2",
+      "/sw.js",
+      "/manifest.webmanifest"
+    ]
   },
   "r2_buckets": [
     {
