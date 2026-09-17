@@ -88,6 +88,25 @@ In the current development cycle (PR `feat/admin-auth-and-order-fulfillment`), t
 - **Playwright Gate Enforced:** Added CHECK 0 in [`_qa/beelal-layout-audit.mjs`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/_qa/beelal-layout-audit.mjs) verifying that computed `--brand`, `--brand2`, and `--bg` never contain off-brand indigo or blue hues across Mobile, Tablet, and Desktop matrices.
 - **Animated Coffee Icon Loading Screen:** Added an on-brand loading screen (`#loader`) in [`index-v2.html`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/index-v2.html) displaying the official Beelal Coffee monogram logo surrounded by a spinning dual-ring motion, gentle breathing pulse, animated brew subtitle, and smooth transition on initialization.
 
+### PWA Install Prompt Non-Collision & Translucent Glassmorphism
+
+- **Root Cause of Element Overlap:** When `beforeinstallprompt` fired, both the topbar install button (`#pwaInstallBtn`) and the floating bottom banner (`#pwaInstallBanner`) became active simultaneously. On screens <= 430px, the header button took up 86px, squeezing `.brand-title` ("Beelal Coffee") into collision. Furthermore, the bottom banner title (`Install Beelal Coffee App`) was 24 characters wide, wrapping and colliding with `#pwaBannerInstallBtn` on 360px mobile viewports.
+- **Translucent Glassmorphic Styling:** Converted the opaque 100% solid background of `#pwaInstallBanner` and `#floatingCart` into refined, translucent frosted glass using `color-mix(in srgb, var(--paper) 86%, transparent)` and `backdrop-filter: blur(16px);` with night mode dark glass support.
+- **Zero-Collision Responsive Rules:**
+  - On viewports `<= 640px`: Topbar `#pwaInstallBtn` is cleanly suppressed (`display: none !important;`) because mobile visitors already have the thumb-friendly floating `#pwaInstallBanner`.
+  - On viewports `> 640px`: Topbar button renders with ample room while `.brand` and `.brand-title` flex safely with `min-width: 0; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;`.
+  - Simplified `#pwaInstallBanner` title to concise `"Beelal Coffee"` with `flex: 1 1 auto; min-width: 0; text-overflow: ellipsis; white-space: nowrap;` eliminating horizontal squeeze against the action button.
+
+### Capability Rehearsal vs Clean Code Architecture (`npm run rehearse`)
+
+- **The Distinction:** Clean code (linters, formatters, typechecks, Vitest mock tests) verifies that code syntax is valid and mock functions return expected shapes in Node.js. It does not prove that components render without overlap or that real state transitions succeed at runtime.
+- **Automated Lifecycle Rehearsal Runner:** Built [`_qa/beelal-lifecycle-rehearsal.mjs`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/_qa/beelal-lifecycle-rehearsal.mjs) (`npm run rehearse`) which executes 21 end-to-end rehearsal checks:
+  1. **Act 1 (Playwright Geometry Rehearsal):** Simulates active install prompts across 5 viewports (360px, 390px, 412px, 768px, 1280px) and mathematically asserts `AABB_overlap === 0` between buttons and store titles, and validates `backdropFilter: blur(16px)` and translucent backgrounds in both light and night modes.
+  2. **Act 2 (Live Fulfillment State Machine Rehearsal):** Places an actual test order (`POST /api/order`), verifies customer tracking (`GET /api/order/status/:id`), asserts security rejection without Bearer token (401), issues HMAC token (`POST /api/admin/verify-pin`), progresses fulfillment through `placed` -> `preparing` -> `ready` -> `completed`, asserts customer sync at each step, validates rejection of invalid states (400), and deletes the rehearsal order from RTDB for zero residual test noise.
+  3. **Act 3 (Billing Ledger Rehearsal):** Validates D1 ledger tables (`order_events`, `billing_daily_rollups`) and daily calculation integrity.
+  4. **Act 4 (Zero-FOUC Theme Rehearsal):** Validates pre-render theme script execution and coffee loader affordance.
+- **Continuous Gate Integration:** Added Check 1.5 directly into [`_qa/beelal-layout-audit.mjs`](file:///D:/ARH-GITHUB/arhsmoque2/ARH-FNB-Beelal-Coffee/_qa/beelal-layout-audit.mjs) so `npm run check:layout` guards against layout collisions on every commit.
+
 ---
 
 ## 3. Architecture & API Contract Reference

@@ -18,6 +18,7 @@
     "check:layout": "node _qa/beelal-layout-audit.mjs",
     "preview:generate": "node _qa/preview-generator.mjs",
     "test:unit": "vitest run --coverage",
+    "rehearse": "node _qa/beelal-lifecycle-rehearsal.mjs",
     "check": "npm run lint && npm run check:spelling && npm run check:md && npm run check:knip && npm run check:prettier && npm run check:ui && npm run check:layout && npm run check:infra && npm run test:unit",
     "test": "npm run check"
   },

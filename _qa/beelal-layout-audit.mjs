@@ -15,6 +15,8 @@
  */
 
 import { chromium } from "playwright";
+import path from "path";
+import fs from "fs";
 
 const VIEWPORTS = [
   { name: "Mobile (iPhone 14 / Android)", width: 390, height: 844, maxBlankGap: 120 },
@@ -22,10 +24,13 @@ const VIEWPORTS = [
   { name: "Desktop (HD / Laptop)", width: 1280, height: 800, maxBlankGap: 240 }
 ];
 
+const localFileUrl = "file:///" + path.resolve(process.cwd(), "index-v2.html").replace(/\\/g, "/");
 const TARGET_URL = (
   process.argv[2] ||
   process.env.TARGET_URL ||
-  "https://store-beelal-fnb-pwa.arh-homelab.workers.dev/index-v2.html"
+  (fs.existsSync("index-v2.html")
+    ? localFileUrl
+    : "https://store-beelal-fnb-pwa.arh-homelab.workers.dev/index-v2.html")
 ).replace(/\/+$/, "");
 
 console.log("\n======================================================");
@@ -181,6 +186,77 @@ async function runAudit() {
           );
         }
         totalErrors += overlaps.length;
+      }
+
+      // --- CHECK 1.5: PWA Affordance & Active Prompt Overlap Check ---
+      const pwaCollisions = await page.evaluate(() => {
+        const banner = document.getElementById("pwaInstallBanner");
+        const pwaBtn = document.getElementById("pwaInstallBtn");
+        const brandTitle = document.getElementById("brandTitle");
+        const bannerTitle = document.querySelector(".pwa-banner-title");
+        const bannerInstallBtn = document.getElementById("pwaBannerInstallBtn");
+
+        // Temporarily activate PWA prompt state
+        if (banner) banner.classList.remove("hidden");
+        if (pwaBtn) pwaBtn.style.display = "inline-flex";
+
+        const errs = [];
+        const isMobile = window.innerWidth <= 640;
+
+        if (pwaBtn) {
+          const btnStyle = window.getComputedStyle(pwaBtn);
+          const isVisible = btnStyle.display !== "none" && btnStyle.visibility !== "hidden";
+          if (isMobile && isVisible) {
+            errs.push("Top header install button should be hidden on mobile screens <= 640px.");
+          }
+          if (isVisible && brandTitle) {
+            const rBtn = pwaBtn.getBoundingClientRect();
+            const rBrand = brandTitle.getBoundingClientRect();
+            const hasOverlap = !(
+              rBrand.right <= rBtn.left ||
+              rBrand.left >= rBtn.right ||
+              rBrand.bottom <= rBtn.top ||
+              rBrand.top >= rBtn.bottom
+            );
+            if (hasOverlap) {
+              errs.push("Top header install button overlaps with brand title.");
+            }
+          }
+        }
+
+        if (banner && bannerTitle && bannerInstallBtn) {
+          const rTitle = bannerTitle.getBoundingClientRect();
+          const rBtn = bannerInstallBtn.getBoundingClientRect();
+          const hasOverlap = !(
+            rTitle.right <= rBtn.left ||
+            rTitle.left >= rBtn.right ||
+            rTitle.bottom <= rBtn.top ||
+            rTitle.top >= rBtn.bottom
+          );
+          if (hasOverlap) {
+            errs.push("PWA banner title overlaps with Install button.");
+          }
+
+          const bannerStyle = window.getComputedStyle(banner);
+          if (!bannerStyle.backdropFilter || !bannerStyle.backdropFilter.includes("blur")) {
+            errs.push("PWA banner missing backdrop-filter blur.");
+          }
+        }
+
+        // Re-hide after check
+        if (banner) banner.classList.add("hidden");
+        if (pwaBtn) pwaBtn.style.display = "none";
+
+        return errs;
+      });
+
+      if (pwaCollisions.length === 0) {
+        console.log("  ✅ [PWA Prompt Check] 0 collisions; banner translucency & layout verified.");
+      } else {
+        for (const err of pwaCollisions) {
+          console.error("  ❌ [PWA Prompt Check] " + err);
+          totalErrors++;
+        }
       }
 
       // --- CHECK 2: Hit-Testing (Click Obstruction via elementFromPoint) ---

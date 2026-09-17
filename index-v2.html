@@ -202,6 +202,13 @@
       align-items: center;
       gap: 12px;
       min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+    .brand > div:last-child {
+      min-width: 0;
+      overflow: hidden;
+      flex: 1 1 auto;
     }
     .mark {
       width: 46px;
@@ -224,6 +231,7 @@
       font-size: 17px;
       font-weight: 900;
       line-height: 1.05;
+      max-width: 100%;
     }
     .brand-sub {
       margin-top: 4px;
@@ -896,10 +904,12 @@
       pointer-events: none;
       transition: transform .22s ease, opacity .22s ease;
       width: min(560px, calc(100% - 28px));
-      border: 0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 999px;
       min-height: 60px;
-      background: #1d1010;
+      background: rgba(29, 16, 16, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       color: #fff;
       display: flex;
       align-items: center;
@@ -1975,10 +1985,13 @@
       font-size: 12px;
       letter-spacing: 0.04em;
     }
+    @media (max-width: 640px) {
+      .install-pwa-btn { display: none !important; }
+    }
     @media (max-width: 430px) {
       .top-actions #statusChip { display: none; }
       .brand-sub { display: none; }
-      .brand-title { max-width: calc(100vw - 262px); }
+      .brand-title { max-width: calc(100vw - 210px); }
       .ambience-toggle { min-width: 60px; padding: 0 8px; }
       .lang-toggle { min-width: 48px !important; font-size: 11px; }
       .cart-top { min-width: 82px; font-size: 13px; }
@@ -2147,10 +2160,12 @@
       left: 50%;
       transform: translateX(-50%);
       width: min(440px, calc(100% - 32px));
-      background: var(--paper);
-      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--paper) 86%, transparent);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid color-mix(in srgb, var(--line) 75%, rgba(255, 255, 255, 0.25));
       border-radius: 16px;
-      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.15);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
       padding: 12px 16px;
       display: flex;
       align-items: center;
@@ -2159,17 +2174,24 @@
       z-index: 99;
       animation: pwaSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    html[data-mode="night"] .pwa-banner {
+      background: color-mix(in srgb, var(--paper) 86%, transparent);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+    }
     @keyframes pwaSlideUp {
       from { transform: translate(-50%, 20px); opacity: 0; }
       to { transform: translate(-50%, 0); opacity: 1; }
     }
     .pwa-banner.hidden { display: none !important; }
-    .pwa-banner-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+    .pwa-banner-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; overflow: hidden; }
     .pwa-banner-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; }
-    .pwa-banner-text { display: flex; flex-direction: column; min-width: 0; }
-    .pwa-banner-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .pwa-banner-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; overflow: hidden; }
+    .pwa-banner-title { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .pwa-banner-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pwa-banner-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .pwa-banner-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
     .pwa-banner-install {
       background: var(--brand);
       color: #fff;
@@ -2179,6 +2201,8 @@
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .pwa-banner-dismiss {
       background: transparent;
@@ -2187,6 +2211,10 @@
       font-size: 16px;
       cursor: pointer;
       padding: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
     .qr-copy-btn {
       background: transparent;
@@ -2228,7 +2256,7 @@
         l.classList.add("hidden");
         setTimeout(function() { l.style.display = "none"; }, 400);
       }
-    }, 4500);
+    }, 1200);
   </script>
 
   <div class="announcement-ribbon" id="liveAnnouncement">
@@ -2261,7 +2289,7 @@
     <div class="pwa-banner-left">
       <img class="pwa-banner-icon" src="/icons/icon-192.png" alt="Beelal Coffee" width="38" height="38">
       <div class="pwa-banner-text">
-        <span class="pwa-banner-title">Install Beelal Coffee App</span>
+        <span class="pwa-banner-title">Beelal Coffee</span>
         <span class="pwa-banner-sub">Fast offline menu & 1-tap ordering</span>
       </div>
     </div>
@@ -4868,7 +4896,10 @@
 
     init().catch(() => {
       const ldr = document.getElementById("loader");
-      if (ldr) ldr.textContent = "Could not load menu. Please refresh.";
+      if (ldr) {
+        ldr.classList.add("hidden");
+        setTimeout(() => { ldr.style.display = "none"; }, 400);
+      }
     });
   </script>
   <div id="debugPanel" class="debug-panel" style="display:none"></div>
