@@ -478,6 +478,89 @@ for (const htmlPath of TARGET_HTML_FILES) {
 }
 if (gate6Pass) console.log("  ✅ CSS blocks well-formed; no un-themed template colors found.\n");
 
+// Gate 7: PWA Manifest, Service Worker & Offline Installability
+console.log("📲 Gate 7: PWA Manifest, Service Worker & Offline Installability...");
+let gate7Pass = true;
+
+const manifestPath = path.join(repoRoot, "manifest.webmanifest");
+const swPath = path.join(repoRoot, "sw.js");
+
+if (!fs.existsSync(manifestPath)) {
+  console.error("  ❌ Missing manifest.webmanifest");
+  gate7Pass = false;
+  totalErrors++;
+} else {
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    if (manifest.name !== "Beelal Coffee") {
+      console.error("  ❌ manifest.webmanifest missing name 'Beelal Coffee'");
+      gate7Pass = false;
+      totalErrors++;
+    }
+    if (manifest.display !== "standalone") {
+      console.error("  ❌ manifest.webmanifest display must be 'standalone'");
+      gate7Pass = false;
+      totalErrors++;
+    }
+    if (!manifest.icons || manifest.icons.length < 3) {
+      console.error("  ❌ manifest.webmanifest must provide at least 3 icon sizes");
+      gate7Pass = false;
+      totalErrors++;
+    }
+  } catch (e) {
+    console.error("  ❌ manifest.webmanifest is invalid JSON: " + e.message);
+    gate7Pass = false;
+    totalErrors++;
+  }
+}
+
+if (!fs.existsSync(swPath)) {
+  console.error("  ❌ Missing sw.js Service Worker");
+  gate7Pass = false;
+  totalErrors++;
+} else {
+  const swContent = fs.readFileSync(swPath, "utf8");
+  if (!swContent.includes("SHELL_CACHE") || !swContent.includes("isAppShell")) {
+    console.error("  ❌ sw.js missing Stale-While-Revalidate (SWR) shell caching");
+    gate7Pass = false;
+    totalErrors++;
+  }
+  if (!swContent.includes("MEDIA_CACHE") || !swContent.includes("isMediaOrFont")) {
+    console.error("  ❌ sw.js missing CacheFirst media caching");
+    gate7Pass = false;
+    totalErrors++;
+  }
+  if (!swContent.includes("/api/")) {
+    console.error("  ❌ sw.js missing NetworkOnly API bypass");
+    gate7Pass = false;
+    totalErrors++;
+  }
+}
+
+for (const storefront of STOREFRONT_HTML_FILES) {
+  const html = fs.readFileSync(storefront, "utf8");
+  if (!html.includes('rel="manifest"') || !html.includes("/manifest.webmanifest")) {
+    console.error('  ❌ storefront missing <link rel="manifest" href="/manifest.webmanifest">');
+    gate7Pass = false;
+    totalErrors++;
+  }
+  if (!html.includes("/sw.js") || !/serviceWorker\s*\.\s*register/.test(html)) {
+    console.error("  ❌ storefront missing serviceWorker registration for /sw.js");
+    gate7Pass = false;
+    totalErrors++;
+  }
+  if (!html.includes("beforeinstallprompt") || !html.includes("pwaInstallBtn")) {
+    console.error("  ❌ storefront missing PWA install affordance and beforeinstallprompt handler");
+    gate7Pass = false;
+    totalErrors++;
+  }
+}
+
+if (gate7Pass)
+  console.log(
+    "  ✅ PWA manifest, Service Worker caching strategies, and install affordance verified.\n"
+  );
+
 console.log("======================================================");
 if (totalErrors === 0) {
   console.log("🎉 [PASS] All Beelal UI/UX Quality Gates PASSED with 0 errors.");

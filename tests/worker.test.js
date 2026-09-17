@@ -112,6 +112,39 @@ describe("Router — security & middleware", () => {
     expect(calledUrl.pathname).toBe("/index-v2.html");
     expect(calledUrl.search).toBe("?table=5&ref=qr");
   });
+
+  it("serves /sw.js with correct MIME, no-cache, and Service-Worker-Allowed headers", async () => {
+    const env = makeEnv({
+      ASSETS: {
+        fetch: vi.fn().mockResolvedValue(new Response("console.log('sw');", { status: 200 }))
+      }
+    });
+    const res = await worker.fetch(new Request("https://example.com/sw.js"), env, makeCtx());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("application/javascript");
+    expect(res.headers.get("Cache-Control")).toContain("no-cache");
+    expect(res.headers.get("Service-Worker-Allowed")).toBe("/");
+  });
+
+  it("serves /manifest.webmanifest with correct MIME and caching headers", async () => {
+    const env = makeEnv({
+      ASSETS: {
+        fetch: vi
+          .fn()
+          .mockResolvedValue(
+            new Response(JSON.stringify({ name: "Beelal Coffee" }), { status: 200 })
+          )
+      }
+    });
+    const res = await worker.fetch(
+      new Request("https://example.com/manifest.webmanifest"),
+      env,
+      makeCtx()
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toContain("application/manifest+json");
+    expect(res.headers.get("Cache-Control")).toContain("public");
+  });
 });
 
 // ── Disabled Gemini Parser ────────────────────────────────────────────────────

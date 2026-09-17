@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e120a" />
+      <stop offset="50%" stop-color="#140a05" />
+      <stop offset="100%" stop-color="#090402" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="35%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="steamGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background container -->
+  <rect width="512" height="512" rx="108" fill="url(#bgGrad)" />
+
+  <rect x="12" y="12" width="488" height="488" rx="98" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-opacity="0.28" />
+
+  <!-- Graphic group -->
+  <g transform="translate(30.72, 30.72) scale(0.88)">
+    <!-- Steam waves -->
+    <path d="M 216 110 C 206 140 226 160 216 190" fill="none" stroke="url(#steamGrad)" stroke-width="10" stroke-linecap="round" />
+    <path d="M 256 90 C 242 125 270 150 256 185" fill="none" stroke="url(#steamGrad)" stroke-width="12" stroke-linecap="round" />
+    <path d="M 296 110 C 286 140 306 160 296 190" fill="none" stroke="url(#steamGrad)" stroke-width="10" stroke-linecap="round" />
+
+    <!-- Coffee Saucer -->
+    <ellipse cx="256" cy="405" rx="145" ry="24" fill="#0d0603" stroke="url(#goldGrad)" stroke-width="6" />
+
+    <!-- Cup Shadow -->
+    <ellipse cx="256" cy="385" rx="110" ry="16" fill="rgba(0,0,0,0.5)" />
+
+    <!-- Cup Body -->
+    <path d="M 160 215 L 352 215 C 348 335 320 375 256 375 C 192 375 164 335 160 215 Z" fill="#1b1008" stroke="url(#goldGrad)" stroke-width="8" stroke-linejoin="round" />
+
+    <!-- Cup Rim Ellipse -->
+    <ellipse cx="256" cy="215" rx="96" ry="22" fill="#2d1a0d" stroke="url(#goldGrad)" stroke-width="7" />
+
+    <!-- Crema / Coffee Surface -->
+    <ellipse cx="256" cy="215" rx="86" ry="16" fill="#78350f" />
+    <ellipse cx="252" cy="214" rx="72" ry="12" fill="#92400e" opacity="0.8" />
+    <ellipse cx="248" cy="213" rx="50" ry="8" fill="#d97706" opacity="0.6" />
+
+    <!-- Cup Handle -->
+    <path d="M 345 240 C 410 240 415 330 338 340" fill="none" stroke="url(#goldGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Monogram "B" on Cup -->
+    <text x="256" y="322" font-family="'Playfair Display', Georgia, serif" font-size="64" font-weight="900" fill="url(#goldGrad)" text-anchor="middle" letter-spacing="1">B</text>
+  </g>
+</svg>

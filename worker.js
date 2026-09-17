@@ -134,6 +134,31 @@ export default {
       return env.ASSETS.fetch(v2Url);
     }
 
+    if (url.pathname === "/sw.js") {
+      const assetRes = await env.ASSETS.fetch(request);
+      const headers = new Headers(assetRes.headers);
+      headers.set("Content-Type", "application/javascript; charset=utf-8");
+      headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+      headers.set("Service-Worker-Allowed", "/");
+      return new Response(assetRes.body, {
+        status: assetRes.status,
+        statusText: assetRes.statusText,
+        headers
+      });
+    }
+
+    if (url.pathname === "/manifest.webmanifest") {
+      const assetRes = await env.ASSETS.fetch(request);
+      const headers = new Headers(assetRes.headers);
+      headers.set("Content-Type", "application/manifest+json; charset=utf-8");
+      headers.set("Cache-Control", "public, max-age=3600");
+      return new Response(assetRes.body, {
+        status: assetRes.status,
+        statusText: assetRes.statusText,
+        headers
+      });
+    }
+
     return env.ASSETS.fetch(request);
   },
 

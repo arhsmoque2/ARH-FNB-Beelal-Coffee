@@ -91,6 +91,14 @@ async function run() {
 
   await checkRoute("/guide.html", [200]);
   await checkRoute("/dev-console.html", [200]);
+  await checkRoute("/manifest.webmanifest", [200], (text) => {
+    if (!text.includes("Beelal Coffee")) return "Missing PWA app name";
+    if (!text.includes("standalone")) return "Missing standalone display mode";
+  });
+  await checkRoute("/sw.js", [200], (text) => {
+    if (!text.includes("CACHE_VERSION") && !text.includes("SHELL_CACHE"))
+      return "Invalid Service Worker script";
+  });
 
   console.log("\n--- 2. Database & State Authority (Firebase RTDB) ---");
   const fbUrl =

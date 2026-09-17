@@ -3,13 +3,13 @@ export default {
   entry: [
     "config.js",
     "worker.js",
+    "sw.js",
     "migrate-photos.js",
     "billing-ledger/src/index.js",
     "src/pure/**/*.js",
     "_qa/**/*.mjs",
-    "scripts/**/*.js"
+    "scripts/**/*.{js,mjs}"
   ],
   project: ["**/*.{js,mjs,cjs}"],
-  ignore: ["coverage/**"],
   ignoreDependencies: ["@commitlint/cli", "lint-staged"]
 };

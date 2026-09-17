@@ -4,6 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="theme-color" content="#f8fafc">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Beelal Coffee">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>FnB Menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1175,6 +1182,35 @@
       box-shadow: none;
     }
 
+    .install-pwa-btn {
+      min-width: 86px;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all .2s ease;
+      box-shadow: none;
+    }
+    .install-pwa-btn:hover {
+      background: var(--brand);
+      color: #fff;
+    }
+    html[data-mode="night"] .install-pwa-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
     .cart-top,
     .toggle-btn.active,
     .add-btn {
@@ -1919,6 +1955,53 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+    .pwa-banner {
+      position: fixed;
+      bottom: 84px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(440px, calc(100% - 32px));
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.15);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 99;
+      animation: pwaSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes pwaSlideUp {
+      from { transform: translate(-50%, 20px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .pwa-banner.hidden { display: none !important; }
+    .pwa-banner-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+    .pwa-banner-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; }
+    .pwa-banner-text { display: flex; flex-direction: column; min-width: 0; }
+    .pwa-banner-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .pwa-banner-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pwa-banner-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .pwa-banner-install {
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .pwa-banner-dismiss {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+    }
     .qr-copy-btn {
       background: transparent;
       border: 1px dashed var(--line);
@@ -1955,6 +2038,7 @@
         </div>
       </a>
       <div class="top-actions">
+        <button class="install-pwa-btn" id="pwaInstallBtn" type="button" aria-label="Install Beelal App" style="display:none">📲 Install</button>
         <button class="ambience-toggle lang-toggle" id="langToggle" type="button" aria-label="Switch language" onclick="setLang(_lang==='bm'?'en':'bm')" style="display:none">EN</button>
         <button class="ambience-toggle" id="ambienceToggle" type="button" aria-label="Switch light and night mode" aria-pressed="false">Light</button>
         <span class="chip" id="statusChip">Checking hours</span>
@@ -1964,6 +2048,20 @@
   </header>
 
   <div id="closedBanner" class="closed-banner hidden" role="status" aria-live="polite"></div>
+
+  <div class="pwa-banner hidden" id="pwaInstallBanner" role="region" aria-label="Install App Prompt">
+    <div class="pwa-banner-left">
+      <img class="pwa-banner-icon" src="/icons/icon-192.png" alt="Beelal Coffee" width="38" height="38">
+      <div class="pwa-banner-text">
+        <span class="pwa-banner-title">Install Beelal Coffee App</span>
+        <span class="pwa-banner-sub">Fast offline menu & 1-tap ordering</span>
+      </div>
+    </div>
+    <div class="pwa-banner-actions">
+      <button class="pwa-banner-install" id="pwaBannerInstallBtn" type="button">Install</button>
+      <button class="pwa-banner-dismiss" id="pwaBannerDismissBtn" type="button" aria-label="Dismiss banner">✕</button>
+    </div>
+  </div>
 
   <main id="top">
     <section class="shell hero">
@@ -4362,6 +4460,94 @@
         document.body.appendChild(badge);
       }
     })();
+
+    // ── PWA: Service Worker Registration & Install Prompt Management ──
+    let deferredInstallPrompt = null;
+
+    function initPwa() {
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js", { scope: "/" }).then(reg => {
+              reg.addEventListener("updatefound", () => {
+                const installing = reg.installing;
+                if (installing) {
+                  installing.addEventListener("statechange", () => {
+                    if (installing.state === "installed" && navigator.serviceWorker.controller) {
+                      showToast("New menu version ready. Refresh to update!");
+                    }
+                  });
+                }
+              });
+            })
+            .catch(err => {
+              console.warn("[PWA] Service Worker registration failed:", err);
+            });
+        });
+      }
+
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+
+      const installBtn = document.getElementById("pwaInstallBtn");
+      const installBanner = document.getElementById("pwaInstallBanner");
+      const bannerInstallBtn = document.getElementById("pwaBannerInstallBtn");
+      const bannerDismissBtn = document.getElementById("pwaBannerDismissBtn");
+
+      function hidePrompts() {
+        if (installBtn) installBtn.style.display = "none";
+        if (installBanner) installBanner.classList.add("hidden");
+      }
+
+      window.addEventListener("beforeinstallprompt", event => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+
+        if (!isStandalone) {
+          if (installBtn) installBtn.style.display = "inline-flex";
+          const dismissed = sessionStorage.getItem("pwa_prompt_dismissed");
+          if (installBanner && !dismissed) {
+            installBanner.classList.remove("hidden");
+          }
+        }
+      });
+
+      async function triggerInstall() {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        try {
+          const choice = await deferredInstallPrompt.userChoice;
+          if (choice && choice.outcome === "accepted") {
+            showToast("Installing Beelal Coffee App... ☕");
+          }
+        } catch (e) {
+          console.warn("[PWA] Install prompt error:", e);
+        }
+        deferredInstallPrompt = null;
+        hidePrompts();
+      }
+
+      if (installBtn) {
+        installBtn.addEventListener("click", triggerInstall);
+      }
+      if (bannerInstallBtn) {
+        bannerInstallBtn.addEventListener("click", triggerInstall);
+      }
+      if (bannerDismissBtn) {
+        bannerDismissBtn.addEventListener("click", () => {
+          sessionStorage.setItem("pwa_prompt_dismissed", "1");
+          if (installBanner) installBanner.classList.add("hidden");
+        });
+      }
+
+      window.addEventListener("appinstalled", () => {
+        deferredInstallPrompt = null;
+        hidePrompts();
+        showToast("Beelal Coffee app installed successfully! ☕");
+      });
+    }
+
+    initPwa();
 
     init().catch(() => {
       const ldr = document.getElementById("loader");
