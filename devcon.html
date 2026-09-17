@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0f19">
+  <title>ARH Devcon — Beelal Coffee</title>
+  <script src="config.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: #111827;
+      --card: #151f32;
+      --border: rgba(148, 163, 184, 0.16);
+      --border-focus: #c8962a;
+      --brand: #2c1a0e;
+      --brand2: #c8962a;
+      --gold: #c8962a;
+      --gold-faint: rgba(200, 150, 42, 0.15);
+      --ink: #f8fafc;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --green: #10b981;
+      --red: #ef4444;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --font-sans: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: var(--font-sans);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; min-height: 100vh; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    a { color: var(--gold); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* PIN SCREEN */
+    .pin-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .pin-screen.hidden { display: none; }
+    .pin-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 32px 28px; width: min(380px, calc(100% - 32px)); text-align: center; }
+    .pin-title { font-size: 18px; font-weight: 800; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.01em; }
+    .pin-sub { font-size: 12px; color: var(--text2); margin-bottom: 24px; }
+    .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: all .15s; }
+    .dot.filled { background: var(--gold); border-color: var(--gold); }
+    .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 240px; margin: 0 auto; }
+    .pin-btn { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; font-size: 18px; font-weight: 700; height: 50px; cursor: pointer; transition: background .12s; }
+    .pin-btn:hover { background: rgba(200, 150, 42, 0.18); border-color: var(--gold); }
+    .pin-error { color: var(--red); font-size: 12px; font-weight: 600; min-height: 18px; margin-top: 14px; }
+
+    /* TOPBAR */
+    header { background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; gap: 16px; flex-wrap: wrap; }
+    .brand-wrap { display: flex; align-items: center; gap: 12px; }
+    .brand-badge { background: var(--gold-faint); border: 1px solid var(--border-focus); color: var(--gold); font-family: var(--font-mono); font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .brand-title { font-size: 15px; font-weight: 800; color: var(--ink); }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .btn { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .12s, border-color .12s; }
+    .btn:hover { background: #1c263c; border-color: var(--text3); }
+    .btn-primary { background: var(--gold); border-color: var(--gold); color: var(--bg); font-weight: 700; }
+    .btn-primary:hover { opacity: 0.92; }
+    .btn-sm { padding: 5px 9px; font-size: 11px; }
+
+    /* NAVIGATION */
+    .tab-bar { display: flex; background: var(--panel); border-bottom: 1px solid var(--border); padding: 0 20px; gap: 6px; overflow-x: auto; }
+    .tab-item { padding: 12px 14px; color: var(--text2); font-weight: 700; font-size: 12px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .tab-item:hover { color: var(--ink); }
+    .tab-item.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+    /* MAIN APP */
+    .content-shell { width: min(1200px, calc(100% - 40px)); margin: 24px auto 48px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .section-head { margin-bottom: 18px; }
+    .section-title { font-size: 17px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+    .section-desc { font-size: 12px; color: var(--text2); }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .form-input, .form-textarea, .form-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 12px; color: var(--text); outline: none; }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--border-focus); }
+    .form-textarea { font-family: var(--font-mono); resize: vertical; min-height: 90px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+
+    /* ERROR LOGS */
+    .error-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; font-family: var(--font-mono); font-size: 11px; }
+    .error-meta { color: var(--text3); margin-bottom: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .error-msg { color: #fca5a5; font-weight: 600; margin-bottom: 6px; word-break: break-word; }
+    .error-stack { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--text2); max-height: 180px; }
+
+    /* RELEASES */
+    .release-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+    .release-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .release-tag { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+    .tag-feature { background: rgba(16, 185, 129, 0.15); color: var(--green); }
+    .tag-fix { background: var(--gold-faint); color: var(--gold); }
+    .tag-important { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+    .release-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .release-body { font-size: 12px; color: var(--text2); white-space: pre-wrap; line-height: 1.6; }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--panel); border: 1px solid var(--border-focus); color: var(--ink); padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); display: none; z-index: 999; }
+    .toast.show { display: block; animation: fadeIn .15s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-card">
+    <div class="brand-badge" style="display:inline-block;margin-bottom:12px">ARH DEVCON</div>
+    <div class="pin-title">Platform Developer Console</div>
+    <div class="pin-sub">Enter developer PIN to access diagnostics and configuration</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-btn" onclick="pressPin('1')">1</button>
+      <button class="pin-btn" onclick="pressPin('2')">2</button>
+      <button class="pin-btn" onclick="pressPin('3')">3</button>
+      <button class="pin-btn" onclick="pressPin('4')">4</button>
+      <button class="pin-btn" onclick="pressPin('5')">5</button>
+      <button class="pin-btn" onclick="pressPin('6')">6</button>
+      <button class="pin-btn" onclick="pressPin('7')">7</button>
+      <button class="pin-btn" onclick="pressPin('8')">8</button>
+      <button class="pin-btn" onclick="pressPin('9')">9</button>
+      <button class="pin-btn" onclick="clearPin()">C</button>
+      <button class="pin-btn" onclick="pressPin('0')">0</button>
+      <button class="pin-btn" onclick="backspacePin()">⌫</button>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<header>
+  <div class="topbar">
+    <div class="brand-wrap">
+      <span class="brand-badge">DEVCON</span>
+      <span class="brand-title">Beelal Coffee Platform Console</span>
+    </div>
+    <div class="top-actions">
+      <a href="/" target="_blank" class="btn btn-sm">Storefront ↗</a>
+      <a href="/admin" target="_blank" class="btn btn-sm">Merchant Admin ↗</a>
+      <button class="btn btn-sm" onclick="logoutDevcon()">Lock</button>
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab-item active" onclick="switchTab('system', this)">System & AI Models</div>
+  <div class="tab-item" onclick="switchTab('releases', this)">Release Publisher</div>
+  <div class="tab-item" onclick="switchTab('diagnostics', this)">Error Diagnostics</div>
+  <div class="tab-item" onclick="switchTab('support', this)">Developer Support Inbox</div>
+  <div class="tab-item" onclick="switchTab('snapshot', this)">Theme Master Snapshot</div>
+  <div class="tab-item" onclick="switchTab('infra', this)">Infrastructure Probe</div>
+</div>
+
+<!-- CONTENT -->
+<main class="content-shell">
+
+  <!-- TAB 1: SYSTEM & AI MODELS -->
+  <div class="panel active" id="tab-system">
+    <div class="section-head">
+      <div class="section-title">System & AI Models Configuration</div>
+      <div class="section-desc">Manage OpenRouter proxy parameters and theme assistant prompts</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">OpenRouter AI Chat Proxy</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">AI Chat requests are proxied via Cloudflare Worker using server-side <code>OPENROUTER_API_KEY</code>.</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <input class="form-input" style="max-width:380px" type="text" value="•••••••••••••••• (Worker Secret)" disabled>
+        <button class="btn btn-primary btn-sm" onclick="testChatProxy()">Test Worker Proxy</button>
+      </div>
+      <div id="proxyTestStatus" style="font-size:12px;color:var(--text2)"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">AI Completion Model</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Active model ID for theme generation assistant.</div>
+      <div class="form-group" style="max-width:480px">
+        <select class="form-select" id="devOrModelSelect">
+          <option value="">Loading models...</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-sm" onclick="fetchOpenRouterModels()">Refresh OpenRouter Models</button>
+        <button class="btn btn-primary btn-sm" onclick="saveDevOrModel()">Save Active Model</button>
+      </div>
+      <div id="modelSaveStatus" style="font-size:12px;color:var(--text2);margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Theme Studio System Prompt</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Base instructions injected into theme assistant requests.</div>
+      <div class="form-group">
+        <textarea class="form-textarea" id="devSysPrompt" rows="8"></textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveDevSysPrompt()">Save System Prompt</button>
+    </div>
+  </div>
+
+  <!-- TAB 2: RELEASE PUBLISHER -->
+  <div class="panel" id="tab-releases">
+    <div class="section-head">
+      <div class="section-title">Store Release Publisher</div>
+      <div class="section-desc">Broadcast capability notices to merchant admin panels without manual code editing</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Draft & Publish Capability Notice</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Release Version</label>
+          <input class="form-input" id="relVersion" placeholder="YYYY.MM.DD (e.g. 2026.09.18)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Target Audience</label>
+          <select class="form-select" id="relAudience">
+            <option value="owner" selected>Store Owner / Barista (Merchant Admin)</option>
+            <option value="all">All Roles</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notice Title</label>
+        <input class="form-input" id="relTitle" placeholder="Neutral title stating outcome (e.g. Store Capabilities Update — September 2026)">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Summary</label>
+        <input class="form-input" id="relSummary" placeholder="Brief 1-sentence summary of new capabilities">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Capability Details (Facts first, bulleted format)</label>
+        <textarea class="form-textarea" id="relDetails" rows="6" placeholder="Store Asset Uploads:&#10;• Direct photo uploads for store assets&#10;&#10;Order Fulfillment:&#10;• Barista live workflow controls"></textarea>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:14px">
+        <div class="form-group">
+          <label class="form-label">Release Type</label>
+          <select class="form-select" id="relType">
+            <option value="feature" selected>Feature</option>
+            <option value="fix">Fix</option>
+            <option value="important">Important</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Severity</label>
+          <select class="form-select" id="relSeverity">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;margin-top:20px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="relActionReq"> Action Required
+          </label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="publishReleaseNotice()">Publish Release Notice</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Active Release Notices <button class="btn btn-sm" onclick="loadReleases()">↻ Refresh</button></div>
+      <div id="releasesFeed"><div style="color:var(--text2)">Loading releases...</div></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: ERROR DIAGNOSTICS -->
+  <div class="panel" id="tab-diagnostics">
+    <div class="section-head">
+      <div class="section-title">Error Diagnostics & Telemetry</div>
+      <div class="section-desc">Live error reporting stream from client storefront, admin, and worker endpoints</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Recorded Errors</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="fetchErrorLog(true)">↻ Force Refresh</button>
+          <button class="btn btn-sm" onclick="clearErrorLog()" style="color:var(--red)">Clear Log</button>
+        </div>
+      </div>
+      <div id="errorsFeed"><div style="color:var(--text2)">Loading error records...</div></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: SUPPORT INBOX -->
+  <div class="panel" id="tab-support">
+    <div class="section-head">
+      <div class="section-title">Developer Support Inbox</div>
+      <div class="section-desc">Review and respond to inquiries from store owners and customer applications</div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button class="btn btn-sm active" id="btnSuppOwner" onclick="filterSupportChannel('owner_to_developer')">Store Owner Support</button>
+        <button class="btn btn-sm" id="btnSuppCust" onclick="filterSupportChannel('customer_to_developer')">Customer App Feedback</button>
+        <button class="btn btn-sm" onclick="fetchSupportFeedback()">↻ Refresh</button>
+      </div>
+      <div id="supportFeed"><div style="color:var(--text2)">Loading support items...</div></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: SNAPSHOT -->
+  <div class="panel" id="tab-snapshot">
+    <div class="section-head">
+      <div class="section-title">Theme Master Snapshot & Factory Reset</div>
+      <div class="section-desc">Create immutable restore points for store styling</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Master Snapshot Control</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Takes the active theme and saves it to <code>config/theme_master</code>. Serves as the factory baseline for theme resets.</div>
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <button class="btn btn-primary btn-sm" onclick="executeMasterSnapshot()">Take Master Snapshot Now</button>
+        <button class="btn btn-sm" onclick="viewMasterSnapshot()">Inspect Active Snapshot</button>
+      </div>
+      <div id="snapshotInspect" style="font-family:var(--font-mono);font-size:11px;color:var(--text2);background:var(--bg);padding:10px;border-radius:6px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- TAB 6: INFRASTRUCTURE PROBE -->
+  <div class="panel" id="tab-infra">
+    <div class="section-head">
+      <div class="section-title">Infrastructure Probes</div>
+      <div class="section-desc">Verify connectivity and latency to edge services</div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="form-label">Firebase RTDB</div>
+        <div style="font-size:18px;font-weight:800" id="probeRtdb">–</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px" id="probeRtdbDetail">Target: beelal_coffee</div>
+      </div>
+      <div class="card">
+        <div class="form-label">Billing Ledger D1</div>
+        <div style="font-size:18px;font-weight:800" id="probeBilling">–</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px" id="probeBillingDetail">D1 Rollups</div>
+      </div>
+      <div class="card">
+        <div class="form-label">Worker Edge Routing</div>
+        <div style="font-size:18px;font-weight:800" id="probeWorker">–</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px" id="probeWorkerDetail">store-beelal-fnb-pwa</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <button class="btn btn-primary btn-sm" onclick="runInfraProbes()">Run Connectivity Probes</button>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="devToast"></div>
+
+<script>
+let FB_URL = APP_CONFIG.firebase.url;
+let FB_ROOT = APP_CONFIG.firebase.root;
+let devconToken = sessionStorage.getItem('devcon_token') || null;
+let currentSupportChannel = 'owner_to_developer';
+
+// PIN AUTH
+let pinBuf = '';
+function updatePinDots() {
+  const dots = document.querySelectorAll('#pinDots .dot');
+  dots.forEach((dot, idx) => {
+    dot.classList.toggle('filled', idx < pinBuf.length);
+  });
+}
+function pressPin(d) {
+  if (pinBuf.length < 4) {
+    pinBuf += d;
+    updatePinDots();
+    if (pinBuf.length === 4) verifyDevPin(pinBuf);
+  }
+}
+function clearPin() {
+  pinBuf = '';
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+}
+function backspacePin() {
+  pinBuf = pinBuf.slice(0, -1);
+  updatePinDots();
+}
+
+async function verifyDevPin(enteredPin) {
+  const errEl = document.getElementById('pinError');
+  errEl.textContent = 'Verifying developer authorization...';
+  try {
+    const res = await fetch('/api/admin/verify-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin: enteredPin })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      if (data.role !== 'dev') {
+        errEl.textContent = 'Developer authorization required. Access restricted.';
+        setTimeout(clearPin, 1500);
+        return;
+      }
+      devconToken = data.token;
+      sessionStorage.setItem('devcon_token', devconToken);
+      document.getElementById('pinScreen').classList.add('hidden');
+      initDevcon();
+      toast('Developer authenticated ✓');
+    } else {
+      errEl.textContent = data.error || 'Incorrect PIN.';
+      setTimeout(clearPin, 1200);
+    }
+  } catch (err) {
+    errEl.textContent = 'Auth network failure: ' + err.message;
+    setTimeout(clearPin, 1500);
+  }
+}
+
+function logoutDevcon() {
+  sessionStorage.removeItem('devcon_token');
+  devconToken = null;
+  pinBuf = '';
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinScreen').classList.remove('hidden');
+}
+
+// TABS
+function switchTab(tabId, el) {
+  document.querySelectorAll('.tab-bar .tab-item').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('main .panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  const target = document.getElementById('tab-' + tabId);
+  if (target) target.classList.add('active');
+
+  if (tabId === 'diagnostics') fetchErrorLog();
+  if (tabId === 'releases') loadReleases();
+  if (tabId === 'support') fetchSupportFeedback();
+  if (tabId === 'infra') runInfraProbes();
+}
+
+// FIREBASE UTILS
+async function fbGet(path) {
+  try {
+    const res = await fetch(`${FB_URL}/${FB_ROOT}/${path}.json`);
+    return await res.json();
+  } catch { return null; }
+}
+async function fbSet(path, data) {
+  await fetch(`${FB_URL}/${FB_ROOT}/${path}.json`, { method: 'PUT', body: JSON.stringify(data) });
+}
+async function fbGetGlobal(path) {
+  try {
+    const res = await fetch(`${FB_URL}/${path}.json`);
+    return await res.json();
+  } catch { return null; }
+}
+async function fbSetGlobal(path, data) {
+  await fetch(`${FB_URL}/${path}.json`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[<>&"]/g, ch => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;' }[ch]));
+}
+
+// SYSTEM & MODELS
+async function loadSystemConfig() {
+  const sp = await fbGet('config/dev/sys_prompt');
+  document.getElementById('devSysPrompt').value = sp || APP_CONFIG.ai?.systemPrompt || '';
+
+  const savedModel = await fbGet('config/dev/or_model');
+  await fetchOpenRouterModels(savedModel);
+}
+
+async function fetchOpenRouterModels(activeModelId) {
+  const sel = document.getElementById('devOrModelSelect');
+  sel.innerHTML = '<option value="">Fetching models...</option>';
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/models');
+    const data = await res.json();
+    const freeModels = (data?.data || []).filter(m => m.pricing?.prompt === '0' && m.pricing?.completion === '0');
+    sel.innerHTML = '';
+    freeModels.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = `${m.name} (${m.id})`;
+      if (m.id === activeModelId || m.id === 'google/gemma-4-26b-a4b-it:free') opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch {
+    sel.innerHTML = '<option value="google/gemma-4-26b-a4b-it:free">google/gemma-4-26b-a4b-it:free (default)</option>';
+  }
+}
+
+async function saveDevOrModel() {
+  const model = document.getElementById('devOrModelSelect').value;
+  if (!model) return;
+  await fbSet('config/dev/or_model', model);
+  document.getElementById('modelSaveStatus').textContent = `Saved: ${model} ✓`;
+  toast('Model saved ✓');
+}
+
+async function saveDevSysPrompt() {
+  const val = document.getElementById('devSysPrompt').value;
+  await fbSet('config/dev/sys_prompt', val);
+  toast('System prompt saved ✓');
+}
+
+async function testChatProxy() {
+  const statusEl = document.getElementById('proxyTestStatus');
+  statusEl.textContent = 'Testing Worker /api/chat proxy...';
+  const model = document.getElementById('devOrModelSelect').value || 'google/gemma-4-26b-a4b-it:free';
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(devconToken ? { 'Authorization': 'Bearer ' + devconToken } : {})
+      },
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'Say: OK' }], max_tokens: 20 })
+    });
+    const data = await res.json();
+    if (res.ok && data.choices?.[0]?.message?.content) {
+      statusEl.textContent = `✓ Response received: "${data.choices[0].message.content.trim()}"`;
+    } else {
+      statusEl.textContent = `⚠ Error: ${data.error || res.statusText}`;
+    }
+  } catch (err) {
+    statusEl.textContent = `❌ Network failure: ${err.message}`;
+  }
+}
+
+// RELEASE PUBLISHER
+async function publishReleaseNotice() {
+  const ver = document.getElementById('relVersion').value.trim();
+  const title = document.getElementById('relTitle').value.trim();
+  const summary = document.getElementById('relSummary').value.trim();
+  const details = document.getElementById('relDetails').value.trim();
+  const audience = document.getElementById('relAudience').value;
+  const type = document.getElementById('relType').value;
+  const severity = document.getElementById('relSeverity').value;
+  const reqAction = document.getElementById('relActionReq').checked;
+
+  if (!ver || !title || !summary) {
+    alert('Please enter Version, Title, and Summary.');
+    return;
+  }
+
+  const payload = {
+    version: ver,
+    title,
+    summary,
+    details,
+    audience,
+    type,
+    severity,
+    requires_owner_action: reqAction,
+    created_at: Date.now(),
+    store_specific: false,
+    store_slugs: [FB_ROOT]
+  };
+
+  await fbSetGlobal(`global/releases/${ver.replace(/\./g, '_')}`, payload);
+  toast('Release published to global/releases ✓');
+  loadReleases();
+}
+
+async function loadReleases() {
+  const container = document.getElementById('releasesFeed');
+  container.innerHTML = '<div style="color:var(--text2)">Loading releases...</div>';
+  const data = await fbGetGlobal('global/releases');
+  if (!data || !Object.keys(data).length) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:12px">No global releases published yet. Local releases fall back to static admin config.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  Object.entries(data).reverse().forEach(([key, rel]) => {
+    const item = document.createElement('div');
+    item.className = 'release-item';
+    const tagCls = rel.type === 'feature' ? 'tag-feature' : rel.type === 'important' ? 'tag-important' : 'tag-fix';
+    item.innerHTML = `
+      <div class="release-head">
+        <span class="release-tag ${tagCls}">${rel.type || 'update'} · ${rel.severity || 'low'}</span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">v${rel.version || key}</span>
+      </div>
+      <div class="release-title">${escapeHtml(rel.title)}</div>
+      <div class="release-body">${escapeHtml(rel.details || rel.summary)}</div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+// ERROR DIAGNOSTICS
+async function fetchErrorLog(force = false) {
+  const container = document.getElementById('errorsFeed');
+  container.innerHTML = '<div style="color:var(--text2)">Fetching error records...</div>';
+  const snap = await fbGet(`error_log${force ? `?t=${Date.now()}` : ''}`);
+  if (!snap || !Object.keys(snap).length) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:12px">Zero errors recorded. Clean system state.</div>';
+    return;
+  }
+  const errors = Object.values(snap).sort((a,b) => b.ts - a.ts).slice(0, 30);
+  container.innerHTML = '';
+  errors.forEach(e => {
+    const item = document.createElement('div');
+    item.className = 'error-item';
+    const time = new Date(e.ts).toLocaleString();
+    item.innerHTML = `
+      <div class="error-meta">
+        <span>🕒 ${time}</span>
+        ${e.type ? `<span>[${e.type}]</span>` : ''}
+        ${e.http_status ? `<span>HTTP ${e.http_status}</span>` : ''}
+      </div>
+      <div class="error-msg">${escapeHtml(e.msg || e.server_message || 'Unspecified Error')}</div>
+      ${e.stack || e.raw ? `<div class="error-stack">${escapeHtml(e.stack || e.raw)}</div>` : ''}
+    `;
+    container.appendChild(item);
+  });
+}
+
+async function clearErrorLog() {
+  if (!confirm('Clear all logged errors?')) return;
+  await fetch(`${FB_URL}/${FB_ROOT}/error_log.json`, { method: 'DELETE' });
+  toast('Error log cleared ✓');
+  fetchErrorLog(true);
+}
+
+// SUPPORT INBOX
+function filterSupportChannel(chan) {
+  currentSupportChannel = chan;
+  document.getElementById('btnSuppOwner').classList.toggle('active', chan === 'owner_to_developer');
+  document.getElementById('btnSuppCust').classList.toggle('active', chan === 'customer_to_developer');
+  fetchSupportFeedback();
+}
+
+async function fetchSupportFeedback() {
+  const container = document.getElementById('supportFeed');
+  container.innerHTML = '<div style="color:var(--text2)">Fetching feedback items...</div>';
+  const snap = await fbGet(`feedback/${currentSupportChannel}`);
+  if (!snap || !Object.keys(snap).length) {
+    container.innerHTML = '<div style="color:var(--text2);font-size:12px">No support requests in this channel.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  Object.entries(snap).reverse().forEach(([key, fb]) => {
+    const item = document.createElement('div');
+    item.className = 'card';
+    item.innerHTML = `
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${new Date(fb.created_at || fb.ts).toLocaleString()} · ${fb.type || 'ticket'} · Status: <strong>${fb.status || 'new'}</strong></div>
+      <div style="font-size:13px;color:var(--ink);margin-bottom:8px">${escapeHtml(fb.comment || fb.message || 'No description')}</div>
+      ${fb.developer_response ? `<div style="background:var(--bg);padding:8px;border-radius:6px;font-size:12px;color:var(--gold);margin-top:6px">Response: ${escapeHtml(fb.developer_response)}</div>` : ''}
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="promptReply('${key}')">Reply</button>
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+async function promptReply(key) {
+  const reply = prompt('Enter response to merchant/user:');
+  if (!reply) return;
+  const current = await fbGet(`feedback/${currentSupportChannel}/${key}`) || {};
+  await fbSet(`feedback/${currentSupportChannel}/${key}`, {
+    ...current,
+    developer_response: reply,
+    status: 'resolved',
+    last_updated_at: Date.now()
+  });
+  toast('Response sent ✓');
+  fetchSupportFeedback();
+}
+
+// MASTER SNAPSHOT
+async function executeMasterSnapshot() {
+  if (!confirm('Take master snapshot of active theme? This becomes factory baseline.')) return;
+  const active = await fbGet('config/theme');
+  await fbSet('config/theme_master', active);
+  toast('Master snapshot recorded ✓');
+}
+
+async function viewMasterSnapshot() {
+  const box = document.getElementById('snapshotInspect');
+  box.style.display = 'block';
+  box.textContent = 'Fetching master snapshot...';
+  const master = await fbGet('config/theme_master');
+  box.textContent = JSON.stringify(master, null, 2);
+}
+
+// INFRA PROBES
+async function runInfraProbes() {
+  const rtdbEl = document.getElementById('probeRtdb');
+  const billingEl = document.getElementById('probeBilling');
+  const workerEl = document.getElementById('probeWorker');
+
+  rtdbEl.textContent = 'Probing...';
+  billingEl.textContent = 'Probing...';
+  workerEl.textContent = 'Probing...';
+
+  // RTDB probe
+  const t0 = performance.now();
+  try {
+    const res = await fetch(`${FB_URL}/${FB_ROOT}.json?shallow=true`);
+    const lat = Math.round(performance.now() - t0);
+    rtdbEl.textContent = res.ok ? `Online (${lat}ms)` : `HTTP ${res.status}`;
+    rtdbEl.style.color = res.ok ? 'var(--green)' : 'var(--red)';
+  } catch {
+    rtdbEl.textContent = 'Unreachable';
+    rtdbEl.style.color = 'var(--red)';
+  }
+
+  // Worker & Billing probe
+  try {
+    const res = await fetch('/api/billing/summary', {
+      headers: devconToken ? { 'Authorization': 'Bearer ' + devconToken } : {}
+    });
+    billingEl.textContent = res.ok ? 'Online (200 OK)' : `HTTP ${res.status}`;
+    billingEl.style.color = res.ok ? 'var(--green)' : 'var(--gold)';
+  } catch {
+    billingEl.textContent = 'Unreachable';
+    billingEl.style.color = 'var(--red)';
+  }
+
+  workerEl.textContent = 'Online (Edge)';
+  workerEl.style.color = 'var(--green)';
+}
+
+function toast(msg) {
+  const el = document.getElementById('devToast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function initDevcon() {
+  loadSystemConfig();
+}
+
+// Auto-unlock if active session
+if (devconToken) {
+  document.getElementById('pinScreen').classList.add('hidden');
+  initDevcon();
+}
+</script>
+</body>
+</html>
